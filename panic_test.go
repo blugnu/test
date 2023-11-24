@@ -6,31 +6,47 @@ import (
 	"testing"
 )
 
-func TestExpectPanic(t *testing.T) {
+func TestExpectedPanic(t *testing.T) {
 	// ARRANGE
 	err := errors.New("error")
 
-	// ACT
-	got := ExpectPanic(err)
+	// ARRANGE
+	testcases := []struct {
+		name   string
+		arg    error
+		result *Panic
+	}{
+		{name: "nil argument", arg: nil, result: nil},
+		{name: "non-nil argument", arg: err, result: &Panic{err}},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			// ACT
+			got := ExpectPanic(tc.arg)
 
-	// ASSERT
-	t.Run("returns", func(t *testing.T) {
-		if got, ok := Type[*ExpectedPanic](t, got); ok {
-			t.Run("with error", func(t *testing.T) {
-				Equal(t, err, got.error)
-			})
-		}
-	})
+			// ASSERT
+			switch {
+			case tc.result == nil:
+				Equal(t, tc.result, got)
+			case got != nil:
+				t.Run("Panic with error", func(t *testing.T) {
+					Equal(t, tc.result.error, got.error)
+				})
+			default:
+				t.Errorf("\nwanted: %#v\ngot   : nil", tc.result)
+			}
+		})
+	}
 }
 
-func TestExpectedPanic(t *testing.T) {
+func TestPanic(t *testing.T) {
 	// ARRANGE
 	err := errors.New("panic")
 	werr := fmt.Errorf("wrapped: %w", err)
 
 	testcases := []struct {
 		name    string
-		sut     *ExpectedPanic
+		sut     *Panic
 		fn      func()
 		outcome any
 		output  any
@@ -65,7 +81,7 @@ func TestExpectedPanic(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// ACT
 			stdout, _ := Helper(t, func(st *testing.T) {
-				defer tc.sut.Assert(st)
+				defer tc.sut.IsRecovered(st)
 				tc.fn()
 			}, tc.outcome)
 

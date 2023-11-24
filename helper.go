@@ -12,13 +12,16 @@ type HelperResult bool
 const ShouldPass HelperResult = true
 const ShouldFail HelperResult = false
 
-// Helper runs a test helper function and compares the result to an
+// runs a test helper function and compares the result to an
 // expected outcome.  The expected outcome (want) must be ONE of
 // the following:
 //
 //   - test.ShouldPass
 //   - test.ShouldFail
-//   - *test.ExpectedPanic (see: test.Panic())
+//   - *test.Panic (see: test.ExpectPanic())
+//
+// The function returns `stdout` and `stderr` output captured
+// while the helper function is executed.
 //
 // Example:
 //
@@ -47,7 +50,7 @@ func Helper(t *testing.T, f func(st *testing.T), want any) (CapturedOutput, Capt
 		result = expected
 	case HelperResult:
 		result = bool(expected)
-	case *ExpectedPanic:
+	case *Panic:
 		err = expected.error
 	case nil: // no outcome specified
 		checkresult = false

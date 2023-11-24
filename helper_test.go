@@ -23,10 +23,10 @@ func TestHelper(t *testing.T) {
 	}
 	testcases := []struct {
 		name    string
-		args                   // args passed to the Helper() function under test
-		outcome any            // expected outcome of the Helper() used to test Helper()
-		panic   *ExpectedPanic // expected panic, if any
-		output  any            // expected output
+		args           // args passed to the Helper() function under test
+		outcome any    // expected outcome of the Helper() used to test Helper()
+		panic   *Panic // expected panic, if any
+		output  any    // expected output
 	}{
 		{name: "invalid outcome", args: args{func(st *testing.T) {}, 42}, outcome: ExpectPanic(ErrInvalidArgument)},
 		{name: "fail, no outcome", args: args{fn: func(st *testing.T) { st.Fail() }}, outcome: ShouldPass},
@@ -82,7 +82,7 @@ func TestHelper(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			// ARRANGE
-			defer tc.panic.Assert(t)
+			defer tc.panic.IsRecovered(t)
 
 			// HERE BE DRAGONS: the Helper test is used to test the Helper test
 			// (and capture the output from it)

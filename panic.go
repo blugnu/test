@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-// ExpectedPanic is used to test for panics.
-type ExpectedPanic struct {
+// Panic is used to test for panics.
+type Panic struct {
 	error
 }
 
-// Assert fails the test if the expected panic does not occur.
+// IsRecovered fails the test if the expected panic does not occur.
 //
 // The test will pass if:
 //
@@ -19,24 +19,24 @@ type ExpectedPanic struct {
 //     that satisfies errors.Is() with respect to the expected error
 //
 // Panics are tested by arranging an ExpectedPanic and then deferring
-// a call to Assert() in the test function.
+// a call to IsRecovered() in the test function.
 //
 // Example:
 //
 //	  func TestSomething(t *testing.T) {
 //		// ARRANGE
-//		defer test.ExpectPanic(err).Assert(t)
+//		defer test.ExpectPanic(err).IsRecovered(t)
 //
 //		// ACT
 //		doSomething()
 //	  }
 //
-// Assert may be called on a nil receiver and is equivalent to
-// calling Assert() on an ExpectedPanic with a nil error. This
+// IsRecovered may be called on a nil receiver and is equivalent to
+// calling IsRecovered() on a *Panic with a nil error. This
 // simplifies panic tests in data-driven tests where the expected
 // panic may be nil for some test cases (indicating no panic is
 // expected).
-func (e *ExpectedPanic) Assert(t *testing.T) {
+func (e *Panic) IsRecovered(t *testing.T) {
 	t.Helper()
 
 	r := recover()
@@ -55,7 +55,25 @@ func (e *ExpectedPanic) Assert(t *testing.T) {
 	}
 }
 
-// ExpectPanic returns an ExpectedPanic that can be used to test for panics.
-func ExpectPanic(err error) *ExpectedPanic {
-	return &ExpectedPanic{err}
+// ExpectPanic returns a *Panic that can be used to test that an expected
+// panic occured and recovered a specified error.
+//
+// The same test can be used to verify that no panic occured, by calling
+// the IsRecovered(t) method on a nil *Panic or passing nil as the error
+// argument to ExpectPanic (which will then return a nil *Panic).
+//
+// Example:
+//
+//	  func TestSomething(t *testing.T) {
+//		// ARRANGE
+//		defer test.ExpectPanic(err).IsRecovered(t)
+//
+//		// ACT
+//		doSomething()
+//	  }
+func ExpectPanic(err error) *Panic {
+	if err == nil {
+		return nil
+	}
+	return &Panic{err}
 }
