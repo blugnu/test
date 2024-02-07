@@ -17,55 +17,64 @@ type ErrorFormat string
 
 const (
 	errorFormatNotSet ErrorFormat = ""    // zero value for ErrorFormat, indicates not set
-	ErrorDefault      ErrorFormat = "%v"  // errors are printed using the default representation
-	ErrorString       ErrorFormat = "%s"  // errors are printed using their Error() string
-	ErrorDecl         ErrorFormat = "%#v" // errors are printed using their Go declaration
+	ErrorDefault      ErrorFormat = "%v"  // errors are printed using %v representation
+	ErrorString       ErrorFormat = "%s"  // errors are printed using %s (their Error() string)
+	ErrorDecl         ErrorFormat = "%#v" // errors are printed using %#v (Go declaration)
 )
 
-// ErrorIs fails the test if got does not satisfy errors.Is()
-// with respect to a wanted error:
+// provides methods for testing an error value.
+type ErrorTest struct {
+	testable[error]
+}
+
+// returns a value that may be used to apply tests to a specified error.  A name for
+// the error must be provided.  An optional ErrorFormat value may be provided to specify
+// the format of errors displayed in test failure reports.  If an ErrorFormat is not
+// provided, ErrorDefault is used (%v).
+func Error(t *testing.T, got error, opts ...any) ErrorTest {
+	n := "error"
+	f := ErrorDefault
+	checkOptTypes(t, optTypes(n, f), opts...)
+	getOpt(&n, opts...)
+	getOpt(&f, opts...)
+	return ErrorTest{newTestable(t, got, n, Format(f))}
+}
+
+// fails the test if the error being tested does not satisfy errors.Is()
+// with respect to the specified error:
 //
 //   - if wanted is nil, got must be nil
 //   - if wanted is not nil, got must satisfy errors.Is()
 //     with respect to wanted
 //
-// An optional ErrorFormat value may be provided to specify
-// the format of errors displayed in test failure reports.
-// If not provided, ErrorDefault is used (%v).
-//
 // Example:
 //
-//	  func TestSomething(t *testing.T) {
-//		// ARRANGE
-//		var err error
-//
-//		// ACT
-//		err = doSomething()
-//
-//		// ASSERT
-//		test.ErrorIs(t, nil, err)
-//	  }
-func ErrorIs(t *testing.T, wanted, got error, opt ...ErrorFormat) {
-	t.Helper()
+//	test.Error(t, "returned", err).Is(ErrExpected)
+func (et ErrorTest) Is(wanted error) {
+	et.Helper()
 
-	f := Format(ErrorDefault)
-	if len(opt) > 0 {
-		f = Format(opt[0])
+	if wanted == nil && et.got == nil {
+		return
 	}
 
-	if wanted == nil && got != nil {
-		t.Errorf("\nunexpected error: %s", format(got, f))
-	} else if !errors.Is(got, wanted) {
-		t.Errorf("\nwanted error: %s\ngot         : %s", format(wanted, f), format(got, f))
+	if wanted == nil {
+		et.IsNil()
+		return
 	}
+
+	et.run(func(t *testing.T) {
+		t.Helper()
+		if !errors.Is(et.got, wanted) {
+			et.errorf(t, "wanted error: %s\ngot         : %s", et.format(wanted), et.format(et.got))
+		}
+	})
 }
 
-// UnexpectedError fails the test if got is not nil.  The
-// test is equivalent to test.Error(t, nil, got).
+// fails the test if got is not nil.
 //
-// An optional ErrorFormat value may be provided to specify
-// the format of the error displayed in a test failure report.
-// If not provided, ErrorDefault is used (%v).
+// If got is not nil the test fails and a test failure report will be output:
+//
+//	unexpected error: <%T of got>: <%v of got>
 //
 // Example:
 //
@@ -77,9 +86,11 @@ func ErrorIs(t *testing.T, wanted, got error, opt ...ErrorFormat) {
 //		err = doSomething()
 //
 //		// ASSERT
-//		test.UnexpectedError(t, err)
+//		test.Error(t, "returned", err).IsNil()
 //	  }
-func UnexpectedError(t *testing.T, got error, opt ...ErrorFormat) {
-	t.Helper()
-	ErrorIs(t, nil, got, opt...)
+func (et ErrorTest) IsNil() {
+	et.Helper()
+	if et.got != nil {
+		et.errorf(et.T, "unexpected error: %s", et.format(et.got))
+	}
 }

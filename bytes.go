@@ -6,71 +6,134 @@ import (
 	"testing"
 )
 
-// BytesFormat values are used to specify the format of
-// bytes displayed in test failure reports.
-//
-// Supported formats are:
-//
-//   - BinBytes		(%.8b)
-//   - DecBytes		(%d)
-//   - HexBytes		(%x)
-type BytesFormat string
+// provides methods for testing a []byte value.
+type BytesTest struct {
+	testable[[]byte]
+}
 
-const (
-	bytesFormatNotSet BytesFormat = ""    // zero value for BytesFormat, indicates not set
-	BytesBinary       BytesFormat = ".8b" // formats as 8-bit binary, e.g.: [00000001 00000010 11110000]
-	BytesDecimal      BytesFormat = "d"   // formats as decimal, e.g.: 1 2 240
-	BytesHex          BytesFormat = "x"   // formats as hexadecimal, e.g.: 0102f0
-)
+// returns a new BytesTest with methods for testing a specified
+// []byte using a specified testing.T.
+//
+// Additional options of the following types may be specified:
+//
+//   - string : a name for the value being tested; if not specified "bytes" is used
+//
+//   - BytesFormat : a format verb for the value being tested; if not specified
+//     BytesHex is used.  This option is ignored if a format function is also
+//     specified.  If BytesString is specified, slices are reported as quoted strings.
+//
+//   - int : the maximum number of bytes to display in a test failure report when
+//     formatting values using a specified BytesFormat other than BytesString.  If
+//     not specified or a value less than 20 is specified, 20 is used. If a slice
+//     has more elements than the specified maximum then only the first and last 3
+//     bytes are output together with the total length of the slice. This option is
+//     ignored if BytesString is specified (the entire slice is output as a quoted
+//     string) or if a function is specified
+//
+//   - func([]byte) string : a function that returns a string representation of the
+//     slice type being tested.  If not specified, values are formatted using the
+//     BytesFormat and int options.
+//
+// If more than one option of any of the above types is specified then only the first
+// is applied; additional values of that option type are ignored.
+func Bytes(t *testing.T, got []byte, opts ...any) BytesTest {
+	t.Helper()
 
-// Bytes fails the test if got is not equal to wanted.
+	n := "bytes"
+	f := BytesHex
+	m := 20
+	ffn := *new(func([]byte) string)
+	checkOptTypes(t, optTypes(n, f, m, ffn), opts...)
+	getOpt(&n, opts...)
+	getOpt(&f, opts...)
+	getOpt(&m, opts...)
+	if m < 20 {
+		m = 20
+	}
+
+	getOpt(&ffn, append(opts, func(v []byte) string {
+		if f == BytesString {
+			return fmt.Sprintf("%q", v)
+		}
+
+		if len(v) > m {
+			return fmt.Sprintf(fmt.Sprintf("[%% %[1]s ... %% %[1]s]", f)+" len == %d", v[:3], v[len(v)-3:], len(v))
+		} else if f != BytesBinary {
+			return format(v, Format(fmt.Sprintf("[%% %s]", f)))
+		}
+
+		return format(v, Format(fmt.Sprintf("%%%s", f)))
+	})...)
+
+	return BytesTest{testable: newTestable(t, got, n, Format(f), ffn)}
+}
+
+// fails the test if the []byte being tested does not equal the wanted
+// value.
 //
-// The test output in the event of a failure will be formatted
-// according to the first BytesFormat argument. If no BytesFormat
-// is provided, BytesHex is used.
-//
-// If the length of either want or got exceeds 20 bytes, the
-// output in any test failure report will be truncated to the
-// first 3 and last 3 bytes with the length of the slice.
+// If the length of either the wanted slice or the value in the BytesTest
+// (got) exceeds the maximum report bytes for the test, the output in a
+// test failure report will be truncated to the first 3 and last 3 bytes,
+// with the length of each slice reported.
 //
 // Example:
 //
-//	  func TestSomething(t *testing.T) {
-//		// ARRANGE
-//		a := []byte{0x01, 0x02, 0xf0}
+//	test.Bytes(t, result.Bytes(), "result").Equals(expected)
+func (bt BytesTest) Equals(wanted []byte) {
+	if bytes.Equal(wanted, bt.got) {
+		return
+	}
+
+	bt.Helper()
+	bt.Run("equals", func(t *testing.T) {
+		t.Helper()
+		bt.fail(t, wanted)
+	})
+}
+
+// fails the test if got is not equal to wanted.  An optional name and
+// BytesFormat may be specified; if no name is specified then a name of
+// "bytes" is used.  If no BytesFormat is specified, BytesHex is used.
 //
-//		// ACT
-//		b := somethingReturningBytes()
+// Example:
 //
-//		// ASSERT
-//		test.Bytes(t, a, b, BytesBin)
-//	  }
-func Bytes(t *testing.T, want, got []byte, opt ...BytesFormat) {
+//	test.BytesEqual(t, result.Bytes(), Equals(expected), "result buffer", BytesString)
+//
+// BytesEqual(t, got, wanted, name, format) is a convenience short-hand for:
+//
+//	test.Bytes(t, name, got, format).Equals(wanted)
+//
+// The following tests are exactly equivalent:
+//
+//	test.Bytes(t, result.Bytes(), "result", BytesString).Equals(expected)
+//	test.BytesEqual(t, result.Bytes(), expected, "result", BytesString)
+//
+// and:
+//
+//	test.Bytes(t, result.Bytes()).Equals(expected)
+//	test.BytesEqual(t, result.Bytes(), expected)
+func BytesEqual(t *testing.T, got, wanted []byte, opts ...any) {
 	t.Helper()
 
-	if !bytes.Equal(want, got) {
-		var d = BytesHex
-		if len(opt) > 0 {
-			d = opt[0]
-		}
-
-		w, g := "", ""
-		if len(want) > 20 {
-			w = fmt.Sprintf(fmt.Sprintf("[%% %[1]s ... %% %[1]s]", d)+" len == %d", want[:3], want[len(want)-3:], len(want))
-		} else if d != BytesBinary {
-			w = format(want, Format(fmt.Sprintf("[%% %s]", d)))
-		} else {
-			w = format(want, Format(fmt.Sprintf("%%%s", d)))
-		}
-
-		if len(got) > 20 {
-			g = fmt.Sprintf("[% x ... % x] len == %d", got[:3], got[len(got)-3:], len(got))
-		} else if d != BytesBinary {
-			g = format(got, Format(fmt.Sprintf("[%% %s]", d)))
-		} else {
-			g = format(got, Format(fmt.Sprintf("%%%s", d)))
-		}
-
-		t.Errorf("\nwanted: %s\ngot   : %s", w, g)
+	if bytes.Equal(wanted, got) {
+		return
 	}
+
+	// to produce the test report we will initialise a BytesTest which
+	// will provide defaults for the max length and format function if
+	// these options are not specified for this test.
+
+	n := "bytes"
+	f := BytesHex
+	var m int
+	var ffn func([]byte) string
+	checkOptTypes(t, optTypes(n, f, m, ffn), opts...)
+	getOpt(&n, opts...)
+	getOpt(&f, opts...)
+	opts = append(opts, n, f)
+
+	t.Run(n, func(t *testing.T) {
+		t.Helper()
+		Bytes(t, got, opts...).fail(t, wanted)
+	})
 }

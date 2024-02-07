@@ -2,44 +2,56 @@ package test
 
 import "testing"
 
-func TestType(t *testing.T) {
+func TestIsType(t *testing.T) {
 	// ARRANGE
-	type returns struct {
-		string
-		bool
-	}
 	testcases := []struct {
-		name string
-		got  any
-		returns
-		outcome HelperResult
-		output  any
+		scenario string
+		act      func(T) (any, bool)
+		assert   func(HelperTest, any, bool)
 	}{
-		{name: "string", got: "foo", returns: returns{"foo", true},
-			outcome: ShouldPass,
+		{scenario: "IsType[string](string)",
+			act: func(t T) (any, bool) {
+				return IsType[string](t, "foo")
+			},
+			assert: func(test HelperTest, got any, ok bool) {
+				test.DidPass()
+				test.Report.IsEmpty()
+				Equal(t, got, "foo")
+				IsTrue(t, ok)
+			},
 		},
-		{name: "int", got: 42,
-			outcome: ShouldFail,
-			output: []string{
-				"wanted: string",
-				"got   : int",
+		{scenario: "IsType[string](int)",
+			act: func(t T) (any, bool) {
+				return IsType[string](t, 42)
+			},
+			assert: func(test HelperTest, got any, ok bool) {
+				test.DidFail()
+				test.Report.Contains("IsType[string](int)/is_of_type")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: string",
+					"got   : int",
+				})
+				Equal(t, got, "")
+				IsFalse(t, ok)
 			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			// ACT
+		t.Run(tc.scenario, func(t *testing.T) {
+			// ARRANGE
 			var (
-				got string
+				got any
 				ok  bool
 			)
-			stdout, _ := Helper(t, func(st *testing.T) {
-				got, ok = Type[string](st, tc.got)
-			}, tc.outcome)
+
+			//ACT
+			test := Helper(t, func(st *testing.T) {
+				got, ok = tc.act(st)
+			})
 
 			// ASSERT
-			Equal(t, tc.returns, returns{got, ok})
-			stdout.Contains(t, tc.output)
+			tc.assert(test, got, ok)
 		})
 	}
 }
