@@ -1,10 +1,185 @@
 package test
 
 import (
-	"errors"
 	"os"
 	"testing"
 )
+
+func TestHelperTest(t *testing.T) {
+	// ARRANGE
+	testcases := []struct {
+		scenario string
+		act      func(T)
+		assert   func(HelperTest)
+	}{
+		// HadOutcome tests
+		{scenario: "HelperTest{result:true}.HadOutcome(true)",
+			act: func(t T) {
+				HelperTest{t: t, result: true}.HadOutcome(true)
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "HelperTest{result:false}.HadOutcome(false)",
+			act: func(t T) {
+				HelperTest{t: t, result: false}.HadOutcome(false)
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "HelperTest{result:true}.HadOutcome(false)",
+			act: func(t T) {
+				HelperTest{t: t, result: true}.HadOutcome(false)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("HelperTest{result:true}.HadOutcome(false)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: FAIL",
+					"got   : PASS",
+				})
+			},
+		},
+		{scenario: "HelperTest{result:false}.HadOutcome(true)",
+			act: func(t T) {
+				HelperTest{t: t, result: false}.HadOutcome(true)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("HelperTest{result:false}.HadOutcome(true)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: PASS",
+					"got   : FAIL",
+				})
+			},
+		},
+
+		// DidFail tests
+		{scenario: "HelperTest{result:false}.DidFail()",
+			act: func(t T) {
+				HelperTest{t: t, result: false}.DidFail()
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "HelperTest{result:true}.DidFail()",
+			act: func(t T) {
+				HelperTest{t: t, result: true}.DidFail()
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("HelperTest{result:true}.DidFail()")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: FAIL",
+					"got   : PASS",
+				})
+			},
+		},
+
+		// DidPass tests
+		{scenario: "HelperTest{result:true}.DidPass()",
+			act: func(t T) {
+				HelperTest{t: t, result: true}.DidPass()
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "HelperTest{result:false}.DidPass()",
+			act: func(t T) {
+				HelperTest{t: t, result: false}.DidPass()
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("HelperTest{result:false}.DidPass()")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: PASS",
+					"got   : FAIL",
+				})
+			},
+		},
+
+		// DidNotPanic tests
+		{scenario: "HelperTest{recovered:nil}.DidNotPanic()",
+			act: func(t T) {
+				HelperTest{t: t, recovered: nil}.DidNotPanic()
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "HelperTest{recovered:42}.DidNotPanic()",
+			act: func(t T) {
+				HelperTest{t: t, recovered: 42}.DidNotPanic()
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("HelperTest{recovered:42}.DidNotPanic()")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: (did not panic)",
+					"got   : panic: 42",
+				})
+			},
+		},
+
+		// DidPanic tests
+		{scenario: "HelperTest{recovered:42}.DidPanic(42)",
+			act: func(t T) {
+				HelperTest{t: t, recovered: 42}.DidPanic(42)
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "HelperTest{recovered:42}.DidPanic(64)",
+			act: func(t T) {
+				HelperTest{t: t, recovered: 42}.DidPanic(64)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("HelperTest{recovered:42}.DidPanic(64)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: panic: int: 64",
+					"got   : panic: int: 42",
+				})
+			},
+		},
+		{scenario: "HelperTest{recovered:nil}.DidPanic(42)",
+			act: func(t T) {
+				HelperTest{t: t, recovered: nil}.DidPanic(42)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("HelperTest{recovered:nil}.DidPanic(42)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: panic: int: 42",
+					"got   : (did not panic)",
+				})
+			},
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.scenario, func(t *testing.T) {
+			tc.assert(Helper(t, tc.act))
+		})
+	}
+}
 
 func TestHelper(t *testing.T) {
 	t.Run("matchAll", func(t *testing.T) {
@@ -14,86 +189,68 @@ func TestHelper(t *testing.T) {
 		}
 	})
 
-	// ARRANGE
-	panerr := errors.New("panic err")
-
-	type args struct {
-		fn      func(*testing.T)
-		outcome any
-	}
 	testcases := []struct {
-		name    string
-		args           // args passed to the Helper() function under test
-		outcome any    // expected outcome of the Helper() used to test Helper()
-		panic   *Panic // expected panic, if any
-		output  any    // expected output
+		scenario string
+		act      func(T) HelperTest
+		assert   func(HelperTest)
 	}{
-		{name: "invalid outcome", args: args{func(st *testing.T) {}, 42}, outcome: ExpectPanic(ErrInvalidArgument)},
-		{name: "fail, no outcome", args: args{fn: func(st *testing.T) { st.Fail() }}, outcome: ShouldPass},
-		{name: "pass, no outcome", args: args{fn: func(st *testing.T) {}}, outcome: ShouldPass},
-		{name: "panic, no outcome", args: args{fn: func(st *testing.T) { panic(42) }}, outcome: ShouldPass},
-		{name: "should fail", args: args{func(st *testing.T) { st.Fail() }, ShouldFail}, outcome: ShouldPass},
-		{name: "should fail (bool)", args: args{func(st *testing.T) { st.Fail() }, false}, outcome: ShouldPass},
-		{name: "should pass", args: args{func(st *testing.T) {}, ShouldPass}, outcome: ShouldPass},
-		{name: "should pass (bool)", args: args{func(st *testing.T) {}, true}, outcome: ShouldPass},
-		{name: "helper panics (expected err)", args: args{func(st *testing.T) { panic(panerr) }, ExpectPanic(panerr)}, outcome: ShouldPass},
-		{name: "helper panics (unexpected err)", args: args{func(st *testing.T) { panic(errors.New("other error")) }, ExpectPanic(panerr)},
-			outcome: ShouldFail,
-			output: []string{
-				"wanted (panic): panic err",
-				"got    (panic): other error",
+		{scenario: "Helper(func{}, \"\")",
+			act: func(t T) HelperTest {
+				return Helper(t, func(st *testing.T) {})
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
 			},
 		},
-		{name: "should pass, panics", args: args{func(st *testing.T) { panic(panerr) }, ShouldPass},
-			outcome: ShouldFail,
-			output: []string{
-				"wanted     : PASS",
-				"got (panic): panic err",
+		{scenario: "Helper(func{t.Fail()})",
+			// tests that a Helper that fails does not fail the test if no outcome is specified;
+			// the expectation is that tests will be explicitly performed by the caller,
+			// using the returned HelperTest
+			act: func(t T) HelperTest {
+				return Helper(t, func(st *testing.T) { st.Fail() })
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Helper(func{t.Fail()})")
+				test.Report.Contains("FAIL")
 			},
 		},
-		{name: "should fail, panics", args: args{func(st *testing.T) { panic(panerr) }, ShouldFail},
-			outcome: ShouldFail,
-			output: []string{
-				"wanted     : FAIL",
-				"got (panic): panic err",
+		{scenario: "Helper(func{t.Errorf(msg)})",
+			act: func(t T) HelperTest {
+				return Helper(t, func(st *testing.T) { st.Error("report message") })
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Helper(func{t.Errorf(msg)})")
+				test.Report.Contains("report message")
 			},
 		},
-		{name: "passed, should panic", args: args{func(st *testing.T) {}, ExpectPanic(panerr)},
-			outcome: ShouldFail,
-			output: []string{
-				"wanted (panic): panic err",
-				"got           : PASS",
+		{scenario: "Helper(func{panic(42)})",
+			act: func(t T) HelperTest {
+				return Helper(t, func(st *testing.T) { panic(42) })
+			},
+			assert: func(test HelperTest) {
+				test.DidPanic(42)
+				test.Report.Contains("unexpected panic: int: 42")
 			},
 		},
-		{name: "failed, should panic", args: args{func(st *testing.T) { st.Fail() }, ExpectPanic(panerr)},
-			outcome: ShouldFail,
-			output: []string{
-				"wanted (panic): panic err",
-				"got           : FAIL",
+		{scenario: "Helper(func{}) (verbose test output)",
+			act: func(t T) HelperTest {
+				return Helper(t, func(st *testing.T) {
+					// simulates the additional output from a test that passes
+					// when run with go test -v
+					os.Stdout.WriteString("=== RUN   TheNameOfSomeTest\n")
+					os.Stdout.WriteString("--- PASS: TheNameOfSomeTest (0.00s)\n")
+				})
+			},
+			assert: func(test HelperTest) {
+				test.Report.IsEmpty()
 			},
 		},
-		{name: "verbose output from passing internal test is removed", args: args{func(st *testing.T) {
-			// _simulates_ the additional output from a test that passes
-			// when run with go test -v
-			os.Stdout.WriteString("=== RUN   internal\n")
-			os.Stdout.WriteString("--- PASS: internal (0.00s)\n")
-		}, ShouldPass}, outcome: ShouldPass, output: ""},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			// ARRANGE
-			defer tc.panic.IsRecovered(t)
-
-			// HERE BE DRAGONS: the Helper test is used to test the Helper test
-			// (and capture the output from it)
-
-			// ACT
-			stdout, _ := Helper(t, func(st *testing.T) {
-				Helper(st, tc.args.fn, tc.args.outcome)
-			}, tc.outcome)
-
-			// ASSERT
-			stdout.Contains(t, tc.output)
+		t.Run(tc.scenario, func(t *testing.T) {
+			tc.assert(tc.act(t))
 		})
 	}
 }

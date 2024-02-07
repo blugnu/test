@@ -6,69 +6,126 @@ import (
 	"testing"
 )
 
-func TestErrorIs(t *testing.T) {
+func TestError(t *testing.T) {
 	// ARRANGE
-	a := errors.New("error a")
-	b := errors.New("error b")
-	wa := fmt.Errorf("wrapped: %w", a)
+	g := errors.New("got error")
+	wrappedg := fmt.Errorf("wrapped: %w", g)
+	oe := errors.New("some other error")
 
 	testcases := []struct {
-		name    string
-		sut     func(*testing.T)
-		outcome HelperResult
-		output  any
+		scenario string
+		act      func(T)
+		assert   func(HelperTest)
 	}{
-		// execpted to pass
-		{name: "ErrorIs, got == wanted", sut: func(st *testing.T) { ErrorIs(st, a, a) }, outcome: ShouldPass},
-		{name: "ErrorIs, got wraps wanted", sut: func(st *testing.T) { ErrorIs(st, a, wa) }, outcome: ShouldPass},
-		{name: "UnexpectedError, nil", sut: func(st *testing.T) { UnexpectedError(st, nil, ErrorDecl) }, outcome: ShouldPass},
+		// expected to pass
+		{scenario: "got == wanted", act: func(t T) {
+			Error(t, g).Is(g)
+		},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			}},
+		{scenario: "got wrapped wanted", act: func(t T) {
+			Error(t, wrappedg).Is(g)
+		},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			}},
+		{scenario: "got nil, want nil", act: func(t T) {
+			Error(t, nil).Is(nil)
+		},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			}},
 
 		// expected to fail
-		{name: "UnexpectedError, non-nil, default format", sut: func(st *testing.T) { UnexpectedError(st, errors.New("unexpected error")) },
-			outcome: ShouldFail,
-			output:  "unexpected error: unexpected error",
-		},
-		{name: "got != wanted", sut: func(st *testing.T) { ErrorIs(st, a, b) },
-			outcome: ShouldFail,
-			output: []string{
-				"wanted error: error a",
-				"got         : error b",
+		{scenario: "got err, want nil",
+			act: func(t T) {
+				Error(t, errors.New("unexpected error")).Is(nil)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("got_err,_want_nil")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"unexpected error: unexpected error",
+				})
 			},
 		},
-		{name: "got != wanted (wanted == nil)", sut: func(st *testing.T) { ErrorIs(st, nil, b) },
-			outcome: ShouldFail,
-			output:  "unexpected error: error b",
-		},
-		{name: "got != wanted, ErrorDefault", sut: func(st *testing.T) { ErrorIs(st, a, b, ErrorDefault) },
-			outcome: ShouldFail,
-			output: []string{
-				"wanted error: error a",
-				"got         : error b",
+		{scenario: "Error(nil).Is(non-nil)",
+			act: func(t T) {
+				Error(t, nil).Is(errors.New("desired error"))
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Error(nil).Is(non-nil)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted error: desired error",
+					"got         : <nil>",
+				})
 			},
 		},
-		{name: "got != wanted, ErrorString", sut: func(st *testing.T) { ErrorIs(st, a, b, ErrorString) },
-			outcome: ShouldFail,
-			output: []string{
-				"wanted error: error a",
-				"got         : error b",
+		{scenario: "Error(err).Is(other)",
+			act: func(t T) {
+				Error(t, g).Is(oe)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Error(err).Is(other)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted error: some other error",
+					"got         : got error",
+				})
 			},
 		},
-		{name: "got != wanted, ErrorDecl", sut: func(st *testing.T) { ErrorIs(st, a, b, ErrorDecl) },
-			outcome: ShouldFail,
-			output: []string{
-				"wanted error: &errors.errorString{s:\"error a\"}",
-				"got         : &errors.errorString{s:\"error b\"}"},
+		{scenario: "Error(err,ErrorDefault).Is(other)",
+			act: func(t T) {
+				Error(t, g, ErrorDefault).Is(oe)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Error(err,ErrorDefault).Is(other)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted error: some other error",
+					"got         : got error",
+				})
+			},
+		},
+		{scenario: "Error(err,ErrorString).Is(other)",
+			act: func(t T) {
+				Error(t, g, ErrorString).Is(oe)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Error(err,ErrorString).Is(other)")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted error: some other error",
+					"got         : got error",
+				})
+			},
+		},
+		{scenario: "got != wanted, ErrorDecl",
+			act: func(t T) {
+				Error(t, g, ErrorDecl).Is(oe)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains([]string{
+					`wanted error: &errors.errorString{s:"some other error"}`,
+					`got         : &errors.errorString{s:"got error"}`,
+				})
+			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			// ACT
-			stdout, _ := Helper(t, func(st *testing.T) {
-				tc.sut(st)
-			}, tc.outcome)
-
-			// ASSERT
-			stdout.Contains(t, tc.output)
+		t.Run(tc.scenario, func(t *testing.T) {
+			tc.assert(Helper(t, tc.act))
 		})
 	}
 }

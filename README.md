@@ -5,7 +5,7 @@
     <a href="https://goreportcard.com/report/github.com/blugnu/test" ><img alt="go report" src="https://goreportcard.com/badge/github.com/blugnu/test"/></a>
     <a><img alt="go version >= 1.20" src="https://img.shields.io/github/go-mod/go-version/blugnu/test?style=flat-square"/></a>
     <a href="https://github.com/blugnu/test/blob/master/LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/blugnu/test?color=%234275f5&style=flat-square"/></a>
-    <a href="https://coveralls.io/github/blugnu/magpack?branch=master"><img alt="coverage" src="https://img.shields.io/coveralls/github/blugnu/test?style=flat-square"/></a>
+    <a href="https://coveralls.io/github/blugnu/test?branch=master"><img alt="coverage" src="https://img.shields.io/coveralls/github/blugnu/test?style=flat-square"/></a>
     <a href="https://pkg.go.dev/github.com/blugnu/test"><img alt="docs" src="https://pkg.go.dev/badge/github.com/blugnu/test"/></a>
     <hr/>
   </div>
@@ -15,48 +15,156 @@
 
 # blugnu/test
 
-Provides some simple test helpers for use with the standard library testing package.  It is not a replacement for the testing package or complete testing framework.
+Provides test helpers for use with the standard library `testing` package; it is not intended to be a replacement for the `testing` package or a complete testing framework in its own right.
 
-## Features
+# CAUTION
 
-- [x] Test comparable values (e.g. `[]byte`, `map[]`)
-- [x] Capture console output
-- [x] Test console output
-- [x] Test test helpers
-- [x] Test for expected panics
+Feel free to use this package if you find it useful, but be aware that it is still in development and the API may change without notice.  The package is in active use and is constantly being revised and refined as problems and annoyances are identified and resolved in the API.
+
+The API will remain as stable as possible but until the package hits v1.0 this is only an aspiration, not a commitment.
 
 ## Installation
+
+The `test` package is go-gettable:
 
 ```bash
 go get github.com/blugnu/test
 ```
 
-## Examples
+## Quick Start
 
-- [Test for Unexpected Errors and Equality of Comparable Values](#test-for-unexpected-errors-and-equality-of-comparable-values)
-- [Testing `map` and `[]byte`](#testing-maps-and-byte-slices)
-- [Capture and Test Console Output](#capture-and-test-console-output)
-- [Testing a Test Helper](#testing-a-test-helper)
-- [Test for Expected Panics](#test-for-expected-panics)
-- [Test for an Expected Type](#test-for-an-expected-type)
+To perform tests use either a testable factory or a test function:
 
+| Category | Description |
+| --- | --- |
+| [Testable Factories](#testable-factories) | functions that return a '_testable_' value providing functions to perform tests on that value |
+| [Test Helpers](#test-helpers) | functions that directly perform a test and report the outcome |
 
-### Test for Unexpected Errors and Equality of Comparable Values
+To quickly understand the difference you might find it helpful to read: [Testables vs Test Helpers](#testables-vs-test-helpers)
 
-If a test is not expected to return an error you can use the `test.UnexpectedError` function to test for this.  Similarly, if a test is expected to return a specific value you can use the `test.Equals` function to test for this.  The `test.Equals` function can be used to test for equality of any comparable value.
+### Advanced Usage
 
-```go
+In addition to performing common, basic tests, the `test` package also provides support for more advanced testing scenarios:
+
+| Category | Description |
+| --- | --- |
+| [Capture Console Output](#capture-console-output) | capture output of a function that writes to `stdout` and/or `stderr` |
+| [Test for Expected Panics](#test-for-expected-panics) | test that a function panics as expected |
+| [Test for an Expected Type](#test-for-an-expected-type) | test that a value is of an expected type |
+| [Testing a Test Helper](#testing-a-test-helper) | test your own test helper functions |
+
+<br/>
+<hr/>
+
+# Testable Factories
+
+Testable factories are used to create testable values ('testables') that provide test functions appropriate to, or specialised for, the type of value being tested.
+
+| Factory Function | Description |
+| --- | --- |
+| `test.Bytes(t *testing.T, got []byte, opts ...any) *Bytes` | returns a testable `[]byte` |
+| `test.Error(t *testing.T, got error, opts ...any) *Error` | returns a testable `error` |
+| `test.Map[K comparable, V any](t *testing.T, got map[K]V, opts ...any) *Map[K, V]` | returns a testable `map[K,V]` |
+| `test.Slice[T comparable](t *testing.T, got []T, opts ...any) *Slice[T]` | returns a testable slice of values satisfying the `comparable` constraint |
+| `test.Strings(t *testing.T, got []string, opts ...any) *Strings` | returns a testable `[]string` |
+| `test.Value[T comparable](t *testing.T, got T, opts ...any) *Value[T]` | returns a testable value of a type satisfying the `comparable` constraint |
+
+Note that some testable factories are generic functions with a constrained type parameter which may may them [unsuitable for use with certain values](#working-with-or-around-constraints).
+
+Testable factories accept a minimum of two arguments:
+
+- `t *testing.T` - the `*testing.T` to be used by any test functions provided by the testable
+- `got` - the value to be tested
+
+Note that the type parameter for generic testable factories is able to be inferred from the `got` parameter; there is no need to specify the type.  For example (assuming that `DoSomething` returns a value of a type that satisfies the `comparable` constraint):
+
+```golang
 func TestDoSomething(t *testing.T) {
   // ACT
-  got, err := DoSomething()
+  got := DoSomething()
 
   // ASSERT
-  test.UnexpectedError(t, err)
-  test.Equal(t, "foo", got)
+  test.Value(t, got).Equals("foo")
 }
 ```
 
-To test for a specific error you can use the `test.ErrorIs` function:
+Testable factories also support additional options that may be provided as additional parameters.  For details of the options supported by each testable, see [Testable Factory Options](#testable-factory-options).
+
+## Working With (or Around) Constraints
+
+If you need to test a value which does not satisfy the type constraint of a testable factory it should be possible to implement an equivalent test using a factory that is specialised for the value involved, one that is unconstrained, or by using a test helper.  For example, `[]byte` does not satisfy the `comparable` constraint and so cannot be tested using a `test.Value()` testable.  Alternatives in this case are:
+
+- use the `test.Bytes()` testable factory (_testable factory specialised for `[]byte`_)
+- use the `test.Slice[byte]()` testable factory (_`[]byte` does not satisfy `comparable`, but `byte` does_)
+- use the `test.DeepEqual()` test helper (_unconstrained test helper_)
+
+## Testable Factory Options
+
+Testable factory options are always passed after the mandatory parameters.  Optional parameters are discriminated by _type_. The following types are supported:
+
+| Parameter Type | Name | Description | Notes |
+| --- | --- | --- | --- |
+| `string` | _value name_ | a name for the value being tested |
+| `test.Format` | _format verb_ | the format verb to be used when manifesting values in a test failure report  | _ignored if a _format function_ is specified_ |
+| `test.BytesFormat` | _format verb_ | the format verb for formatting `[]byte` values in a test failure report | only supported by `test.Bytes()`<br/><br/>_ignored if a _format function_ is specified_ |
+| `func(T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.Bool()` |
+
+If multiple values of any of these types are supplied in a given call to a factory only the first is significant.  For example, in the following call the additional `"some other value"` name parameter (`string`) will be ignored:
+
+```go
+test.Value(t, got, "some value", "some other value").Equals(expected)
+```
+
+<br>
+<hr>
+
+# Test Helpers
+
+Test helpers are functions that directly perform a test and report the outcome.
+
+| Test Helper | Description |
+| --- | --- |
+| `test.DeepEqual[T any](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is not equal to `wanted`, based on `reflect.DeepEqual()` comparison |
+| `test.Equal[T comparable](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is not equal to `wanted` |
+| `test.IsNil(t *testing.T, got any, name ...string)` | fails if `got` is not `nil` |
+| `test.IsNotNil(t *testing.T, got any, name ...string)` | fails if `got` is `nil` |
+| `test.NotDeepEqual[T any](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is equal to `wanted`, based on `reflect.DeepEqual()` comparison |
+| `test.NotEqual[T comparable](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is equal to `wanted` |
+
+With the exception of `IsNil` and `IsNotNil`, a test helper accepts a minimum of _three_ arguments:
+
+- `t *testing.T` - the `*testing.T` value passed to the test function
+- `got` - the value to be tested
+- `wanted` - the value to be compared with `got`
+
+Additional parameters are optional and are always passed after the mandatory parameters.
+
+If multiple optional parameters are supported they are discriminated by _type_.  The following optional parameters are supported:
+
+| Parameter Type | Name | Description | Notes |
+| --- | --- | --- | --- |
+| `string` | _name_ | a name for the test | this is the _only_ parameter supported by `IsNil` and `IsNotNil` |
+| `test.Equality` | _comparison method_ | the method used to compare `got` and `wanted` | only supported by `Equal` and `NotEqual`<br/><br/>_ignored if a _comparison function_ is specified_ |
+| `test.Format` | _format verb_ | the format verb to be used when manifesting values in a test failure report  | _ignored if a _format function_ is specified_ |
+| `func(got, wanted T) bool` | _comparison function_ | a function that compares two values of type `T` for equality, returning `true` if considered equal otherwise `false`.  _The type T varies according to the type of the testable value_. | only supported by `test.IsEqual` and `test.NotEqual` |
+| `func(T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.IsNil` or `test.IsNotNil` |
+
+If multiple values of a given type are supplied, only the first is significant.  For example, in the following call the `"some other value"` name parameter will be ignored:
+
+```go
+  test.Equal(t, got, wanted, "some value", "some other value")
+```
+
+<br>
+<hr>
+
+# Additional Information
+
+## Testables vs Test Helpers
+
+There are often multiple ways of performing a given test using either a testable or a helper function. There is no "right" way; use whichever is most appropriate or intuitive in a specific case.
+
+For example, to test that an `error` returned by a function is `nil` you could use either of the tests illustrated here:
 
 ```go
 func TestDoSomething(t *testing.T) {
@@ -64,27 +172,100 @@ func TestDoSomething(t *testing.T) {
   err := DoSomething()
 
   // ASSERT
-  test.ErrorIs(t, ErrSomething, err)
+  test.IsNil(t, err)
+  test.Equal(t, err, nil)
+  test.Error(t, err).IsNil()
 }
 ```
 
-An optional argument may be used to specify the format of the expected and actual values in any test failure report produced by `test.Equal()`.  The default format is `FormatDefault`:
+All three tests in this example are testing the same thing, though the first two use test helpers while the third uses a `test.Error` testable.
+
+The third test is strongly typed and is arguably more readable and intuitive than the first two, but the first two are more concise.
+
+### Naming a SUT (Subject Under Test)
+
+All factory functions support an optional `string` parameter to provide a name for the value being tested.  If not specified, each factory function will assume a default name.
+
+The function supported by the testable returned from a factory function also 
+
+Example:
+  
+  ```go
+  func TestDoSomething(t *testing.T) {
+    // ACT
+    got := DoSomething()
+
+    // ASSERT
+    test.Value(t, got).Equals(expected)           // will produce a test named: TestDoSomething/value/equals
+    test.Value(t, got, "result").Equals(expected) // will produce a test named: TestDoSomething/result/equals
+  }
+  ```
+
+## Features and Examples
+
+- [Tests for Errors and Comparable Values](#tests-for-errors-and-comparable-values)
+- [Testing maps and slices](#testing-maps-and-slices)
+- [Capture Console Output](#capture-console-output)
+- [Testing a Test Helper](#testing-a-test-helper)
+- [Test for Expected Panics](#test-for-expected-panics)
+- [Test for an Expected Type](#test-for-an-expected-type)
+
+
+### Tests for Errors and Comparable Values
+
+A `test.Error()` factory is provided that returns a testable `error` supporting the following tests:
+
+- `Is(wanted)` - fails if the error is not `wanted` (using `errors.Is()`)
+- `IsNil()` - fails if the error is not `nil`
+
+In addition, the `test.IsNil()` function provides specific support for testing for `nil` errors and so may be more convenient to use when performing a simple test for an unexpected error.  The following snippets demonstrate these tests:
 
 ```go
 func TestDoSomething(t *testing.T) {
-  // ARRANGE
-  expected := "foo"
-  got := "bar"
+  // ACT
+  err := DoSomething()
+  test.IsNil(t, err)  // will fail with "unexpected error: <type>: <error string>" if err is not nil
 
-  // ACT & ASSERT
-  test.Equal(t, expected, got)               // displays values in a failure as default (%v)
-  test.Equal(t, expected, got, FormatHex)    // displays values in a failure as hexadecimal
+  // ASSERT
+  test.Error(t, err, "returned error").IsNil()    // equivalent to the above but with an explicit name
+  test.Error(t, err).Is(io.EOF)                   // equivalent to errors.Is(err, io.EOF)
 }
 ```
 
-Any format may be specified by casting a string as a `Format` if needed; sensible values are provided as constants.
+> _NOTE: If the value supplied to the `test.IsNil()` function is of a type that does not have a meaningful `nil` value, the test will fail as an invalid test.	Types that may be tested for `nil` are: `chan`, `func`, `interface`, slices, maps, and pointers._
 
-### Testing Maps and Byte Slices
+For values of a comparable type, the `test.Value[T comparable]()` factory returns a testable value of a type satisfying the `comparable` constraint.  The returned value provides the following tests:
+
+- `Equals(wanted)` - fails if the value is not equal to `wanted`
+- `IsNil()` - fails if the value is not `nil`
+- `IsNotNil()` - fails if the value is `nil`
+
+```go
+func TestDoSomething(t *testing.T) {
+  // ACT
+  got, err := DoSomething()
+  test.IsNil(err)
+
+  // ASSERT
+  test.Value(t, "returned value", got).Equals("foo")  // fails if got is not "foo"
+}
+```
+
+> _NOTE: If the value supplied to the `test.Value()` factory function is of a type that does not have a meaningful `nil` value, the `IsNil()` and `IsNotNil()` tests will fail as invalid.	Types that may be tested for `nil` are: `chan`, `func`, `interface`, slices, maps, and pointers._
+
+
+### Testing Maps and Slices
+
+Three factory functions are provided for creating values for testing maps and slices:
+
+- `test.Map[K comparable, V any]()` for testing a map
+- `test.Slice[T comparable]()` for testing a slice of values satisfying the `comparable` constraint
+- `test.Bytes()` for testing a `[]byte` specifically
+
+> _Tests that are available using a `test.Bytes()` test could also be performed using a `test.Slice[byte]()`.  However, a `test.Bytes()` test provides options that are more useful when working with `[]byte` values, together with more helpful formatting of test failure reports._
+
+
+#### test.Map
 
 ```go
 func TestDoSomething(t *testing.T) {
@@ -97,9 +278,26 @@ func TestDoSomething(t *testing.T) {
   got := DoSomething()
 
   // ASSERT
-  test.Maps(t, expected, got)
+  test.Map(t, got).Equals(expected)
 }
 ```
+
+#### test.Slice
+
+```go
+func TestDoSomething(t *testing.T) {
+  // ARRANGE
+  expected := []string{"foo", "bar"}
+
+  // ACT
+  got := DoSomething()
+
+  // ASSERT
+  test.Slice(t, got).Equals(expected)
+}
+```
+
+#### test.Bytes
 
 When testing `[]byte`, an optional format argument may be used to specify the format of the expected and actual values in any test failure report.  The default format is `BytesHex` (hexadecimal):
 
@@ -110,8 +308,8 @@ func TestDoSomething(t *testing.T) {
   got := []byte("bar")
 
   // ACT & ASSERT
-  test.Bytes(t, expected, got)               // displays values in a failure as hexadecimal
-  test.Bytes(t, expected, got, BytesBinary)  // displays values in a failure as binary
+  test.Bytes(t, got).Equals(expected)               // displays values in a failure report as hexadecimal
+  test.Bytes(t, got, BytesBinary).Equals(expected)  // displays values in a failure report as binary
 }
 ```
 
@@ -120,13 +318,21 @@ Any format may be specified by casting a string as a `BytesFormat` if needed; se
 
 ### Capture and Test Console Output
 
+The `test.CaptureOutput` function captures the output of a function that writes to `stdout` and/or `stderr` and returns the captured output as a `CapturedOutput` value.  The `CapturedOutput` value provides the following tests:
+
+- `Contains(wanted)` - fails if the captured output does not contain `wanted`
+- `DoesNotContain(wanted)` - fails if the captured output contains `wanted`
+- `Equals(wanted)` - fails if the captured output is not equal to `wanted`
+- `IsNil()` - fails if the captured output is not `nil`
+- `IsNotNil()` - fails if the captured output is `nil`
+
 ```go
 func TestDoSomething(t *testing.T) {
   // ARRANGE
   var err error
 
-  // ACT - discards stderr and result of DoSomething
-  stdout, _ := test.CaptureOutput(t, func (*testing.T) {
+  // ACT
+  stdout, stderr :=test.CaptureOutput(t, func (*testing.T) {
     _, err := DoSomething()
     return err
   })
@@ -137,6 +343,7 @@ func TestDoSomething(t *testing.T) {
   stdout.Contains("some expected log message")
 }
 ```
+
 
 ### Testing a Test Helper
 
@@ -162,20 +369,20 @@ func TestUnexpectedError(t *testing.T) {
 
 ### Test for Expected Panics
 
-Panic tests must be deferred to ensure that the panic is captured and tested.  The `test.ExpectPanic` function returns a `*Panic` value with an `IsRecovered` function that can be deferred to test for an expected panic.
+Panic tests must be deferred to ensure that the panic is captured and tested.  The `test.ExpectPanic` function returns a `*Panic` value with an `Assert` function that can be deferred to test for an expected panic.
 
 ```go
 func TestDoSomething(t *testing.T) {
   // ARRANGE
   err := errors.New("some error")
-  defer test.ExpectPanic(err).IsRecovered(t)
+  defer test.ExpectPanic(err).Assert(t)
 
   // ACT
   panic(err)
 }
 ```
 
-The `IsRecovered` function may be called on a `nil` receiver to test that no panic was recovered, which is useful in table-driven tests:
+The `Assert` function may be called on a `nil` receiver to test that no panic was recovered, which is useful in table-driven tests:
 
 ```go
 func TestDoSomething(t *testing.T) {
@@ -193,7 +400,7 @@ func TestDoSomething(t *testing.T) {
   for _, tc := range testcases {
     t.Run(tc.name, func(t *testing.T) {
       // ARRANGE
-      defer tc.panic.IsRecovered(t)
+      defer tc.panic.Assert(t)
 
       // ACT
       panic(tc.error)

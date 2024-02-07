@@ -2,7 +2,6 @@ package test
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 )
 
@@ -12,15 +11,16 @@ func TestExpectedPanic(t *testing.T) {
 
 	// ARRANGE
 	testcases := []struct {
-		name   string
-		arg    error
-		result *Panic
+		scenario string
+		arg      any
+		result   *PanicTest
 	}{
-		{name: "nil argument", arg: nil, result: nil},
-		{name: "non-nil argument", arg: err, result: &Panic{err}},
+		{scenario: "nil argument", arg: nil, result: nil},
+		{scenario: "error argument", arg: err, result: &PanicTest{err}},
+		{scenario: "int argument", arg: 42, result: &PanicTest{42}},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.scenario, func(t *testing.T) {
 			// ACT
 			got := ExpectPanic(tc.arg)
 
@@ -30,7 +30,7 @@ func TestExpectedPanic(t *testing.T) {
 				Equal(t, tc.result, got)
 			case got != nil:
 				t.Run("Panic with error", func(t *testing.T) {
-					Equal(t, tc.result.error, got.error)
+					Equal(t, got.r, tc.result.r)
 				})
 			default:
 				t.Errorf("\nwanted: %#v\ngot   : nil", tc.result)
@@ -41,52 +41,105 @@ func TestExpectedPanic(t *testing.T) {
 
 func TestPanic(t *testing.T) {
 	// ARRANGE
-	err := errors.New("panic")
-	werr := fmt.Errorf("wrapped: %w", err)
+	err := errors.New("error")
 
 	testcases := []struct {
-		name    string
-		sut     *Panic
-		fn      func()
-		outcome any
-		output  any
+		scenario string
+		sut      *PanicTest
+		act      func(T)
+		assert   func(HelperTest)
 	}{
-		{name: "nil receiver, no panic", fn: func() {},
-			outcome: ShouldPass,
+		{scenario: "nil receiver, no panic",
+			act: func(t T) {
+				defer (*PanicTest)(nil).Assert(t)
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
 		},
-		{name: "nil receiver, panicked", fn: func() { panic(err) },
-			outcome: ShouldFail,
-			output:  "unexpected panic: panic",
+		{scenario: "nil receiver, panicked",
+			act: func(t T) {
+				defer (*PanicTest)(nil).Assert(t)
+				panic(42)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("nil_receiver,_panicked")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"unexpected panic: int: 42",
+				})
+			},
 		},
-		{name: "expected panic, no panic", sut: ExpectPanic(err), fn: func() {},
-			outcome: ShouldFail,
-			output: []string{
-				"wanted (panic): panic",
-				"got           : (did not panic)"},
+		{scenario: "expect panic, does not panic",
+			act: func(t T) {
+				defer ExpectPanic(errors.New("panicked")).Assert(t)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("expect_panic,_does_not_panic")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: panic: *errors.errorString: panicked",
+					"got   : (did not panic)",
+				})
+			},
 		},
-		{name: "expected panic, panicked", sut: ExpectPanic(err), fn: func() { panic(err) },
-			outcome: ShouldPass,
+		{scenario: "expect panic(err), panicked with err",
+			act: func(t T) {
+				defer ExpectPanic(err).Assert(t)
+				panic(err)
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
 		},
-		{name: "expected panic, panicked with wrapped err", sut: ExpectPanic(err), fn: func() { panic(werr) },
-			outcome: ShouldPass,
+		{scenario: "expect panic(42), panicked with 42",
+			act: func(t T) {
+				defer ExpectPanic(42).Assert(t)
+				panic(42)
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
 		},
-		{name: "expected panic, panicked with other err", sut: ExpectPanic(err), fn: func() { panic(errors.New("other error")) },
-			outcome: ShouldFail,
-			output: []string{
-				"wanted (panic): panic",
-				"got    (panic): other error"},
+		{scenario: "expect panic(\"42\"), panicked with 42",
+			act: func(t T) {
+				defer ExpectPanic("42").Assert(t)
+				panic(42)
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("expect_panic(\"42\"),_panicked_with_42")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: panic: string: 42",
+					"got   : panic: int: 42",
+				})
+			},
+		},
+		{scenario: "expect panic(err), panicked with other err",
+			act: func(t T) {
+				defer ExpectPanic(err).Assert(t)
+				panic(errors.New("other error"))
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("expect_panic(err),_panicked_with_other_err")
+				test.Report.Contains([]string{
+					currentFilename(),
+					"wanted: panic: *errors.errorString: error",
+					"got   : panic: *errors.errorString: other error",
+				})
+			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			// ACT
-			stdout, _ := Helper(t, func(st *testing.T) {
-				defer tc.sut.IsRecovered(st)
-				tc.fn()
-			}, tc.outcome)
-
-			// ASSERT
-			stdout.Contains(t, tc.output)
+		t.Run(tc.scenario, func(t *testing.T) {
+			tc.assert(Helper(t, tc.act))
 		})
 	}
 }
