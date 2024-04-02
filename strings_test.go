@@ -4,7 +4,63 @@ import (
 	"testing"
 )
 
-func TestStringsTest(t *testing.T) {
+func TestStrings(t *testing.T) {
+	// ARRANGE
+	testcases := []struct {
+		scenario string
+		exec     func(t *testing.T)
+	}{
+		{scenario: "Strings(string)",
+			exec: func(t *testing.T) {
+				// ACT
+				result := Strings(t, "string")
+
+				// ASSERT
+				That(t, result.testable.got).Equals([]string{"string"})
+			},
+		},
+		{scenario: "Strings([]byte))",
+			exec: func(t *testing.T) {
+				// ACT
+				result := Strings(t, []byte("bytes"))
+
+				// ASSERT
+				That(t, result.testable.got).Equals([]string{"bytes"})
+			},
+		},
+		{scenario: "Strings([]string)",
+			exec: func(t *testing.T) {
+				// ACT
+				result := Strings(t, []string{"a", "b"})
+
+				// ASSERT
+				That(t, result.testable.got).Equals([]string{"a", "b"})
+			},
+		},
+		{scenario: "Strings(int)",
+			exec: func(t *testing.T) {
+				// ARRANGE
+				defer ExpectPanic(ErrInvalidArgument).Assert(t)
+
+				// ACT
+				result := Strings(t, 42)
+
+				// ASSERT
+				That(t, result.testable.got).Equals([]string{"42"})
+			},
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.scenario, func(t *testing.T) {
+			// ARRANGE
+
+			// ACT
+			tc.exec(t)
+		})
+	}
+}
+
+func TestStringsTests(t *testing.T) {
 	// ARRANGE
 	testcases := []struct {
 		scenario string
