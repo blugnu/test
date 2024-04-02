@@ -14,11 +14,24 @@ type StringsTest struct {
 // creates a testable []string value.  Options of the following types are accepted:
 //
 //	string              // a name for the test; if not specified, "strings" is used
-func Strings(t *testing.T, got []string, opts ...any) StringsTest {
+func Strings(t *testing.T, got any, opts ...any) StringsTest {
 	n := "strings"
 	checkOptTypes(t, optTypes(n), opts...)
 	getOpt(&n, opts...)
-	return StringsTest{newTestable(t, got, n)}
+
+	var sut []string
+	switch got := got.(type) {
+	case []string:
+		sut = got
+	case string:
+		sut = []string{got}
+	case []byte:
+		sut = strings.Split(string(got), "\n")
+	default:
+		panic(ErrInvalidArgument)
+	}
+
+	return StringsTest{newTestable(t, sut, n)}
 }
 
 // fails the test if the []string does not contain the wanted string
