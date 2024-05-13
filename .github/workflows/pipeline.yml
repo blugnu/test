@@ -1,6 +1,0 @@
-name: go module release
-on: push
-jobs:
-  module-qa:
-    uses: blugnu/.reusable/.github/workflows/module.yml@master
-    secrets: inherit
