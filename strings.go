@@ -2,6 +2,8 @@ package test
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -95,6 +97,29 @@ func (c StringsTest) Contains(want any) {
 	})
 }
 
+// fails the test if the []string does not contain a string that
+// matches the specified regular expression.
+func (st StringsTest) ContainsMatch(re string) {
+	st.Helper()
+	st.Run("contains match", func(t *testing.T) {
+		t.Helper()
+
+		// compile the reg ex
+		cre, err := regexp.Compile(re)
+		if err != nil {
+			t.Errorf("\ninvalid test: ContainsMatch(%s): %s", re, err)
+			return
+		}
+
+		for _, s := range st.got {
+			if cre.FindIndex([]byte(s)) != nil {
+				return
+			}
+		}
+		t.Errorf("\nwanted: contains match: %s\ngot   : %s", re, st.format(st.got))
+	})
+}
+
 // fails the test if the []string contains the specified string.
 //
 // The specified string must not be empty or consist entirely of
@@ -127,9 +152,38 @@ func (st StringsTest) Equals(want []string) {
 	st.Helper()
 	st.Run("equals", func(t *testing.T) {
 		t.Helper()
-		if !slicesEqual(st.got, want, nil) {
-			st.errorf(t, "\nwanted: %s\ngot   : %s", want, st.got)
+
+		if slicesEqual(want, st.got, nil) {
+			return
 		}
+
+		diff := []string{}
+		if len(want) != len(st.got) {
+			diff = append(diff, fmt.Sprintf("wanted: %d elements\ngot   : %d", len(want), len(st.got)))
+		}
+
+		ne := len(want)
+		if len(st.got) < ne {
+			ne = len(st.got)
+		}
+		ne--
+
+		dg := len(strconv.Itoa(ne))
+		ef := fmt.Sprintf("[%%%dd]", dg)
+		for i := 0; i <= ne; i++ {
+			if want[i] != st.got[i] {
+				diff = append(diff, fmt.Sprintf(ef+" wanted: %q\n%sgot: %q", i, want[i], strings.Repeat(" ", 6+dg), st.got[i]))
+			}
+		}
+
+		got := []string{"got:"}
+		for i, s := range st.got {
+			got = append(got, fmt.Sprintf("  "+ef+": %q", i, s))
+		}
+
+		got = append(got, "--")
+		got = append(got, diff...)
+		st.errorf(t, strings.Join(got, "\n"))
 	})
 }
 

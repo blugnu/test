@@ -52,9 +52,7 @@ func TestStrings(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.scenario, func(t *testing.T) {
-			// ARRANGE
 
-			// ACT
 			tc.exec(t)
 		})
 	}
@@ -108,8 +106,14 @@ func TestStringsTests(t *testing.T) {
 			assert: func(test HelperTest) {
 				test.DidFail()
 				test.Report.Contains([]string{
-					`wanted: [c d]`,
-					`got   : [a b]`,
+					`got:`,
+					`  [0]: "a"`,
+					`  [1]: "b"`,
+					`--`,
+					`[0] wanted: "c"`,
+					`       got: "a"`,
+					`[1] wanted: "d"`,
+					`       got: "b"`,
 				})
 			},
 		},
@@ -122,8 +126,14 @@ func TestStringsTests(t *testing.T) {
 			assert: func(test HelperTest) {
 				test.DidFail()
 				test.Report.Contains([]string{
-					`wanted: [b a]`,
-					`got   : [a b]`,
+					`got:`,
+					`  [0]: "a"`,
+					`  [1]: "b"`,
+					`--`,
+					`[0] wanted: "b"`,
+					`       got: "a"`,
+					`[1] wanted: "a"`,
+					`       got: "b"`,
 				})
 			},
 		},
@@ -136,8 +146,8 @@ func TestStringsTests(t *testing.T) {
 			assert: func(test HelperTest) {
 				test.DidFail()
 				test.Report.Contains([]string{
-					`wanted: [a b c]`,
-					`got   : [a b]`,
+					`wanted: 3 elements`,
+					`got   : 2`,
 				})
 			},
 		},
@@ -318,6 +328,40 @@ func TestStringsTests(t *testing.T) {
 					currentFilename(),
 					"DoesNotContain() invalid test: specified string is empty or consists entirely of whitespace",
 				})
+			},
+		},
+		{scenario: "Strings([abc]).ContainsMatch(abc)",
+			act: func(t T) {
+				Strings(t, "abc").ContainsMatch("abc")
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "Strings([abc]).ContainsMatch(^ab$)",
+			act: func(t T) {
+				Strings(t, "abc").ContainsMatch("^ab$")
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Strings([abc]).ContainsMatch(^ab$)/strings/contains_match")
+				test.Report.Contains([]string{
+					`wanted: contains match: ^ab$`,
+					`got   : [`,
+					`abc`,
+					`]`,
+				})
+			},
+		},
+		{scenario: "Strings([abc]).ContainsMatch(invalid regex)",
+			act: func(t T) {
+				Strings(t, "abc").ContainsMatch("[")
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("Strings([abc]).ContainsMatch(invalid_regex)/strings/contains_match")
+				test.Report.Contains("invalid test: ContainsMatch([): error parsing regexp: missing closing ]: `[`")
 			},
 		},
 		{scenario: "Strings([]).IsEmpty()",
