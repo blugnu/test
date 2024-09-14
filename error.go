@@ -2,6 +2,7 @@ package test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -93,4 +94,53 @@ func (et ErrorTest) IsNil() {
 	if et.got != nil {
 		et.errorf(et.T, "unexpected error: %s", et.format(et.got))
 	}
+}
+
+// IsError fails the test if the value being tested does not implement the error
+// interface. A test failure report is output similar to:
+//
+//	wanted: error
+//	got   : <type of got> (<value of got>)
+//
+// If the value being tested does implement the error interface the test passes
+// and the error interface is returned.
+//
+// Example:
+//
+//	if err, ok := test.IsError(t, got); ok {
+//		test.Error(t, err).Is(ErrExpected)
+//	}
+//
+// # When to Use This Test
+//
+// This test would be used to ensure that an `any` value is an error where the
+// concrete type of the value is not known or is an unexported type that is unable
+// to be reference in the test; otherwise the IsType[T] test could be used.
+//
+// IsType[T] cannot be used to test for an interface type, such as 'error'; using
+// IsType[T] with an interface type will result in a false negative.
+//
+// Example:
+//
+//	var a any = errors.New("an error")
+//
+//	_, _ = test.IsType[error](t, a) // will fail reporting "wanted: nil, got: *errors.errorString"
+//	_, _ = test.IsError(t, a)       // will pass
+func IsError(t *testing.T, got any) (error, bool) {
+	t.Helper()
+
+	if err, ok := got.(error); ok {
+		return err, true
+	}
+
+	t.Run("is error", func(t *testing.T) {
+		t.Helper()
+
+		gs := "nil"
+		if got != nil {
+			gs = fmt.Sprintf("%[1]v (%[1]T)", got)
+		}
+		t.Errorf("\nwanted: error\ngot   : %s", gs)
+	})
+	return nil, false
 }

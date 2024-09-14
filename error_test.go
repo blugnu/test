@@ -32,7 +32,7 @@ func TestError(t *testing.T) {
 				test.DidPass()
 				test.Report.IsEmpty()
 			}},
-		{scenario: "got nil, want nil", act: func(t T) {
+		{scenario: "got nil , want nil", act: func(t T) {
 			Error(t, nil).Is(nil)
 		},
 			assert: func(test HelperTest) {
@@ -128,4 +128,62 @@ func TestError(t *testing.T) {
 			tc.assert(Helper(t, tc.act))
 		})
 	}
+}
+
+func TestIsError(t *testing.T) {
+	// ARRANGE
+	var result bool
+	var err error
+	var thisTestFile = currentFilename()
+
+	t.Run("IsError(nil)", func(t *testing.T) {
+		// ACT
+		sut := Helper(t, func(t T) {
+			err, result = IsError(t, nil)
+		})
+
+		// ASSERT
+		IsFalse(t, result)
+		IsNil(t, err)
+
+		sut.DidFail()
+		sut.Report.Contains("IsError(nil)")
+		sut.Report.Contains([]string{
+			thisTestFile,
+			"wanted: error",
+			"got   : nil",
+		})
+	})
+
+	t.Run("IsError(error)", func(t *testing.T) {
+		// ACT
+		sut := Helper(t, func(t T) {
+			err, result = IsError(t, errors.New("some error"))
+		})
+
+		// ASSERT
+		IsTrue(t, result)
+		IsNotNil(t, err)
+
+		sut.DidPass()
+		sut.Report.IsEmpty()
+	})
+
+	t.Run("IsError(<not an error>)", func(t *testing.T) {
+		// ACT
+		sut := Helper(t, func(t T) {
+			err, result = IsError(t, 42)
+		})
+
+		// ASSERT
+		IsFalse(t, result)
+		IsNil(t, err)
+
+		sut.DidFail()
+		sut.Report.Contains([]string{
+			thisTestFile,
+			"wanted: error",
+			"got   : 42 (int)",
+		})
+	})
 }
