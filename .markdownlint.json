@@ -1,0 +1,6 @@
+{
+    "MD013": { "line_length": 120 },
+    "MD014": false, // allow $ prompts in backtick blocks (shell command examples)
+    "MD033": false, // allow inline html
+    "MD041": false  // allow non heading first line
+}
