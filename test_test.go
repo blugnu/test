@@ -10,12 +10,15 @@ import (
 // in data-driven tests
 type T = *testing.T
 
-// returns the name of the file (without path) containing the calling
-// function.  Used to ensure that test failure reports identify the
-// correct calling file and that *testing.T.Helper() calls are being
-// made as required to ensure this.
+// currentFilename returns the name of the file containing the
+// calling function.
+//
+// This is used to ensure that test failure reports identify the correct calling
+// file (*_test.go).  This avoids replicating the filename as a literal which
+// could result in tests failing due to the test file itself being renamed
+// (which would be annoying and inappropriate).
 func currentFilename() string {
-	_, filepath, _, _ := runtime.Caller(2)
-	_, filename := path.Split(filepath)
+	_, file, _, _ := runtime.Caller(1)
+	_, filename := path.Split(file)
 	return filename
 }
