@@ -109,7 +109,7 @@ func (st SliceTest[T]) IsNotEmpty() {
 	st.Helper()
 	st.run(func(t *testing.T) {
 		t.Helper()
-		if st.got == nil || len(st.got) == 0 {
+		if len(st.got) == 0 {
 			t.Errorf("\nwanted: non-empty %T\ngot   : empty", st.got)
 		}
 	})
