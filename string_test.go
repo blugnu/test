@@ -178,6 +178,54 @@ func TestStringTests(t *testing.T) {
 				})
 			},
 		},
+
+		// IsEmpty
+		{scenario: "String(abc).IsEmpty()",
+			act: func(t T) {
+				String(t, "abc").IsEmpty()
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("String(abc).IsEmpty()/string/is_empty")
+				test.Report.Contains([]string{
+					`wanted: <empty string>`,
+					`got   : "abc"`,
+				})
+			},
+		},
+		{scenario: "String().IsEmpty()",
+			act: func(t T) {
+				String(t, "").IsEmpty()
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+
+		// IsNotEmpty
+		{scenario: "String(abc).IsNotEmpty()",
+			act: func(t T) {
+				String(t, "abc").IsNotEmpty()
+			},
+			assert: func(test HelperTest) {
+				test.DidPass()
+				test.Report.IsEmpty()
+			},
+		},
+		{scenario: "String().IsNotEmpty()",
+			act: func(t T) {
+				String(t, "").IsNotEmpty()
+			},
+			assert: func(test HelperTest) {
+				test.DidFail()
+				test.Report.Contains("String().IsNotEmpty()/string/is_not_empty")
+				test.Report.Contains([]string{
+					`wanted: <non-empty string>`,
+					`got   : ""`,
+				})
+			},
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.scenario, func(t *testing.T) {

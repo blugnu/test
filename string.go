@@ -90,3 +90,27 @@ func (c StringTest) Equals(want string) {
 		}
 	})
 }
+
+// IsEmpty asserts that the string being tested is empty.
+func (c StringTest) IsEmpty() {
+	c.Helper()
+	c.Run("is_empty", func(t *testing.T) {
+		t.Helper()
+
+		if len(c.got) > 0 {
+			t.Errorf("\nwanted: <empty string>\ngot   : %q", c.got)
+		}
+	})
+}
+
+// IsNotEmpty asserts that the string being tested is not empty.
+func (c StringTest) IsNotEmpty() {
+	c.Helper()
+	c.Run("is_not_empty", func(t *testing.T) {
+		t.Helper()
+
+		if len(c.got) == 0 {
+			t.Error("\nwanted: <non-empty string>\ngot   : \"\"")
+		}
+	})
+}
