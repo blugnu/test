@@ -44,6 +44,12 @@ To perform tests use either a testable factory or a test function:
 
 To quickly understand the difference you might find it helpful to read: [Testables vs Test Helpers](#testables-vs-test-helpers)
 
+### Basic Usage
+
+- [Tests for Errors and Comparable Values](#tests-for-errors-and-comparable-values)
+- [Testing Maps and Slices](#testing-maps-and-slices)
+- [Mocking Functions](#mocking-functions)
+
 ### Advanced Usage
 
 In addition to performing common, basic tests, the `test` package also provides support for more advanced testing scenarios:
@@ -51,9 +57,11 @@ In addition to performing common, basic tests, the `test` package also provides 
 | Category | Description |
 | --- | --- |
 | [Capture and Test Console Output](#capture-and-test-console-output) | capture output of a function that writes to `stdout` and/or `stderr` |
+| [Mocking Functions](#mocking-functions) | mock functions for testing |
 | [Test for Expected Panics](#test-for-expected-panics) | test that a function panics as expected |
 | [Test for an Expected Type](#test-for-an-expected-type) | test that a value is of an expected type |
 | [Testing a Test Helper](#testing-a-test-helper) | test your own test helper functions |
+| [Testing Context Values](#testing-context-values) | test values stored in a `context.Context` |
 
 <br/>
 <hr/>
@@ -234,6 +242,7 @@ Example:
 - [CAUTION](#caution)
   - [Installation](#installation)
   - [Quick Start](#quick-start)
+    - [Basic Usage](#basic-usage)
     - [Advanced Usage](#advanced-usage)
 - [Testable Factories](#testable-factories)
   - [Working With (or Around) Constraints](#working-with-or-around-constraints)
@@ -248,10 +257,13 @@ Example:
       - [test.Map](#testmap)
       - [test.Slice](#testslice)
       - [test.Bytes](#testbytes)
+    - [Mocking Functions](#mocking-functions)
+      - [Fake Function Results](#fake-function-results)
     - [Capture and Test Console Output](#capture-and-test-console-output)
     - [Testing a Test Helper](#testing-a-test-helper)
+    - [Testing Context Values](#testing-context-values)
     - [Test for Expected Panics](#test-for-expected-panics)
-  - [Test for an Expected Type](#test-for-an-expected-type)
+    - [Test for an Expected Type](#test-for-an-expected-type)
 
 ### Tests for Errors and Comparable Values
 
@@ -370,6 +382,67 @@ func TestDoSomething(t *testing.T) {
 Any format may be specified by casting a string as a `BytesFormat` if needed; sensible values
 are provided as constants.
 
+### Mocking Functions
+
+When testing functions that call other functions, it is often necessary to mock the functions
+being called to ensure that the tests are isolated and that the functions being tested are
+not dependent on the behaviour of the functions being called.
+
+The `test.MockFn[A, R]` type provides a way to mock a function accepting arguments of type A and
+returning a result of type R.
+
+All `test.MockFn` values support an optional `error` value which may simply be ignored/not used
+if the mocked function does not return an error.
+
+If the function being mocked does not return any value other than an `error`, the result type `R`
+should be `any` and ignored.  Similarly if the function being mocked does not require any
+arguments, the argument type `A` should be `any` and ignored.
+
+#### Fake Function Results
+
+The `test.MockFn` type can provide fake results for a mocked function.  Fake results may be setup
+in two different ways:
+
+- expected calls mode.  `ExpectCall()` is used configure an expected call; this returns a value
+  with a `WillReturn` method to setup a result to be returned for that call.  In this mode, calls
+  to the mocked function that do not match the expected calls will cause the test to fail.
+
+- mapped result more.  `WhenCalledWith(args A)` is used to setup a result to be returned when the
+  mocked function is called with the specified arguments.  In this mode, calls to the mocked
+  function that do not match any of the mapped results will cause the test to fail.
+
+```go
+
+#### Multiple Arguments/Result Values
+
+If a function being mocked accepts multiple arguments and/or returns multiple result values (in
+addition to an error), the types A and/or R should be a `struct` type with fields for the arguments
+and result values required:
+
+```go
+type fooArgs struct {
+  A int
+  B string
+}
+
+type fooResult struct {
+  X int
+  Y string
+}
+
+type mockFoo struct {
+  foo test.MockFn[fooArgs, fooResult]
+}
+
+func (mock *mockFoo) Foo(A int, B string) (int, string, error) {
+  result, err := mock.foo.RecordCall(fooArgs{A, B})
+  return result.X, result.Y, err
+}
+```
+
+
+
+
 ### Capture and Test Console Output
 
 The `test.CaptureOutput` function captures the output of a function that writes to `stdout` and/or `stderr`
@@ -428,6 +501,54 @@ func TestUnexpectedError(t *testing.T) {
 > the `*testing.T` passed to the function that runs it (`st` in the example above)
 > and not the `T` of the test (`t` in the example)._
 
+### Testing Context Values
+
+When a module under test uses a `context.Context` to store values, functions are usually
+provided to set and retrieve those values.  In addition to returning any value from a context,
+the retrieval functions often also return an indicator value which can be used to identify
+whether the value was found in the context or not (to differentiate between a non-existent
+value and a value that is present with a zero value).
+
+This makes testing the retrieval functions more cumbersome than it might otherwise be:
+
+```go
+func TestGetValue(t *testing.T) {
+  // ARRANGE
+  ctx := context.Background()
+
+  // ACT
+  ctx := SomeFuncModifyingContext(ctx, args)
+
+  // ASSERT
+  got, ok := GetValue(ctx)
+  test.Bool(t, ok).IsTrue()
+  test.That(t, got).Equals(value)
+}
+```
+
+To simplify such tests, two functions are provided:
+
+- `test.ContextIndicator`
+- `test.ContextValue`
+
+Both of these function are generic, accpting type parameters `T` and `I` for the value and
+indicator types respectively.
+
+In addition to the usual `*testing.T`, these function accept a context to be tested and the
+retrieval function; each function returns a testable for the indicator or value returned by
+the retrieval function:
+
+```go
+func TestGetValue(t *testing.T) {
+  // ARRANGE
+  ctx := context.WithValue(context.Background(), key, value)
+
+  // ACT & ASSERT
+  test.ContextIndicator(t, ctx, GetValue).IsTrue()
+  test.ContextValue(t, ctx, GetValue).Equals(value)
+}
+```
+
 ### Test for Expected Panics
 
 Panic tests must be deferred to ensure that the panic is captured and tested.
@@ -473,7 +594,7 @@ func TestDoSomething(t *testing.T) {
 }
 ```
 
-## Test for an Expected Type
+### Test for an Expected Type
 
 You can test that some value is of an expected type using the `test.Type` function.
 This function returns the value as the expected type if the test passes, otherwise it
