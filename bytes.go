@@ -1,139 +1,188 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
-	"testing"
+	"strconv"
+	"strings"
 )
 
-// provides methods for testing a []byte value.
-type BytesTest struct {
-	testable[[]byte]
+type BytesMatcher[T ~byte] struct {
+	Expecting[[]T]
+	diffs func([]byte, []byte) []int
 }
 
-// returns a new BytesTest with methods for testing a specified
-// []byte using a specified testing.T.
-//
-// Additional options of the following types may be specified:
-//
-//   - string : a name for the value being tested; if not specified "bytes" is used
-//
-//   - BytesFormat : a format verb for the value being tested; if not specified
-//     BytesHex is used.  This option is ignored if a format function is also
-//     specified.  If BytesString is specified, slices are reported as quoted strings.
-//
-//   - int : the maximum number of bytes to display in a test failure report when
-//     formatting values using a specified BytesFormat other than BytesString.  If
-//     not specified or a value less than 20 is specified, 20 is used. If a slice
-//     has more elements than the specified maximum then only the first and last 3
-//     bytes are output together with the total length of the slice. This option is
-//     ignored if BytesString is specified (the entire slice is output as a quoted
-//     string) or if a function is specified
-//
-//   - func([]byte) string : a function that returns a string representation of the
-//     slice type being tested.  If not specified, values are formatted using the
-//     BytesFormat and int options.
-//
-// If more than one option of any of the above types is specified then only the first
-// is applied; additional values of that option type are ignored.
-func Bytes(t *testing.T, got []byte, opts ...any) BytesTest {
-	t.Helper()
-
-	n := "bytes"
-	f := BytesHex
-	m := 20
-	ffn := *new(func([]byte) string)
-	checkOptTypes(t, optTypes(n, f, m, ffn), opts...)
-	getOpt(&n, opts...)
-	getOpt(&f, opts...)
-	getOpt(&m, opts...)
-	if m < 20 {
-		m = 20
+func (bm *BytesMatcher[T]) asBytes(v []T) []byte {
+	bw := make([]byte, len(v))
+	for i := 0; i < len(v); i++ {
+		bw[i] = byte(v[i])
 	}
+	return bw
+}
 
-	getOpt(&ffn, append(opts, func(v []byte) string {
-		if f == BytesString {
-			return fmt.Sprintf("%q", v)
+// Format formats a value for display in a test failure report.
+func (bm *BytesMatcher[T]) Format(wantAny, gotAny any) []string {
+	want := wantAny.([]T)
+	got := gotAny.([]T)
+
+	diff, diffs, out := bm.reportInit(want, got)
+	ss, we, ge, pfx, wsfx, gsfx := bm.reportCalc(want, got, diff, diffs)
+
+	expectedBytes := strings.Builder{}
+	gotBytes := strings.Builder{}
+	markers := strings.Builder{}
+	expectedBytes.WriteString(pfx)
+	gotBytes.WriteString(pfx)
+	markers.WriteString(strings.Repeat(" ", len(pfx)))
+	for i := ss; i < max(we, ge); i++ {
+		if i < len(want) {
+			diffs = bm.reportExpectedByte(i, ss, want, got, &expectedBytes, &markers, diffs)
 		}
-
-		if len(v) > m {
-			return fmt.Sprintf(fmt.Sprintf("[%% %[1]s ... %% %[1]s]", f)+" len == %d", v[:3], v[len(v)-3:], len(v))
-		} else if f != BytesBinary {
-			return format(v, Format(fmt.Sprintf("[%% %s]", f)))
+		if i < len(got) {
+			diffs = bm.reportGotByte(i, ss, want, got, &gotBytes, &markers, diffs)
 		}
-
-		return format(v, Format(fmt.Sprintf("%%%s", f)))
-	})...)
-
-	return BytesTest{testable: newTestable(t, got, n, Format(f), ffn)}
-}
-
-// fails the test if the []byte being tested does not equal the wanted
-// value.
-//
-// If the length of either the wanted slice or the value in the BytesTest
-// (got) exceeds the maximum report bytes for the test, the output in a
-// test failure report will be truncated to the first 3 and last 3 bytes,
-// with the length of each slice reported.
-//
-// Example:
-//
-//	test.Bytes(t, result.Bytes(), "result").Equals(expected)
-func (bt BytesTest) Equals(wanted []byte) {
-	if bytes.Equal(wanted, bt.got) {
-		return
+	}
+	expectedBytes.WriteString(wsfx)
+	gotBytes.WriteString(gsfx)
+	if len(want) == 0 {
+		expectedBytes.WriteString("<empty>")
+	}
+	if len(got) == 0 {
+		gotBytes.WriteString("<empty>")
 	}
 
-	bt.Helper()
-	bt.Run("equals", func(t *testing.T) {
-		t.Helper()
-		bt.fail(t, wanted)
-	})
+	out = append(out, "expected: "+expectedBytes.String())
+	out = append(out, "        | "+markers.String())
+	out = append(out, "got     : "+gotBytes.String())
+	return out
 }
 
-// fails the test if got is not equal to wanted.  An optional name and
-// BytesFormat may be specified; if no name is specified then a name of
-// "bytes" is used.  If no BytesFormat is specified, BytesHex is used.
-//
-// Example:
-//
-//	test.BytesEqual(t, result.Bytes(), Equals(expected), "result buffer", BytesString)
-//
-// BytesEqual(t, got, wanted, name, format) is a convenience short-hand for:
-//
-//	test.Bytes(t, name, got, format).Equals(wanted)
-//
-// The following tests are exactly equivalent:
-//
-//	test.Bytes(t, result.Bytes(), "result", BytesString).Equals(expected)
-//	test.BytesEqual(t, result.Bytes(), expected, "result", BytesString)
-//
-// and:
-//
-//	test.Bytes(t, result.Bytes()).Equals(expected)
-//	test.BytesEqual(t, result.Bytes(), expected)
-func BytesEqual(t *testing.T, got, wanted []byte, opts ...any) {
-	t.Helper()
+func (bm BytesMatcher[T]) reportInit(want, got []T) (int, []int, []string) {
+	diffs := bm.diffs(bm.asBytes(want), bm.asBytes(got))
+	diff := -1
+	out := make([]string, 0, 4)
+	out = append(out, "bytes not equal:")
+	if len(want) != len(got) {
+		out = append(out, "  different lengths: expected "+strconv.Itoa(len(want))+", got "+strconv.Itoa(len(got)))
 
-	if bytes.Equal(wanted, got) {
-		return
+		// if there is a different in length we will show the last
+		// diff to highlight the overrun/underrun
+		diff = len(diffs) - 1
+	}
+	if (diff == -1 && len(diffs) > 0) || len(diffs) > 1 {
+		out = append(out, "  differences at: "+strings.Join(strings.Fields(fmt.Sprint(diffs)), ", "))
+
+		// if we aren't showing an overrun/underrun diff, we will show the first
+		if diff == -1 {
+			diff = 0
+		}
+	}
+	return diff, diffs, out
+}
+
+func (bm BytesMatcher[T]) reportCalc(want, got []T, diff int, diffs []int) (int, int, int, string, string, string) {
+	fd := diffs[diff]
+	ss := max(0, min(fd-2, min(len(want)-2, len(got)-2)))
+
+	we := min(fd+3, len(want))
+	wsfx := "..."
+	if we == len(want) {
+		wsfx = ""
 	}
 
-	// to produce the test report we will initialise a BytesTest which
-	// will provide defaults for the max length and format function if
-	// these options are not specified for this test.
+	ge := min(fd+3, len(got))
+	gsfx := "..."
+	if ge == len(got) {
+		gsfx = ""
+	}
 
-	n := "bytes"
-	f := BytesHex
-	var m int
-	var ffn func([]byte) string
-	checkOptTypes(t, optTypes(n, f, m, ffn), opts...)
-	getOpt(&n, opts...)
-	getOpt(&f, opts...)
-	opts = append(opts, n, f)
+	pfx := "..."
+	if ss == 0 {
+		pfx = ""
+	}
+	return ss, we, ge, pfx, wsfx, gsfx
+}
 
-	t.Run(n, func(t *testing.T) {
-		t.Helper()
-		Bytes(t, got, opts...).fail(t, wanted)
-	})
+func (bm *BytesMatcher[T]) reportExpectedByte(i, ss int, want, got []T, expectedBytes, markers *strings.Builder, diffs []int) []int {
+	if i > ss {
+		expectedBytes.WriteString(" ")
+		markers.WriteString(" ")
+	}
+	expectedBytes.WriteString(fmt.Sprintf("%02x", want[i]))
+	switch {
+	case i < len(got):
+		if want[i] != got[i] {
+			markers.WriteString("**")
+			diffs = remove(diffs, i)
+		} else {
+			markers.WriteString("  ")
+		}
+	case i == len(got):
+		markers.WriteString("--")
+		diffs = remove(diffs, i)
+	case i >= len(got):
+		markers.WriteString("--")
+	}
+	return diffs
+}
+
+func (bm *BytesMatcher[T]) reportGotByte(i, ss int, want, got []T, gotBytes, markers *strings.Builder, diffs []int) []int {
+	if i > ss {
+		gotBytes.WriteString(" ")
+		if i >= len(want) {
+			markers.WriteString(" ")
+		}
+	}
+	gotBytes.WriteString(fmt.Sprintf("%02x", got[i]))
+	switch {
+	case i == len(want):
+		markers.WriteString("++")
+		diffs = remove(diffs, i)
+	case i > len(want):
+		markers.WriteString("++")
+	}
+	return diffs
+}
+
+// Match returns true if the got value is equal to the wanted value.
+func (bm *BytesMatcher[T]) Match(got []T, _ ...any) bool {
+	GetT().Helper()
+
+	bw := make([]byte, len(bm.value))
+	for i := 0; i < len(bm.value); i++ {
+		bw[i] = byte(bm.value[i])
+	}
+
+	bg := make([]byte, len(got))
+	for i := 0; i < len(got); i++ {
+		bg[i] = byte(got[i])
+	}
+
+	return len(bm.diffs(bw, bg)) == 0
+}
+
+func EqualBytes[T ~byte](want []T) *BytesMatcher[T] {
+	return &BytesMatcher[T]{
+		Expecting: Expecting[[]T]{want},
+		diffs: func(want, got []byte) []int {
+			rlen := len(want)
+			if len(got) < rlen {
+				rlen = len(got)
+			}
+			result := make([]int, 0, rlen+1)
+
+			for iw, want := range want {
+				if iw >= len(got) {
+					return append(result, iw)
+				}
+
+				if want != got[iw] {
+					result = append(result, iw)
+				}
+			}
+			if len(got) > len(want) {
+				return append(result, len(want))
+			}
+			return result
+		},
+	}
 }

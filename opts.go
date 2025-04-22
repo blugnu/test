@@ -6,6 +6,29 @@ import (
 	"testing"
 )
 
+// ExactOrder may be used to indicate that the order of elements in a
+// collection is significant (or not).
+type ExactOrder bool
+
+func optName(opts []any) string {
+	for _, opt := range opts {
+		switch v := opt.(type) {
+		case string:
+			return v
+		}
+	}
+	return ""
+}
+
+func hasOpt(opts []any, opt any) bool {
+	for _, o := range opts {
+		if o == opt {
+			return true
+		}
+	}
+	return false
+}
+
 // checks that all options are of the types specified.  If any option
 // is not of a supported type, the test is failed.  A failed test
 // report will include a list of unsupported option types, similar to:
@@ -19,7 +42,7 @@ func checkOptTypes(t *testing.T, types []reflect.Type, opts ...any) {
 
 	for _, opt := range opts {
 		ot := reflect.TypeOf(opt)
-		if !sliceContains(types, ot, nil) {
+		if !sliceContainsE(types, ot, nil) {
 			i = append(i, ot)
 		}
 	}

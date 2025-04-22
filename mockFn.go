@@ -107,7 +107,7 @@ type MockFn[A comparable, R any] struct {
 
 	// responses is a map of arguments to the Fake[R] values configured for those arguments;
 	// the map is nil if the mock function is not configured for mapped results
-	responses map[A]*Fake[R]
+	responses map[A]*FakeResult[R]
 
 	// errs is a slice of errors recorded during the test; the slice is nil if no errors have
 	// been recorded
@@ -347,7 +347,7 @@ func (mock *MockFn[A, R]) Reset() {
 //	ErrInvalidOperation     // when the mock function is configured for expected calls
 //
 //	ErrNoResultForArgs      // when no result is configured for the specified arguments
-func (mock *MockFn[A, R]) ResultFor(args A) Fake[R] {
+func (mock *MockFn[A, R]) ResultFor(args A) FakeResult[R] {
 	if mock.responses == nil {
 		panic(fmt.Errorf("%w: mock function is configured for expected calls; use <fn>.ExpectedResult()", ErrInvalidOperation))
 	}
@@ -385,21 +385,21 @@ func (mock *MockFn[A, R]) ResultFor(args A) Fake[R] {
 //	                        // configured
 //
 //	ErrInvalidArgument      // when a result is already configured for the specified arguments
-func (mock *MockFn[A, R]) WhenCalledWith(args A) *Fake[R] {
+func (mock *MockFn[A, R]) WhenCalledWith(args A) *FakeResult[R] {
 	if len(mock.expectations) > 0 {
 		panic(fmt.Errorf("%w: cannot combine mapped results with expected calls", ErrInvalidOperation))
 	}
 
 	switch {
 	case mock.responses == nil:
-		mock.responses = make(map[A]*Fake[R])
+		mock.responses = make(map[A]*FakeResult[R])
 	default:
 		if _, ok := mock.responses[args]; ok {
 			panic(fmt.Errorf("%w: result already configured for args: %v", ErrInvalidArgument, args))
 		}
 	}
 
-	r := &Fake[R]{}
+	r := &FakeResult[R]{}
 	mock.responses[args] = r
 
 	return r

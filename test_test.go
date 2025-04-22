@@ -3,12 +3,7 @@ package test
 import (
 	"path"
 	"runtime"
-	"testing"
 )
-
-// alias for *testing.T to simplify the type signature of testcase functions
-// in data-driven tests
-type T = *testing.T
 
 // currentFilename returns the name of the file containing the
 // calling function.

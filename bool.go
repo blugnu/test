@@ -1,132 +1,59 @@
 package test
 
-import (
-	"fmt"
-	"testing"
-)
-
-// provides methods for testing a bool value.
-type BoolTest struct {
-	testable[bool]
+// implements the Matcher interface for testing expected bool values.
+type BooleanMatcher struct {
+	Expecting[bool]
 }
 
-// returns a new BoolTest with methods for testing a specified
-// bool value with a specified name, using a specified testing.T
-//
-// Additional options of the following types may be specified:
-//
-//   - string : a name for the value being tested; if not specified "got" is used
-//
-//   - Format : a format verb for the value being tested; if not specified
-//     FormatDefault is used.
-//
-// If more than one option of any of the above types is specified then only the first
-// is applied; additional values of that option type are ignored.
-func Bool(t *testing.T, got bool, opts ...any) BoolTest {
-	t.Helper()
-
-	n := "got"
-	f := FormatDefault
-	checkOptTypes(t, optTypes(n, f), opts...)
-	getOpt(&n, opts...)
-	getOpt(&f, opts...)
-
-	return BoolTest{newTestable(t, got, n, f)}
+func (m BooleanMatcher) OneLineError() {
+	/* implements OneLineExpected for test failure reporting */
 }
 
-// fails the test if the bool being tested does not equal the specified
-// value.
+// Match returns true if the actual value matches the expected value.
+func (m BooleanMatcher) Match(actual bool, _ ...any) bool {
+	return m.value == actual
+}
+
+// BeFalse returns a matcher that will fail if the actual value is not false.
+func BeFalse() BooleanMatcher {
+	return BooleanMatcher{Expecting[bool]{false}}
+}
+
+// BeTrue returns a matcher that will fail if the actual value is not true.
+func BeTrue() BooleanMatcher {
+	return BooleanMatcher{Expecting[bool]{true}}
+}
+
+// ExpectFalse fails a test if a specified bool is not false.  An optional
+// name may be specified to be included in the test report in the event of
+// failure.
 //
 // Example:
 //
-//	test.Bool(t, "is called", isCalled).Equals(tc.callsFn)
-func (bt BoolTest) Equals(wanted bool) {
-	bt.Helper()
-	n := fmt.Sprintf("%s/equals", bt.name)
-	if wanted {
-		IsTrue(bt.T, bt.got, n)
-	} else {
-		IsFalse(bt.T, bt.got, n)
-	}
+//	ExpectFalse(got)
+//
+// This function is a convenience for these alternatives:
+//
+//	Expect(got).To(Equal(false))
+//	Expect(got).To(BeFalse())
+func ExpectFalse[T ~bool](got T, opts ...any) {
+	GetT().Helper()
+	Expect(bool(got), opts...).To(BeFalse())
 }
 
-// fails the test if the bool being tested is not false.
+// ExpectTrue fails a test if a specified bool is not true.  An optional
+// name may be specified to be included in the test report in the event of
+// failure.
 //
 // Example:
 //
-//	test.Bool(t, "is called", isCalled).IsFalse()
-func (bt BoolTest) IsFalse() {
-	bt.Helper()
-	IsFalse(bt.T, bt.got, fmt.Sprintf("%s/is false", bt.name))
-}
-
-// fails the test if the bool being tested is not true.
+//	ExpectTrue(got)
 //
-// Example:
+// This function is a convenience for these alternatives:
 //
-//	test.Bool(t, "is called", isCalled).IsTrue()
-func (bt BoolTest) IsTrue() {
-	bt.Helper()
-	IsTrue(bt.T, bt.got, fmt.Sprintf("%s/is_true", bt.name))
-}
-
-// fails the test if a specified bool is not false.  An optional
-// name/message may be specified; if no name is specified then
-// a name of "is false" is used.
-// Example:
-//
-//	test.IsFalse(t, got)
-//
-// This function is a short-hand convenience for:
-//
-//	test.Bool(t, name, got).IsFalse()
-//
-// The following two tests are exactly equivalent:
-//
-//	test.IsFalse(t, got)
-//	test.Bool(t, "is false", got).IsFalse()
-func IsFalse(t *testing.T, got bool, name ...string) {
-	t.Helper()
-
-	if len(name) == 0 {
-		name = []string{"is false"}
-	}
-
-	t.Run(name[0], func(t *testing.T) {
-		t.Helper()
-		if got {
-			t.Errorf("\nwanted: false\ngot   : %v", got)
-		}
-	})
-}
-
-// fails the test if a specified bool is not true.  An optional
-// name/message may be specified.  If no name is specified then
-// a name of "is true" is used.
-//
-// Example:
-//
-//	test.IsTrue(t, got)
-//
-// This function is a short-hand convenience for:
-//
-//	test.Bool(t, name, got).IsTrue()
-//
-// The following two tests are exactly equivalent:
-//
-//	test.IsTrue(t, got)
-//	test.Bool(t, "is true", got).IsTrue()
-func IsTrue(t *testing.T, got bool, name ...string) {
-	t.Helper()
-
-	if len(name) == 0 {
-		name = []string{"is true"}
-	}
-
-	t.Run(name[0], func(t *testing.T) {
-		t.Helper()
-		if !got {
-			t.Errorf("\nwanted: true\ngot   : %v", got)
-		}
-	})
+//	Expect(got).To(Equal(true))
+//	Expect(got).To(BeTrue())
+func ExpectTrue[T ~bool](got T, opts ...any) {
+	GetT().Helper()
+	Expect(bool(got), opts...).To(BeTrue())
 }

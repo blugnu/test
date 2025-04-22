@@ -130,7 +130,7 @@ are discriminated by _type_. The following types are supported:
 | `string` | _value name_ | a name for the value being tested | |
 | `test.Format` | _format verb_ | the format verb to be used when manifesting values in a test failure report  | _ignored if a _format function_ is specified_ |
 | `test.BytesFormat` | _format verb_ | the format verb for formatting `[]byte` values in a test failure report | only supported by `test.Bytes()`<br/><br/>_ignored if a _format function_ is specified_ |
-| `func(T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.Bool()` |
+| `func(*testing.T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.Bool()` |
 <!-- markdownlint-enable MD013 -->
 
 If multiple values of any of these types are supplied in a given call to a factory only the first
@@ -151,12 +151,12 @@ Test helpers are functions that directly perform a test and report the outcome.
 <!-- markdownlint-disable MD013 // line length -->
 | Test Helper | Description |
 | --- | --- |
-| `test.DeepEqual[T any](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is not equal to `wanted`, based on `reflect.DeepEqual()` comparison |
-| `test.Equal[T comparable](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is not equal to `wanted` |
+| `test.DeepEqual[T any](t *testing.T, got, wanted *testing.T, opts ...any)` | fails if `got` is not equal to `wanted`, based on `reflect.DeepEqual()` comparison |
+| `test.Equal[T comparable](t *testing.T, got, wanted *testing.T, opts ...any)` | fails if `got` is not equal to `wanted` |
 | `test.IsNil(t *testing.T, got any, name ...string)` | fails if `got` is not `nil` |
 | `test.IsNotNil(t *testing.T, got any, name ...string)` | fails if `got` is `nil` |
-| `test.NotDeepEqual[T any](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is equal to `wanted`, based on `reflect.DeepEqual()` comparison |
-| `test.NotEqual[T comparable](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is equal to `wanted` |
+| `test.NotDeepEqual[T any](t *testing.T, got, wanted *testing.T, opts ...any)` | fails if `got` is equal to `wanted`, based on `reflect.DeepEqual()` comparison |
+| `test.NotEqual[T comparable](t *testing.T, got, wanted *testing.T, opts ...any)` | fails if `got` is equal to `wanted` |
 <!-- markdownlint-enable MD013 -->
 
 With the exception of `IsNil` and `IsNotNil`, a test helper accepts a minimum of _three_ arguments:
@@ -177,7 +177,7 @@ optional parameters are supported:
 | `test.Equality` | _comparison method_ | the method used to compare `got` and `wanted` | only supported by `Equal` and `NotEqual`<br/><br/>_ignored if a _comparison function_ is specified_ |
 | `test.Format` | _format verb_ | the format verb to be used when manifesting values in a test failure report  | _ignored if a _format function_ is specified_ |
 | `func(got, wanted T) bool` | _comparison function_ | a function that compares two values of type `T` for equality, returning `true` if considered equal otherwise `false`.  _The type T varies according to the type of the testable value_. | only supported by `test.IsEqual` and `test.NotEqual` |
-| `func(T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.IsNil` or `test.IsNotNil` |
+| `func(*testing.T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.IsNil` or `test.IsNotNil` |
 <!-- markdownlint-enable MD013 -->
 
 If multiple values of a given type are supplied, only the first is significant.  For example,

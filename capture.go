@@ -134,10 +134,10 @@ func capture(fn func()) (stdout []string, stderr []string, err error) {
 //		test.IsNil(t, err)
 //		stdout.Contains("expected output from doSomething")
 //	  }
-func CaptureOutput(t *testing.T, fn func()) (stdout StringsTest, stderr StringsTest) {
-	so, se, err := capture(fn)
+func CaptureOutput(t *testing.T, fn func()) (stdout []string, stderr []string) {
+	stdout, stderr, err := capture(fn)
 	if err != nil {
 		panic(fmt.Errorf("test.CaptureOutput: unexpected error: %w", err))
 	}
-	return Strings(t, so, "stdout"), Strings(t, se, "stderr")
+	return
 }

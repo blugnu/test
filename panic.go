@@ -2,7 +2,6 @@ package test
 
 import (
 	"errors"
-	"testing"
 )
 
 // provides methods for testing panics.
@@ -34,7 +33,8 @@ type PanicTest struct {
 // Assert may be called on a nil receiver and is equivalent to calling Assert() on
 // a *Panic with a nil error. This simplifies panic tests in data-driven tests where
 // the expected panic may be nil for some test cases (indicating no panic is expected).
-func (e *PanicTest) Assert(t *testing.T) {
+func (e *PanicTest) Assert() {
+	t := T()
 	t.Helper()
 
 	err := error(nil)

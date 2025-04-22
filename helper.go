@@ -5,48 +5,46 @@ import (
 	"testing"
 )
 
-type TestResult bool
+type TestOutcome bool
 
-const ShouldPass TestResult = true
-const ShouldFail TestResult = false
-const Passed = ShouldPass
-const Failed = ShouldFail
+const ShouldPass TestOutcome = true
+const ShouldFail TestOutcome = false
+const TestPassed = ShouldPass
+const TestFailed = ShouldFail
 
-type HelperTest struct {
-	t         *testing.T
-	Report    StringsTest
-	result    TestResult
+type R struct {
+	t         TestRunner
 	recovered any
-	// testPanic   func(*testing.T, any)
-	// testOutcome func(*testing.T, TestResult)
-	// testReport  func(*testing.T, StringsTest)
+	Report    []string
+	Log       []string
+	Outcome   TestOutcome
 }
 
-func (ht HelperTest) HadOutcome(wanted TestResult) {
+func (ht R) HadOutcome(wanted TestOutcome) {
 	ht.t.Helper()
 	ht.t.Run("outcome", func(t *testing.T) {
 		t.Helper()
-		s := map[TestResult]string{
+		s := map[TestOutcome]string{
 			ShouldPass: "PASS",
 			ShouldFail: "FAIL",
 		}
-		if ht.result != wanted {
-			t.Errorf("\nwanted: %s\ngot   : %s", s[wanted], s[ht.result])
+		if ht.Outcome != wanted {
+			t.Errorf("\nwanted: %s\ngot   : %s", s[wanted], s[ht.Outcome])
 		}
 	})
 }
 
-func (ht HelperTest) DidFail() {
+func (ht R) DidFail() {
 	ht.t.Helper()
 	ht.t.Run("did fail", func(t *testing.T) {
 		t.Helper()
-		if ht.result != Failed {
+		if ht.Outcome != TestFailed {
 			t.Errorf("\nwanted: FAIL\ngot   : PASS")
 		}
 	})
 }
 
-func (ht HelperTest) DidNotPanic() {
+func (ht R) DidNotPanic() {
 	ht.t.Helper()
 	ht.t.Run("did not panic", func(t *testing.T) {
 		t.Helper()
@@ -56,7 +54,7 @@ func (ht HelperTest) DidNotPanic() {
 	})
 }
 
-func (ht HelperTest) DidPanic(wanted any) {
+func (ht R) DidPanic(wanted any) {
 	ht.t.Helper()
 	ht.t.Run("did panic", func(t *testing.T) {
 		t.Helper()
@@ -68,14 +66,37 @@ func (ht HelperTest) DidPanic(wanted any) {
 	})
 }
 
-func (ht HelperTest) DidPass() {
+func (ht R) DidPass() {
 	ht.t.Helper()
 	ht.t.Run("did pass", func(t *testing.T) {
 		t.Helper()
-		if ht.result != Passed {
+		if ht.Outcome != TestPassed {
 			t.Errorf("\nwanted: PASS\ngot   : FAIL")
 		}
 	})
+}
+
+func (ht R) Assert(r ...any) {
+	ht.t.Helper()
+
+	var expected []string
+	for _, v := range r {
+		switch s := v.(type) {
+		case string:
+			expected = append(expected, s)
+		case []string:
+			expected = append(expected, s...)
+		}
+	}
+
+	if shouldPass := !hasOpt(r, ShouldFail) && (len(r) == 0 || hasOpt(r, ShouldPass) || len(expected) == 0); shouldPass {
+		Expect(ht.Outcome, "test should pass").To(Equal(TestPassed))
+		Expect(ht.Report).IsEmpty()
+		return
+	}
+
+	Expect(ht.Outcome, "test should fail").To(Equal(TestFailed))
+	Expect(ht.Report).To(ContainStrings(expected))
 }
 
 // runs a test helper function and compares the result to an
@@ -105,30 +126,35 @@ func (ht HelperTest) DidPass() {
 //		b = 2
 //
 //		// ASSERT
-//		stdout, stderr := test.Helper(t, "test case 1", func(st *testing.T) {
+//		stdout, stderr := test.Test(t, "test case 1", func(st *testing.T) {
 //		   test.Compare(st, 3, a+b)
 //		}, test.ShouldPass)
 //	  }
-func Helper(t *testing.T, f func(st *testing.T)) (result HelperTest) {
+func Test(f func()) R {
+	t := T().(*testing.T)
 	t.Helper()
 
-	result.t = t
-
-	stdout, _, outcome := runInternal(t, func(st *testing.T) {
+	var recovered any
+	stdout, stderr, outcome := runInternal(t, func(st *testing.T) {
 		st.Helper()
-		defer func() {
-			st.Helper()
-			if result.recovered = recover(); result.recovered != nil {
-				st.Errorf("\nunexpected panic: %[1]T: %[1]v", result.recovered)
-			}
-		}()
+		// defer func() {
+		// 	st.Helper()
+		// 	if recovered = recover(); recovered != nil {
+		// 		st.Errorf("\nunexpected panic: %[1]T: %[1]v", recovered)
+		// 	}
+		// }()
 
-		f(st)
+		With(st)
+		f()
 	})
-	result.result = TestResult(outcome)
-	result.Report = stdout
 
-	return result
+	return R{
+		t:         t,
+		recovered: recovered,
+		Log:       stderr,
+		Report:    stdout,
+		Outcome:   TestOutcome(outcome),
+	}
 }
 
 // func Helper(t *testing.T, f func(st *testing.T), want ...any) (result HelperTest) {
@@ -233,11 +259,11 @@ func matchAll(pat, match string) (bool, error) {
 // It is used by test.Helper() to run a test function in a separate test runner
 // in order to inspect the outcome of the test function without that affecting
 // the state of the current test.
-func runInternal(t *testing.T, f func(*testing.T)) (StringsTest, StringsTest, bool) {
+func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, bool) {
 	t.Helper()
 
 	result := false
-	report, log := CaptureOutput(t, func() {
+	stdout, stderr := CaptureOutput(t, func() {
 		t.Helper()
 		sut := []testing.InternalTest{{
 			Name: t.Name(),
@@ -245,20 +271,18 @@ func runInternal(t *testing.T, f func(*testing.T)) (StringsTest, StringsTest, bo
 		}}
 		result = testing.RunTests(matchAll, sut)
 	})
-	report.name = "report"
-	log.name = "log"
 
 	// this is a bit of a hack: when run with -v, the internal test run
 	// emits a RUN line and a PASS line when the test passes, which we don't
 	// want to see in the captured output.  So we remove them here.
 	//
 	// (if the internal test fails there is no additional output to worry about)
-	for i := len(report.got) - 1; i >= 0; i-- {
-		s := strings.TrimSpace(report.got[i])
+	for i := len(stdout) - 1; i >= 0; i-- {
+		s := strings.TrimSpace(stdout[i])
 		if strings.HasPrefix(s, "=== RUN") || strings.HasPrefix(s, "--- PASS: ") {
-			report.got = append(report.got[:i], report.got[i+1:]...)
+			stdout = append(stdout[:i], stdout[i+1:]...)
 		}
 	}
 
-	return report, log, result
+	return stdout, stderr, result
 }
