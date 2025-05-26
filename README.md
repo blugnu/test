@@ -1,5 +1,5 @@
 <div align="center" style="margin-bottom:20px">
-  <!-- <img src=".assets/banner.png" alt="logger" /> -->
+  <img src=".assets/banner.png" alt="logger" />
   <div align="center">
     <a href="https://github.com/blugnu/test/actions/workflows/release.yml"><img alt="build-status" src="https://github.com/blugnu/test/actions/workflows/release.yml/badge.svg?branch=master&style=flat-square"/></a>
     <a href="https://goreportcard.com/report/github.com/blugnu/test" ><img alt="go report" src="https://goreportcard.com/badge/github.com/blugnu/test"/></a>
@@ -15,17 +15,92 @@
 
 # blugnu/test
 
-Provides test helpers for use with the standard library `testing` package; it is not intended
-to be a replacement for the `testing` package or a complete testing framework in its own right.
+Provides a concise, fluent, type-safe API over the standard testing framework, simplifying common tests
+in an extensible fashion whilst maintaining compatibility with the standard testing package.
 
-# CAUTION
+_Friends don't let friends write tests that are hard to read, hard to maintain, or that
+don't fail when they should_.
 
-Feel free to use this package if you find it useful, but be aware that it is still in development
-and the API may change without notice.  The package is in active use and is constantly being revised
-and refined as problems and annoyances are identified and resolved in the API.
+Don't do this:
 
-The API will remain as stable as possible, but until the package hits v1.0 this is only an aspiration,
-not a commitment.
+```go
+func TestDoSomething(t *testing.T) {
+  // act
+  err := DoSomething()
+
+  // assert
+  result, err := DoSomething()
+  if err != nil {
+    t.Errorf("unexpected error: %v", err)
+  }
+
+  expected := 42
+  if result != expected {
+    t.Errorf("expected result %v, got %v", expected, result)
+  }
+}
+```
+
+Do this instead:
+
+```go
+func TestDoSomething(t *testing.T) {
+  With(t)
+
+  // act
+  result, err := DoSomething()
+
+  // assert
+  Expect(err).IsNil()
+  Expect(result, "result").To(Equal(42))
+}
+```
+
+## Features
+
+- **Clean**: No more constantly referencing a `*testing.T`;
+- **Concise**: Provides a fluent API that is concise and easy to read, reducing boilerplate code;
+- **Type-Safe**: Uses Go's type system to ensure that valid tests are performed, reducing runtime
+errors and false positives (or negatives);
+- **Compatible**: Compatible with the standard library `testing` package;
+- **Matchers**: Provides a rich set of matchers for common assertions, making it easy to express
+expectations;
+- **Extensible**: Supports custom matchers, enabling functionality to be extended as needed;
+- **Panic Testing**: Provides a way to test for expected panics, ensuring that code behaves
+correctly under error conditions;
+- **Mocking Utilities**: Provides types to assist with implementing mock functions and replacing
+  dependencies in tests, allowing for isolated testing of components;
+- **Console Recording**: Supports recording console output (`stdout` and `stderr`), to facilitate
+testing of log messages and other output;
+- **Meta-Testing**: Provides methods for testing a test (used by the package to test itself).
+
+## :construction_worker: &nbsp; Under Construction
+
+_This package is not yet considered stable._
+
+Feel free to use this package if you find it useful, but be aware that the API may change
+without notice.
+
+Having said that, the API has just been through a major overhaul to address all of the shortcomings
+and annoyances that existed in the previous version, providing a stronger foundation for future
+development.
+
+The API will remain as stable as possible, but until the package hits v1.0 this should still be
+considered an aspiration, not a commitment.
+
+## :warning: &nbsp; Goroutine IDs
+
+This module uses `runtime.Stack()` to determine the ID of the current goroutine.  This is required
+to maintain a reliable per-goroutine stack of `*testing.T` values (a.k.a 'test frames').
+
+_**This mechanism is not guaranteed to be stable and may change in future versions of Go**_.
+
+If you are using this module in a production environment, be aware that changes in future
+versions of Go may require break this mechanism for determining a goroutine id, requiring changes. This
+may hamper the ability of dependent code to update to a later go version until those changes have been
+made.
+
+# :runner: &nbsp; Quick Start
 
 ## Installation
 
@@ -33,363 +108,558 @@ not a commitment.
 go get github.com/blugnu/test
 ```
 
-## Quick Start
+## Read This First
 
-To perform tests use either a testable factory or a test function:
+1. [dot-importing the `blugnu/test` package](.assets/readme/dot-import.md)
+2. [Test Frames](.assets/readme/test-frames.md)
 
-| Category | Description |
-| --- | --- |
-| [Testable Factories](#testable-factories) | functions that return a '_testable_' value providing functions to perform tests on that value |
-| [Test Helpers](#test-helpers) | functions that directly perform a test and report the outcome |
+### Writing a Test: Expect
 
-To quickly understand the difference you might find it helpful to read: [Testables vs Test Helpers](#testables-vs-test-helpers)
+Almost all tests are written using `Expect` to create an expectation
+over some value (the _subject_).  `Expect` returns an _expectation_ with
+methods for testing the subject.
 
-### Basic Usage
+Some expectation methods test the value directly, such as `IsEmpty()`, `IsNil()` and `IsNotNil()`:
 
-- [Tests for Errors and Comparable Values](#tests-for-errors-and-comparable-values)
-- [Testing Maps and Slices](#testing-maps-and-slices)
-- [Mocking Functions](#mocking-functions)
+```go
+  err := DoSomething()
+  Expect(err).IsNil()
+```
 
-### Advanced Usage
+### Using Matchers
+
+The `To` method of an expectation delegates the evaluation of a test
+to a matcher, usually provided by a factory function where the factory
+function itself is named to fluently express the expected outcome, e.g.:
+
+```go
+  Expect(got).To(Equal(expected))
+```
+
+In this example, the `Equal()` function is a factory function that
+returns an `equal.Matcher`, used to test that the subject is equal to
+some expected value.
+
+### Type-Safety: Matcher Compatibility
+
+`Expect()` is a generic function, where the type `T` is inferred from
+the subject value; the `To()` function will only accept matchers that
+are compatible with the type of the subject value.
+
+For example, in the previous example, the `equal.Matcher` uses the `==` operator to determine
+equality, so is constrained to types that satisfy `comparable`. As a result, values of
+non-comparable type cannot be tested using this matcher:
+
+```go
+  Expect(got).To(Equal([]byte("expected result"))) // ERROR: cannot use `Equal` with `[]byte`
+```
+
+In this case, two alternatives exist:
+
+1. `DeepEqual()` returns a `equal.DeepMatcher` that may be used with _any_ type, using `reflect.DeepEqual` for equality.
+
+2. `EqualBytes` returns a `bytes.EqualMatcher` which provides test failure reports that are specific to `[]byte` values.
+
+The `EqualBytes()` factory function returns a `bytes.EqualMatcher`:
+
+```go
+  Expect(got).To(EqualBytes([]byte("expected result"))) // OK: uses `bytes.EqualMatcher`
+```
+
+### Type-Safety: Invalid Tests fail as Invalid
+
+If an expectation method is called inappropriately on a subject, the
+test will often fail as an invalid test.  For example, if the `IsNil()`
+method is called on a value of a type that does not support a meaningful
+`nil` value the test will fail, not because the value is not `nil` but
+because the test itself is invalid:
+
+```go
+  Expect(42).IsNil() // <== INVALID TEST: `int` is not nilable
+```
+
+In general, expectation tests will attempt to provide a meaningful test
+consistent with the intent, only failing as invalid if a meaningful test
+is not possible.
+
+# Guides
+
+## Basic Usage
+
+- [Setting Expectations](#setting-expectations)
+- [Testing for Nil/Not Nil](#testing-nilnot-nil)
+- [Testing Errors](#testing-errors)
+- [Testing for Panics](#testing-for-panics)
+  - [Panic(nil) vs NilPanic()](#panicnil-vs-nilpanic)
+- [Testing for Emptiness](#testing-emptiness)
+- [Testing With Matchers](#testing-with-matchers)
+  - [Matcher Options](#matcher-options)
+  - [Custom Matchers](#custom-matchers)
+- [Testing Maps](#testing-maps)
+- [Testing Slices](#testing-slices)
+- [Testing Context](#testing-context)
+
+## Advanced Usage
 
 In addition to performing common, basic tests, the `test` package also provides support for more advanced testing scenarios:
 
 | Category | Description |
 | --- | --- |
-| [Capture and Test Console Output](#capture-and-test-console-output) | capture output of a function that writes to `stdout` and/or `stderr` |
 | [Mocking Functions](#mocking-functions) | mock functions for testing |
-| [Test for Expected Panics](#test-for-expected-panics) | test that a function panics as expected |
+| [Recording Console Output](#recording-console-output) | record output of a function that writes to `stdout` and/or `stderr` |
 | [Test for an Expected Type](#test-for-an-expected-type) | test that a value is of an expected type |
-| [Testing a Test Helper](#testing-a-test-helper) | test your own test helper functions |
-| [Testing Context Values](#testing-context-values) | test values stored in a `context.Context` |
+| [Testing a Test](#testing-a-test) | test your own test helper functions |
 
-<br/>
-<hr/>
+------
+</br>
 
-# Testable Factories
+# Setting Expectations
 
-Testable factories are used to create testable values ('testables') that provide test functions
-appropriate to, or specialised for, the type of value being tested.
+Almost all tests start with setting an expectation over some value (the _subject_).
 
-<!-- markdownlint-disable MD013 // line length -->
-| Factory Function | Description |
-| --- | --- |
-| `test.Bytes(t *testing.T, got []byte, opts ...any) *Bytes` | returns a testable `[]byte` |
-| `test.Error(t *testing.T, got error, opts ...any) *Error` | returns a testable `error` |
-| `test.Map[K comparable, V any](t *testing.T, got map[K]V, opts ...any) *Map[K, V]` | returns a testable `map[K,V]` |
-| `test.Slice[T comparable](t *testing.T, got []T, opts ...any) *Slice[T]` | returns a testable slice of values satisfying the `comparable` constraint |
-| `test.Strings(t *testing.T, got []string, opts ...any) *Strings` | returns a testable `[]string` |
-| `test.Value[T comparable](t *testing.T, got T, opts ...any) *Value[T]` | returns a testable value of a type satisfying the `comparable` constraint |
-<!-- markdownlint-enable MD013 -->
-
-Note that some testable factories are generic functions with a constrained type parameter
-which may make them [unsuitable for use with certain values](#working-with-or-around-constraints).
-
-Testable factories accept a minimum of two arguments:
-
-- `t *testing.T` - the `*testing.T` to be used by any test functions provided by the testable
-- `got` - the value to be tested
-
-Note that the type parameter for generic testable factories is able to be inferred
-from the `got` parameter; there is no need to specify the type.  For example (assuming
-that `DoSomething` returns a value of a type that satisfies the `comparable` constraint):
-
-```golang
-func TestDoSomething(t *testing.T) {
-  // ACT
-  got := DoSomething()
-
-  // ASSERT
-  test.Value(t, got).Equals("foo")
-}
-```
-
-Testable factories also support additional options that may be provided as additional parameters.
-For details of the options supported by each testable, see [Testable Factory Options](#testable-factory-options).
-
-## Working With (or Around) Constraints
-
-If you need to test a value which does not satisfy the type constraint of a testable factory, it
-should be possible to implement an equivalent test using a factory that is specialised for the
-value involved, one that is unconstrained, or by using a test helper.  For example, `[]byte` does
-not satisfy the `comparable` constraint and so cannot be tested using a `test.Value()` testable.
-Alternatives in this case are:
-
-- use the `test.Bytes()` testable factory (_testable factory specialised for `[]byte`_)
-- use the `test.Slice[byte]()` testable factory (_`[]byte` does not satisfy `comparable`, but `byte` does_)
-- use the `test.DeepEqual()` test helper (_unconstrained test helper_)
-
-## Testable Factory Options
-
-Testable factory options are always passed after the mandatory parameters.  Optional parameters
-are discriminated by _type_. The following types are supported:
-
-<!-- markdownlint-disable MD013 // line length -->
-| Parameter Type | Name | Description | Notes |
-| --- | --- | --- | --- |
-| `string` | _value name_ | a name for the value being tested | |
-| `test.Format` | _format verb_ | the format verb to be used when manifesting values in a test failure report  | _ignored if a _format function_ is specified_ |
-| `test.BytesFormat` | _format verb_ | the format verb for formatting `[]byte` values in a test failure report | only supported by `test.Bytes()`<br/><br/>_ignored if a _format function_ is specified_ |
-| `func(T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.Bool()` |
-<!-- markdownlint-enable MD013 -->
-
-If multiple values of any of these types are supplied in a given call to a factory only the first
-is significant.  For example, in the following call the additional `"some other value"` name
-parameter (`string`) will be ignored:
+The `Expect` function returns an _expectation_ with methods for testing the subject:
 
 ```go
-test.Value(t, got, "some value", "some other value").Equals(expected)
+  Expect(got)  // returns an expectation for the value `got`
 ```
 
-<br>
-<hr>
-
-# Test Helpers
-
-Test helpers are functions that directly perform a test and report the outcome.
-
-<!-- markdownlint-disable MD013 // line length -->
-| Test Helper | Description |
-| --- | --- |
-| `test.DeepEqual[T any](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is not equal to `wanted`, based on `reflect.DeepEqual()` comparison |
-| `test.Equal[T comparable](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is not equal to `wanted` |
-| `test.IsNil(t *testing.T, got any, name ...string)` | fails if `got` is not `nil` |
-| `test.IsNotNil(t *testing.T, got any, name ...string)` | fails if `got` is `nil` |
-| `test.NotDeepEqual[T any](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is equal to `wanted`, based on `reflect.DeepEqual()` comparison |
-| `test.NotEqual[T comparable](t *testing.T, got, wanted T, opts ...any)` | fails if `got` is equal to `wanted` |
-<!-- markdownlint-enable MD013 -->
-
-With the exception of `IsNil` and `IsNotNil`, a test helper accepts a minimum of _three_ arguments:
-
-- `t *testing.T` - the `*testing.T` value passed to the test function
-- `got` - the value to be tested
-- `wanted` - the value to be compared with `got`
-
-Additional parameters are optional and are always passed after the mandatory parameters.
-
-If multiple optional parameters are supported, they are discriminated by _type_.  The following
-optional parameters are supported:
-
-<!-- markdownlint-disable MD013 // line length -->
-| Parameter Type | Name | Description | Notes |
-| --- | --- | --- | --- |
-| `string` | _name_ | a name for the test | this is the _only_ parameter supported by `IsNil` and `IsNotNil` |
-| `test.Equality` | _comparison method_ | the method used to compare `got` and `wanted` | only supported by `Equal` and `NotEqual`<br/><br/>_ignored if a _comparison function_ is specified_ |
-| `test.Format` | _format verb_ | the format verb to be used when manifesting values in a test failure report  | _ignored if a _format function_ is specified_ |
-| `func(got, wanted T) bool` | _comparison function_ | a function that compares two values of type `T` for equality, returning `true` if considered equal otherwise `false`.  _The type T varies according to the type of the testable value_. | only supported by `test.IsEqual` and `test.NotEqual` |
-| `func(T) string` | _format function_ | a function that returns a string representation of the value being tested.  _The type T varies according to the type of the testable value_. | not supported by `test.IsNil` or `test.IsNotNil` |
-<!-- markdownlint-enable MD013 -->
-
-If multiple values of a given type are supplied, only the first is significant.  For example,
-in the following call the `"some other value"` name parameter will be ignored:
+In addition to a subject, the `Expect()` function accepts options to configure the
+expectation, passed as variadic arguments.  Currently the only option is a name for the
+subject, which is used in test failure reports to identify the subject being tested:
 
 ```go
-  test.Equal(t, got, wanted, "some value", "some other value")
+  Expect(result, "result")  // returns an expectation named "result"
 ```
 
-<br>
-<hr>
+An expectation alone does not perform any tests; it simply provides a way to
+express an expectation over a value.  The expectation is evaluated when a test method
+is called on the expectation, such as `IsNil()`, `IsNotNil()`, `IsEmpty()`, `To()` or
+`DidOccur()`.
 
-# Additional Information
+# Testing Nil/Not Nil
 
-## Testables vs Test Helpers
-
-There are often multiple ways of performing a given test using either a testable or a helper function.
-There is no "right" way; use whichever is most appropriate or intuitive in a specific case.
-
-For example, to test that an `error` returned by a function is `nil` you could use either of the tests
-illustrated here:
+The `IsNil()` and `IsNotNil()` methods are used to test whether a value is `nil` or not.
 
 ```go
-func TestDoSomething(t *testing.T) {
-  // ACT
-  err := DoSomething()
-
-  // ASSERT
-  test.IsNil(t, err)
-  test.Equal(t, err, nil)
-  test.Error(t, err).IsNil()
-}
+    Expect(value).IsNil()      // fails if value is not nil or of a non-nilable type
+    Expect(value).IsNotNil()   // fails if value is nil
 ```
 
-All three tests in this example are testing the same thing, though the first two use test helpers
-while the third uses a `test.Error` testable.
+> :bulb: _If the value being tested by `test.IsNil()` is of a type that does not
+> have a meaningful `nil` value the test will fail as invalid_.
+>
+> _Types that may be tested for `nil` are: `chan`, `func`, `interface`, `slice`, `map`, and
+> `pointer`_.
+>
+> `IsNotNil()` is a valid test for all types.
 
-The third test is strongly typed and is arguably more readable and intuitive than the first two,
-but the first two are more concise.
+# Testing Errors
 
-### Naming a SUT (Subject Under Test)
+## Testing that an Error did not occur
 
-All factory functions support an optional `string` parameter to provide a name for the value being
-tested.  If not specified, each factory function will assume a default name.
+There are two ways to explicitly test that an error did not occur:
 
-Example:
-  
-  ```go
-  func TestDoSomething(t *testing.T) {
-    // ACT
-    got := DoSomething()
+```go
+  Expect(err).DidNotOccur()
+  Expect(err).IsNil()
+```
 
-    // ASSERT
-    test.Value(t, got).Equals(expected)           // will produce a test named: TestDoSomething/value/equals
-    test.Value(t, got, "result").Equals(expected) // will produce a test named: TestDoSomething/result/equals
+A third way to test that an error did not occur is to use the `Is()` method, passing `nil`
+as the expected error:
+
+```go
+  Expect(err).Is(nil)
+```
+
+This is most useful when testing an error in a table driven test where each test case
+may have an expected error or `nil`:
+
+```go
+  Expect(err).Is(tc.err)  // tc.err may be nil or an expected error
+```
+
+## Testing that an Error occurred (any error)
+
+```go
+  Expect(err).DidOccur()
+  Expect(err).IsNotNil()
+```
+
+## Testing that a Specific Error Occurred
+
+```go
+  Expect(err).Is(expectedError) // passes if `errors.Is(err, expectedError)` is true
+```
+
+> _If `nil` is passed as the expected error, the test is equivalent to `IsNil()`_.
+
+# Testing for Panics
+
+Panics can be tested to ensure that an expected panic did (or did not) happen. Since
+panic tests rely on the recovery mechanism in Go, they must be deferred to ensure
+that the panic is captured and tested correctly.
+
+> :warning: There must be at most **ONE** panic test per function; multiple
+> panic tests (or other calls to `recover()` in general) in the same function
+> will not work as expected.
+
+When testing panics, recovered values may be significant or they may be ignored.
+
+For example, if testing only that a panic occurred without caring about the
+recovered value:
+
+```go
+  defer Expect(Panic()).DidOccur()
+```
+
+By contrast, if the recovered value is significant, it can be tested by specifying
+the expected panic value.  The following tests will pass if a panic occurs and the
+recovered value is equal to the expected string:
+
+```go
+  defer Expect(Panic("expected panic")).DidOccur()
+```
+
+> :warning: `Panic(nil)` is a special case.  see: [Panic(nil) vs NilPanic()](#panicnil-vs-nilpanic)
+
+## Testing a Panic with a Recovered Error
+
+When testing for a panic that recovers an error and the expected recovered value
+is specified, the test will pass if the recovered value is an error and
+`errors.Is(recovered, expectedErr)` is true:
+
+```go
+  defer Expect(Panic(expectedErr)).DidOccur()
+```
+
+## Testing that a Panic did NOT occur
+
+It is also possible to explicitly test that a panic did not occur:
+
+```go
+  defer Expect(Panic()).DidNotOccur()
+```
+
+> :bulb: `Expect(Panic(nil)).DidOccur()` is a special case that is exactly equivalent to
+> the above test for no panic. See: [Panic(nil) vs NilPanic()](#panicnil-vs-nilpanic)
+
+Again, if the recovered value is significant, it can be tested by specifying
+the expected panic value.
+
+> :warning: If a value is recovered from a panic that is different to that
+> expected, the test will fail as an `unexpected panic`.
+
+## Panic(nil) vs NilPanic()
+
+Prior to go 1.21, `recover()` could return `nil` if a `panic(nil)` had been called,
+making it impossible to distinguish from no panic having occurred.
+
+From go 1.21 onwards, a `panic(nil)` call is now transformed such that a specific
+runtime error will be recovered.
+
+`Panic(nil)` is treated as a special case that is used to test that a panic did NOT occur.
+i.e. the following are exactly equivalent:
+
+```go
+  // test that a panic did NOT occur
+  defer Expect(Panic(nil)).DidNotOccur()
+```
+
+and
+
+```go
+  // also test that a panic did NOT occur
+  defer Expect(Panic(nil)).DidOccur()
+```
+
+This may seem counter-intuitive, but there is a good reason for this.
+
+The motivation is to simplify table-driven tests where each test case may
+expect a panic or not.  Without this special case, the test would
+require a conditional to determine whether to test for a panic or not:
+
+```go
+  if tc.expectPanic {
+    defer Expect(Panic(tc.expectedPanic)).DidOccur()
+  } else {
+    defer Expect(Panic()).DidNotOccur()
   }
-  ```
-
-## Features and Examples
-
-- [blugnu/test](#blugnutest)
-- [CAUTION](#caution)
-  - [Installation](#installation)
-  - [Quick Start](#quick-start)
-    - [Basic Usage](#basic-usage)
-    - [Advanced Usage](#advanced-usage)
-- [Testable Factories](#testable-factories)
-  - [Working With (or Around) Constraints](#working-with-or-around-constraints)
-  - [Testable Factory Options](#testable-factory-options)
-- [Test Helpers](#test-helpers)
-- [Additional Information](#additional-information)
-  - [Testables vs Test Helpers](#testables-vs-test-helpers)
-    - [Naming a SUT (Subject Under Test)](#naming-a-sut-subject-under-test)
-  - [Features and Examples](#features-and-examples)
-    - [Tests for Errors and Comparable Values](#tests-for-errors-and-comparable-values)
-    - [Testing Maps and Slices](#testing-maps-and-slices)
-      - [test.Map](#testmap)
-      - [test.Slice](#testslice)
-      - [test.Bytes](#testbytes)
-    - [Mocking Functions](#mocking-functions)
-      - [Fake Function Results](#fake-function-results)
-    - [Capture and Test Console Output](#capture-and-test-console-output)
-    - [Testing a Test Helper](#testing-a-test-helper)
-    - [Testing Context Values](#testing-context-values)
-    - [Test for Expected Panics](#test-for-expected-panics)
-    - [Test for an Expected Type](#test-for-an-expected-type)
-
-### Tests for Errors and Comparable Values
-
-A `test.Error()` factory is provided that returns a testable `error` supporting the following tests:
-
-- `Is(wanted)` - fails if the error is not `wanted` (using `errors.Is()`)
-- `IsNil()` - fails if the error is not `nil`
-
-In addition, the `test.IsNil()` function provides specific support for testing for `nil` errors and
-so may be more convenient to use when performing a simple test for an unexpected error.
-
-The following snippets demonstrate these tests:
-
-```go
-func TestDoSomething(t *testing.T) {
-  // ACT
-  err := DoSomething()
-  test.IsNil(t, err)  // will fail with "unexpected error: <type>: <error string>" if err is not nil
-
-  // ASSERT
-  test.Error(t, err, "returned error").IsNil()    // equivalent to the above but with an explicit name
-  test.Error(t, err).Is(io.EOF)                   // equivalent to errors.Is(err, io.EOF)
-}
 ```
 
-> _NOTE: If the value supplied to the `test.IsNil()` function is of a type that does not have a
-> meaningful `nil` value, the test will fail as an invalid test. Types that may be tested for
-> `nil` are: `chan`, `func`, `interface`, slices, maps, and pointers._
-
-For values of a comparable type, the `test.Value[T comparable]()` factory returns a testable
-value of a type satisfying the `comparable` constraint.  The returned value provides the
-following tests:
-
-- `Equals(wanted)` - fails if the value is not equal to `wanted`
-- `IsNil()` - fails if the value is not `nil`
-- `IsNotNil()` - fails if the value is `nil`
+With the special case of `Panic(nil)`, the test can be simplified to:
 
 ```go
-func TestDoSomething(t *testing.T) {
-  // ACT
-  got, err := DoSomething()
-  test.IsNil(err)
-
-  // ASSERT
-  test.Value(t, "returned value", got).Equals("foo")  // fails if got is not "foo"
-}
+  defer Expect(Panic(tc.expectedPanic)).DidOccur()
 ```
 
-> _NOTE: If the value supplied to the `test.Value()` factory function is of a type that does not
-> have a meaningful `nil` value, the `IsNil()` and `IsNotNil()` tests will fail as invalid.
-> Types that may be tested for `nil` are: `chan`, `func`, `interface`, slices, maps, and pointers._
+Where `tc.expectedPanic` may be `nil` (panic not expected to occur) or an
+expected value to be recovered from a panic.
 
-### Testing Maps and Slices
-
-Three factory functions are provided for creating values for testing maps and slices:
-
-- `test.Map[K comparable, V any]()` for testing a map
-- `test.Slice[T comparable]()` for testing a slice of values satisfying the `comparable` constraint
-- `test.Bytes()` for testing a `[]byte` specifically
-
-> _Tests that are available using a `test.Bytes()` test could also be performed using a `test.Slice[byte]()`.
-> However, a `test.Bytes()` test provides options that are more useful when working with `[]byte` values,
-> together with more helpful formatting of test failure reports._
-
-#### test.Map
+In the unlikely event that you need to test specifically for a `panic(nil)`
+having occured, the go 1.21+ runtime error can be tested for:
 
 ```go
-func TestDoSomething(t *testing.T) {
-  // ARRANGE
-  expected := map[string]string{
-    "foo": "bar",
-  }
-
-  // ACT
-  got := DoSomething()
-
-  // ASSERT
-  test.Map(t, got).Equals(expected)
-}
+  defer Expect(Panic(&runtime.PanicNilError{})).DidOccur()
 ```
 
-#### test.Slice
+To make even this unlikely case easier, the `NilPanic()` function
+is provided, so the above can be simplified to:
 
 ```go
-func TestDoSomething(t *testing.T) {
-  // ARRANGE
-  expected := []string{"foo", "bar"}
-
-  // ACT
-  got := DoSomething()
-
-  // ASSERT
-  test.Slice(t, got).Equals(expected)
-}
+  defer Expect(NilPanic()).DidOccur()
 ```
 
-#### test.Bytes
+### Testing Emptiness
 
-When testing `[]byte`, an optional format argument may be used to specify the format of the
-expected and actual values in any test failure report.
-
-The default format is `BytesHex` (hexadecimal):
+The `IsEmpty()`, `IsEmptyOrNil()` and `IsNotEmpty()` methods can be used to test
+whether a value is considered empty, or not.
 
 ```go
-func TestDoSomething(t *testing.T) {
-  // ARRANGE
-  expected := []byte("foo")
-  got := []byte("bar")
-
-  // ACT & ASSERT
-  test.Bytes(t, got).Equals(expected)               // displays values in a failure report as hexadecimal
-  test.Bytes(t, got, test.BytesBinary).Equals(expected)  // displays values in a failure report as binary
-}
+  Expect(value).IsEmpty()        // fails if value is not empty or nil
+  Expect(value).IsEmptyOrNil()   // fails if value is not empty and not nil
+  Expect(value).IsNotEmpty()     // fails if value is empty
 ```
 
-Any format may be specified by casting a string as a `BytesFormat` if needed; sensible values
-are provided as constants.
+The distinction between `IsEmpty()` and `IsEmptyOrNil()` can be useful when it
+is important to differentiate between empty and `nil` values.  For example,
+if testing a slice, `IsEmpty()` will pass if the slice is empty but will fail
+if the slice is `nil`, while `IsEmptyOrNil()` will pass in both cases.
 
-### Mocking Functions
+All tests will fail as invalid if emptiness of the value cannot be determined.
+
+Emptiness is defined as follows:
+
+- for `string`, `slice`, `map`, `chan` and `array` types, emptiness is defined as
+  `len(value) == 0`
+- for all other types, emptiness is determine by the implementation of a `Count()`,
+  `Len()` or `Length()` method returning 0 (zero) of type  `int`, `int64`, `uint`
+  or `uint64`
+- if testing a value for this emptiness cannot be determined, the test will fail
+  as invalid.
+
+# Testing With Matchers
+
+The `To()` and `ToNot()` methods delegate the evaluation of a test to a matcher, usually
+provided by a factory function.  Matcher factory functions are typically named to describe
+the expected outcome in a fluent fashion as part of the test expression, e.g.:
+
+```go
+  Expect(got).To(Equal(expected))
+```
+
+Matchers are generic types that implement the `Matcher[T]` interface, which
+provides a `Matches(value T, opts ...any) bool` method to test whether the value matches
+the expectation.
+
+The type `T` of a matcher must be compatible with the type of the subject value
+in the expectation.  If the type of the subject value is not compatible with the
+matcher type, the test will not compile.
+
+A number of matchers are provided in the `test` package, including:
+
+<!-- markdownlint-disable MD013 -->
+| Factory Function | Subject Type | Description |
+| --- | --- | --- |
+| `BeGreaterThan(T)` | `T cmp.Ordered` | Tests that the subject is greater than the expected value using the `>` operator |
+| `BeLessThan(T)` | `T cmp.Ordered` | Tests that the subject is less than the expected value using the `<` operator |
+| `Equal(T)` | `T comparable` | Tests that the subject is equal to the expected value using the `==` operator |
+| `DeepEqual(T)` | `T any` | Tests that the subject is deeply equal to the expected value using `reflect.DeepEqual` |
+| `EqualBytes([]byte)` | `[]byte` | Tests that `[]byte` slices are equal, with detailed failure report highlighting different bytes |
+| `EqualMap(map[K,V])` | `map[K,V]` | Tests that the subject is equal to the expected map |
+| `ContainItem(T)` | `[]T` | Tests that the subject contains an expected item |
+| `ContainItems([]T)` | `[]T` | Tests that the subject contain the expected items (in any order, not necessarily contiguously) |
+| `ContainMap(map[K,V])` | `map[K,V]` | Tests that the subject contains the expected map (keys and values must match) |
+| `ContainMapEntry(K,V)` | `map[K,V]` | Tests that the subject contains the expected map entry |
+| `ContainSlice([]T)` | `[]T` | Tests that the subject contains the expected slice (items must be present contiguously and in order) |
+| `ContainString(expected T)` | `T ~string` | Tests that the subject contains an expected substring |
+| `HaveContextKey(K)` | `context.Context` | Tests that the context contains the expected key |
+| `HaveContextValue(K,V)` | `context.Context` | Tests that the context contains the expected key and value |
+<!-- markdownlint-enable -->
+
+Matchers are used by calling the `To()` or `ToNot()` methods on an expectation, passing
+the matcher as an argument plus any options to configure the behaviour of the expectation
+or the matcher.
+
+The matcher is usually constructed by a factory function accepting any arguments required
+by the matcher.  Any options supported by the matcher are passed via the `To()` or `ToNot()`
+methods, rather than the factory:
+
+```go
+  // the opt.OnFailure option replaces the default error report
+  // with the custom "failed!" message
+  Expect(got).To(Equal(expected),
+    opt.OnFailure("failed!"),
+  )
+
+  // override the use of the `==` operator with a custom comparison function
+  // where the subject type is a hypothetical `MyStruct` type
+  Expect(got).ToNot(Equal(expected),
+    func(exp, got MyStruct) bool { return /* custom comparison logic */ },
+  )
+```
+
+## Matcher Options
+
+In addition to a matcher, the `To()` and `ToNot()` methods accept options passed as variadic
+arguments.
+
+The `To()` and `ToNot()` methods themselves support options for customising the test error
+report in the event of failure.
+
+```go
+  Expect(got).To(Equal(expected, test.WithMessage("expected %v, got %v", expected, got)))
+```
+
+Most matchers support options to modify their behaviour.  The specific options supported by
+a matcher are documented on the relevant matcher factory function.
+
+Some options that are supported by the `To()` and `ToNot()` methods themeselves and therefore
+may be used with all matchers:
+
+<!-- markdownlint-disable MD013 -->
+| Option | Description |
+| --- | --- |
+| opt.FailureReport(func) | a function that returns a custom error report for the test failure; the function must be of type `func(...any) []string` |
+| opt.OnFailure(string) | a string to use as the error report for the test failure; this overrides the default error report for the matcher |
+<!-- markdownlint-enable -->
+
+> `opt.OnFailure()` is a convenience function that returns an `opt.FailureReport()` with a
+> function that returns the specified string in the report.
+>
+> `opt.FailureReport()` and `opt.OnFailure()` are mutually exclusive; if both are specified, only the
+> first in the options list will be used.
+
+The `...any` argument to the `opt.FailureReport()` function is used to pass any options supplied to the
+matcher, so that the error report can respect those options where appropriate.
+
+> See the [Custom Failure Report Guide](.assets/readme/custom-failure-reports.md) for details.
+
+Examples of other options supported by some matchers include:
+
+<!-- markdownlint-disable MD013 -->
+| Option | Description |
+| --- | --- |
+| `opt.ExactOrder(bool)` | a boolean to indicate whether the order of items in a collection is significant; defaults to `false` |
+| `opt.CaseSensitive(bool)` | a boolean to indicate whether string comparisons should be case-insensitive; defaults to `true` |
+| `opt.QuotedStrings(bool)` | a boolean to indicate whether string values should be quoted in failure reports; default to `true` |
+| `func(T, T) bool` | a type-safe custom comparison function; the type `T` is the type of the subject value |
+| `func(any, any) bool` | a custom comparison function accepting `expected` and `subject` values as `any` |
+<!-- markdownlint-enable -->
+
+> type-safe custom comparison functions are preferred over `any` comparisons.  Only one
+> should be specified; if multiple comparison functions are specified, the first type-safe
+> function will be used in prerence over the first `any` function.
+
+## Custom Matchers
+
+Custom matchers may be implemented by defining a type that implements the `Matcher[T]`
+interface.
+
+Refer to the [Custom Matchers Implementation Guide](.assets/readme/custom-matchers.md) for details.
+
+------
+</br>
+
+# Testing Maps
+
+The `test` package provides matchers for testing maps, including the ability to test for
+equality, containment of items or the existence of a specific key:value entry.
+
+<!-- markdownlint-disable MD013 -->
+| Matcher | Subject Type | Description |
+| --- | --- | --- |
+| `EqualMap(map[K,V])` | `map[K,V]` | tests that the subject is equal to the expected map |
+| `ContainMap(map[K,V])` | `map[K,V]` | tests that the subject contains the expected map (keys and values must match, order is not significant) |
+| `ContainMapEntry(K,V)` | `map[K,V]` | tests that the subject contains the expected map entry (key and value must match) |
+<!-- markdownlint-enable -->
+
+These matchers accept either a map or a pair of key and value parameters; type inference
+ensures type-compatibility with expectation subjects that are maps.
+
+## Testing Keys or Values in Isolation
+
+When testing keys or values in isolation (a key without a value or vice versa), any matcher
+would not have enough information to determine the type of both key and value to provide
+compatibility with a map subject without explicitly instantiating with declared type
+information.
+
+To avoid this, functions are provided to extract keys or values as slices, enabling the use of
+slice matchers in fluent fashion, e.g.:
+
+```go
+  Expect(KeysOfMap(m)).To(ContainItem("key"))     // tests that the map contains the key "key"
+  Expect(ValuesOfMap(m)).To(ContainItem("value")) // tests that the map contains a key having the value "value"
+```
+
+------
+</br>
+
+# Testing Slices
+
+The `test` package provides matchers for testing slices, including the ability to test for
+equality, containment of items or the existence of a specific item in a slice.
+
+<!-- markdownlint-disable MD013 -->
+| Matcher | Subject Type | Description |
+| --- | --- | --- |
+| `EqualSlice([]T)` | `[]T` | tests that the subject is equal to the expected slice (items must be present contiguously and in order); options supported include `opt.ExactOrder(false)` or `opt.AnyOrder()`, to allow equality of slices where order is not significant |
+| `ContainItem(T)` | `[]T` | tests that the subject contains an expected item |
+| `ContainItems([]T)` | `[]T` | tests that the subject contains the expected items (in any order, not necessarily contiguously) |
+| `ContainSlice([]T)` | `[]T` | tests that the subject contains the expected slice (items must be present contiguously and in order); options supported include `opt.ExactOrder(false)` or `opt.AnyOrder()`, to allow containment of slices where order is not significant |
+<!-- markdownlint-enable -->
+
+To test for an expected length of a slice, use `len(slice)` as the subject:
+
+```go
+  Expect(len(slice)).To(Equal(expectedLength)) // tests that the slice has the expected length
+```
+
+For emptiness tests where precise length is not significant (other than zero, for emptiness), the `IsEmpty()`
+and `IsNotEmpty()` methods can be used on any slice subject:
+
+```go
+  Expect(slice).IsEmpty()      // tests that the slice is empty
+  Expect(slice).IsNotEmpty()   // tests that the slice is not empty
+```
+
+------
+</br>
+
+# Testing Context
+
+Passing values in a `context.Context` is a common pattern in Go, and the `test` package
+provides a way to test that a context contains the expected values.
+
+The `HaveContextKey(K)` and `HaveContextValue(K,V)` matchers can be used to test that a
+context contains a specific key or key-value pair.
+
+```go
+  Expect(ctx).To(HaveContextKey("key"))            // tests that the context contains the key "key"
+  Expect(ctx).To(HaveContextValue("key", "value")) // tests that the context contains the key "key" with value "value"
+```
+
+The type of the key is determined by the type parameter `K` of the matcher, which
+must be the type of the key used in the context, not just compatible.
+
+For example, if a custom `string` type has been used for the key, the value of any key
+expected by the matcher must be cast to that type:
+
+```go
+  // e.g. where MyPackageContextKey is the type used for context keys:
+  Expect(ctx).To(HaveContextKey(MyPackageContextKey("key")))   
+```
+
+------
+</br>
+
+# Mocking Functions
 
 When testing functions that call other functions, it is often necessary to mock the functions
 being called to ensure that the tests are isolated and that the functions being tested are
 not dependent on the behaviour of the functions being called.
 
-The `test.MockFn[A, R]` type provides a way to mock a function accepting arguments of type A and
-returning a result of type R.
+The `test.MockFn[A, R]` type provides a way to mock a function accepting arguments of type `A` and
+returning a result of type `R`.
 
 All `test.MockFn` values support an optional `error` value which may simply be ignored/not used
 if the mocked function does not return an error.
@@ -398,7 +668,7 @@ If the function being mocked does not return any value other than an `error`, th
 should be `any` and ignored.  Similarly if the function being mocked does not require any
 arguments, the argument type `A` should be `any` and ignored.
 
-#### Fake Function Results
+## Fake Function Results
 
 The `test.MockFn` type can provide fake results for a mocked function.  Fake results may be setup
 in two different ways:
@@ -411,9 +681,7 @@ in two different ways:
   mocked function is called with the specified arguments.  In this mode, calls to the mocked
   function that do not match any of the mapped results will cause the test to fail.
 
-```go
-
-#### Multiple Arguments/Result Values
+## Multiple Arguments/Result Values
 
 If a function being mocked accepts multiple arguments and/or returns multiple result values (in
 addition to an error), the types A and/or R should be a `struct` type with fields for the arguments
@@ -440,177 +708,212 @@ func (mock *mockFoo) Foo(A int, B string) (int, string, error) {
 }
 ```
 
+------
 
+# Recording Console Output
 
+The `test.Record` function records the output of a function that writes to `stdout`
+and/or `stderr`, returning the output as a pair of `[]string` values for `stdout`
+and `stderr` respectively.
 
-### Capture and Test Console Output
+> :bulb: The function does not return an error; it will panic if the redirection
+> fails. This is an intentional design choice to ensure that a test fails if the
+> mechanism is not working correctly, avoiding incorrect results without requiring
+> a test to handle any error.
 
-The `test.CaptureOutput` function captures the output of a function that writes to `stdout` and/or `stderr`
-and returns the captured output as a `CapturedOutput` value.
-
-The `CapturedOutput` value provides the following tests:
-
-- `Contains(wanted)` - fails if the captured output does not contain `wanted`
-- `DoesNotContain(wanted)` - fails if the captured output contains `wanted`
-- `Equals(wanted)` - fails if the captured output is not equal to `wanted`
-- `IsNil()` - fails if the captured output is not `nil`
-- `IsNotNil()` - fails if the captured output is `nil`
+Since failed tests will write to `stdout`, the output will include any test
+failures that occur during execution of the captured function. You may wish to
+structure your code to perform tests outside of the recorded functions to avoid
+this and simplify testing of the output:
 
 ```go
 func TestDoSomething(t *testing.T) {
-  // ARRANGE
-  var err error
+  With(t)
 
   // ACT
-  stdout, stderr :=test.CaptureOutput(t, func (*testing.T) {
-    _, err := DoSomething()
+  var (
+    err error
+    result string
+  )
+  stdout, stderr := Record(func () {
+    result, err := DoSomething()
     return err
   })
 
   // ASSERT
-  test.UnexpectedError(t, err)
-  test.Equals(t, "foo", got)
-  stdout.Contains("some expected log message")
+  Expect(err).IsNil()
+  Expect(result).To(Equal("foo"))
+  Expect(stdout).To(ContainItem("DoSomething wrote this to stdout"))
 }
 ```
 
-### Testing a Test Helper
+------
 
-The `test.Helper` function combines the execution of a test helper with the testing of the
-outcome of the helper.  The outcome of the helper is specific using `test.ShouldPass` or
-`test.ShouldFail` or providing a `test.*Panic` if the helper is expected to panic.
+# Testing a Test
 
-The output of the test helper is returned as `CapturedOutput` (both `stdout` and `stderr`)
-so that the presentation of test failure messages in the log can also be tested and verified.
+If you write your own test helpers (or matchers), you should of course test them.
+A `Test()` function is provided to enable you to do just that.
+
+`Test()` accepts a function that will be used to exercise your test helper, isolated in
+a separate test runner.  This allows your test helper to fail without affecting the outcome
+of the test that is testing it.
+
+The `Test()` function returns a `test.R` value that contains information about the
+outcome of the test.  You could test the information in this `R` value directly, but
+the `R` type provides methods to make this easier.
+
+## Testing the Outcome
+
+To test the outcome of a test, without considering any output, you can pass the expected
+outcome as an argument to the `R.Expect()` method:
 
 ```go
-func TestUnexpectedError(t *testing.T) {
-  // ARRANGE
-  err := errors.New("some error")
+  result := Test(func() {
+    /* your test code here */
+  })
 
-  // ACT & ASSERT
-  stdout, stderr := test.Helper(t, func(st *testing.T) {
-    test.UnexpectedError(st, err)
-  }, test.ShouldPass)
-
-  stdout.Contains(nil)  // no output expected for a PASS
-}
+  result.Expect(TestPassed)
 ```
 
-> **NOTE:** _It is important that the helper function being tested is called with
-> the `*testing.T` passed to the function that runs it (`st` in the example above)
-> and not the `T` of the test (`t` in the example)._
+## Testing Test Output
 
-### Testing Context Values
-
-When a module under test uses a `context.Context` to store values, functions are usually
-provided to set and retrieve those values.  In addition to returning any value from a context,
-the retrieval functions often also return an indicator value which can be used to identify
-whether the value was found in the context or not (to differentiate between a non-existent
-value and a value that is present with a zero value).
-
-This makes testing the retrieval functions more cumbersome than it might otherwise be:
+It is a good idea to test the output of your test helper or matcher when it fails. You
+can do this by passing the expected lines of test output as strings to the `R.Expect()`
+method:
 
 ```go
-func TestGetValue(t *testing.T) {
-  // ARRANGE
-  ctx := context.Background()
+  result := Test(func() {
+    /* your test code here */
+  })
 
-  // ACT
-  ctx := SomeFuncModifyingContext(ctx, args)
-
-  // ASSERT
-  got, ok := GetValue(ctx)
-  test.Bool(t, ok).IsTrue()
-  test.That(t, got).Equals(value)
-}
+  result.Expect(
+    "expected output line 1",
+    "expected output line 2",
+  )
 ```
 
-To simplify such tests, two functions are provided:
+> :bulb: By testing the output, the test is implicitly expected to fail, so the
+> `R.Expect()` method in this case will also test that the outcome is `TestFailed`.
 
-- `test.ContextIndicator`
-- `test.ContextValue`
+## Running Multiple Test Scenarios
 
-Both of these function are generic, accpting type parameters `T` and `I` for the value and
-indicator types respectively.
+A specialised version of `RunScenarios()` is provided to test a test helper or
+custom matcher: `RunTestScenarios()`. This accepts a slice of `TestScenario` values,
+where each scenario is a test case to be run against your test helper or matcher.
 
-In addition to the usual `*testing.T`, these function accept a context to be tested and the
-retrieval function; each function returns a testable for the indicator or value returned by
-the retrieval function:
+`RunTestScenarios()` implements a test runner function for you, so all you need
+to do is provide a slice of scenarios, with each scenario consisting of:
 
-```go
-func TestGetValue(t *testing.T) {
-  // ARRANGE
-  ctx := context.WithValue(context.Background(), key, value)
+- `Scenario`: a name for the scenario (scenario); each scenario is run in a subtest
+   using this name;
+- `Act`: a function that contains the test code for the scenario; this function has
+   the signature `func()`;
+- `Assert`: a function that tests the test outcome; this function has the signature
+  `func(*R)` where `R` is the result of the test scenario.
 
-  // ACT & ASSERT
-  test.ContextIndicator(t, ctx, GetValue).IsTrue()
-  test.ContextValue(t, ctx, GetValue).Equals(value)
-}
-```
+The `Assert` function is optional; if not provided the scenario is one where the
+test is expected to pass without any errors or failures.
 
-### Test for Expected Panics
+### Debugging and Skipping Scenarios
 
-Panic tests must be deferred to ensure that the panic is captured and tested.
-The `test.ExpectPanic` function returns a `*Panic` value with an `Assert` function
-that can be deferred to test for an expected panic.
+When you have a large number of scenarios it is sometimes useful to focus on a
+subset, or specific test, or to ignore scenarios that are not yet implemented or
+known to be failing with problems which you wish to ignore while focussing on
+other scenarios.
 
-```go
-func TestDoSomething(t *testing.T) {
-  // ARRANGE
-  err := errors.New("some error")
-  defer test.ExpectPanic(err).Assert(t)
+The `RunTestScenarios()` function and `TestScenario` type support this by
+providing a `Skip` and `Debug` field on each `TestScenario`.
 
-  // ACT
-  panic(err)
-}
-```
-
-The `Assert` function may be called on a `nil` receiver to test that no panic was
-recovered, which is useful in table-driven tests:
+> :warning: &nbsp; When setting either `Debug` or `Skip` to `true`, it is important
+to remember to remove those settings when you are ready to move on to the next
+focus of your testing.
 
 ```go
-func TestDoSomething(t *testing.T) {
-  // ARRANGE
-  err := errors.New("panicked")
-
-  testcases := []struct {
-    name string
-    error
-    panic  *test.Panic
-  }{
-    {name: "panic expected", error: err, panic: test.ExpectPanic(err)},
-    {name: "no panic expected", err: nil},
+  scenarios := []TestScenario{
+    {
+      Scenario: "test scenario 1",
+      Act: func() { /* test code */ },
+      Assert: func(r *R) { /* assertions */ },
+    },
+    {
+      Scenario: "test scenario 2",
+      Skip: true, //                              <== this scenario won't run
+      Act: func() { /* test code */ },
+      Assert: func(r *R) { /* assertions */ },
+    },
   }
-  for _, tc := range testcases {
-    t.Run(tc.name, func(t *testing.T) {
-      // ARRANGE
-      defer tc.panic.Assert(t)
-
-      // ACT
-      panic(tc.error)
-    })
-  }
-}
 ```
 
-### Test for an Expected Type
+Setting `Skip` to `true` may be impractical if you have a large number of scenarios
+and want to run only a few of them. In this case, you can use the `Debug` field to
+focus on a single scenario or a subset of scenarios.
 
-You can test that some value is of an expected type using the `test.Type` function.
-This function returns the value as the expected type if the test passes, otherwise it
-returns `nil` and the test fails.
+## Debugging Scenarios
 
-If the value is of the expected type, further tests may then be performed on the
-returned value as that type:
+> :bulb: &nbsp; Setting `Debug` does not invoke the debugger or subject a test scenario to
+> any special treatment, beyond selectively running it.  The name merely reflects that it
+> most likely to be of use when debugging.
+
+When `Debug` is set to `true` on any one or more scenarios, the test runner will run
+ONLY those scenarios, skipping all other scenarios:
+
+```go
+  scenarios := []TestScenario{
+    {
+      Scenario: "test scenario 1",
+      Debug: true, //                              <== only this scenario will run
+      Act: func() { /* test code */ },
+      Assert: func(r *R) { /* assertions */ },
+    },
+    {
+      Scenario: "test scenario 2",
+      Act: func() { /* test code */ },
+      Assert: func(r *R) { /* assertions */ },
+    },
+    {
+      Scenario: "test scenario 3",
+      Act: func() { /* test code */ },
+      Assert: func(r *R) { /* assertions */ },
+    },
+  }
+```
+
+### :warning: &nbsp; If both `Debug` and `Skip` are set `true` the scenario is skipped
+
+------
+
+# Test for an Expected Type
+
+You can test that some value is of an expected type using the `ExpectType` function.
+
+This function returns the value as the expected type and `true` if the test passes;
+otherwise the zero-value of the expected type is returned, with `false`.
+
+A common pattern when this type of test is useful is to assert the type of some
+value and then perform additional tests on that value appropriate to the type:
 
 ```go
 func TestDoSomething(t *testing.T) {
+  With(t)
+
   // ACT
   result := DoSomething()
 
   // ASSERT
-  if got, ok := test.Type[Customer](t, result); ok {
-    // further assertions on got (of type Customer)
+  if cust, ok := ExpectType[Customer](result); ok {
+    // further assertions on cust (type: Customer) ...
   }
 }
+```
+
+This test can only be used to test that a value is of a type that can be expressed
+through the type parameter on the generic function.
+
+For example, the following test will fail as an invalid test:
+
+```go
+  type Counter interface {
+    Count() int
+  }
+  ExpectType[Counter](result) // INVALID TEST: cannot be used to test for interfaces
 ```
