@@ -1,57 +1,89 @@
 package test
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
-func TestIsType(t *testing.T) {
-	// ARRANGE
-	testcases := []struct {
-		scenario string
-		act      func(T) (any, bool)
-		assert   func(HelperTest, any, bool)
-	}{
-		{scenario: "IsType[string](string)",
-			act: func(t T) (any, bool) {
-				return IsType[string](t, "foo")
-			},
-			assert: func(test HelperTest, got any, ok bool) {
-				test.DidPass()
-				test.Report.IsEmpty()
-				Equal(t, got, "foo")
-				IsTrue(t, ok)
+func TestExpectType(t *testing.T) {
+	With(t)
+
+	RunTestScenarios([]TestScenario{
+		{Scenario: "expecting int got int",
+			Act: func() {
+				result, ok := ExpectType[int](1)
+				Expect(result).To(Equal(1))
+				Expect(ok).To(BeTrue())
 			},
 		},
-		{scenario: "IsType[string](int)",
-			act: func(t T) (any, bool) {
-				return IsType[string](t, 42)
+		{Scenario: "expecting int got string",
+			Act: func() {
+				result, ok := ExpectType[int]("string")
+				Expect(result).To(Equal(0))
+				Expect(ok).To(BeFalse())
 			},
-			assert: func(test HelperTest, got any, ok bool) {
-				test.DidFail()
-				test.Report.Contains("IsType[string](int)/is_of_type")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: string",
-					"got   : int",
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: int",
+					"got     : string",
+				)
+			},
+		},
+		{Scenario: "expecting named int got bool",
+			Act: func() {
+				result, ok := ExpectType[int](false, "named value")
+				Expect(result).To(Equal(0))
+				Expect(ok).To(BeFalse())
+			},
+			Assert: func(result *R) {
+				result.Expect([]string{
+					"named value:",
+					"  expected: int",
+					"  got     : bool",
 				})
-				Equal(t, got, "")
-				IsFalse(t, ok)
 			},
 		},
-	}
-	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			// ARRANGE
-			var (
-				got any
-				ok  bool
-			)
+		{Scenario: "expecting interface implementation",
+			Act: func() {
+				type Countable interface {
+					Count() int
+				}
+				result, ok := ExpectType[Countable](implementsCount[int]{})
+				Expect(result).IsNil()
+				Expect(ok).To(BeFalse())
+			},
+			Assert: func(result *R) {
+				result.ExpectInvalid(
+					"ExpectType: cannot be used to test for interfaces",
+				)
+			},
+		},
+	})
+}
 
-			//ACT
-			test := Helper(t, func(st *testing.T) {
-				got, ok = tc.act(st)
-			})
+func ExampleExpectType() {
+	With(ExampleTestRunner{})
 
-			// ASSERT
-			tc.assert(test, got, ok)
-		})
-	}
+	// ExpectType returns the value as the expected type and true if the
+	// value is of that type
+	var got any = 1 / 2.0
+	result, ok := ExpectType[float64](got)
+
+	fmt.Printf("ok is %v\n", ok)
+	fmt.Printf("result: type is: %T\n", result)
+	fmt.Printf("result: value is: %v\n", result)
+
+	// ExpectType returns the zero value of the expected type and false if the
+	// value is not of that type (the return values can be ignored if the
+	// test is only concerned with checking the type)
+	got = "1 / 2.0"
+	ExpectType[float64](got)
+
+	//Output:
+	// ok is true
+	// result: type is: float64
+	// result: value is: 0.5
+	//
+	// expected: float64
+	// got     : string
 }

@@ -2,142 +2,161 @@ package test
 
 import (
 	"testing"
+
+	"github.com/blugnu/test/opt"
 )
 
-func TestBool(t *testing.T) {
-	// ARRANGE
-	testcases := []struct {
-		scneario string
-		act      func(T)
-		assert   func(HelperTest)
-	}{
-		// these tests should pass
-		{scneario: "Bool(true).IsTrue()",
-			act: func(t T) {
-				Bool(t, true, "got").IsTrue()
-			},
-			assert: func(test HelperTest) {
-				test.DidPass()
-				test.Report.IsEmpty()
-			}},
-		{scneario: "Bool(false).IsFalse()",
-			act: func(t T) {
-				Bool(t, false, "got").IsFalse()
-			},
-			assert: func(test HelperTest) {
-				test.DidPass()
-				test.Report.IsEmpty()
-			}},
-		{scneario: "Bool(false).Equals(false)",
-			act: func(t T) {
-				Bool(t, false, "got").Equals(false)
-			},
-			assert: func(test HelperTest) {
-				test.DidPass()
-				test.Report.IsEmpty()
-			}},
-		{scneario: "Bool(true).Equals(true)",
-			act: func(t T) {
-				Bool(t, true, "got").Equals(true)
-			},
-			assert: func(test HelperTest) {
-				test.DidPass()
-				test.Report.IsEmpty()
-			}},
-		{scneario: "IsFalse(false)",
-			act: func(t T) {
-				IsFalse(t, false, "got")
-			},
-			assert: func(test HelperTest) {
-				test.DidPass()
-				test.Report.IsEmpty()
-			}},
-		{scneario: "IsTrue(true)",
-			act: func(t T) {
-				IsTrue(t, true, "got")
-			},
-			assert: func(test HelperTest) {
-				test.DidPass()
-				test.Report.IsEmpty()
-			}},
+func TestBooleans(t *testing.T) {
+	With(t)
 
-		// these should fail
-		{scneario: "Bool(true).IsFalse()",
-			act: func(t T) { Bool(t, true, "got").IsFalse() },
-			assert: func(test HelperTest) {
-				test.DidFail()
-				test.Report.Contains("FAIL: TestBool/Bool(true).IsFalse()/got/is_false")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: false",
-					"got   : true",
-				})
+	RunTestScenarios([]TestScenario{
+		{Scenario: "ExpectFalse when false",
+			Act: func() { ExpectFalse(false) },
+		},
+		{Scenario: "ExpectTrue when true",
+			Act: func() { ExpectTrue(true) },
+		},
+		{Scenario: "BeFalse when false",
+			Act: func() { Expect(false).To(BeFalse()) },
+		},
+		{Scenario: "ToNot BeFalse when true",
+			Act: func() { Expect(true).ToNot(BeFalse()) },
+		},
+		{Scenario: "BeTrue when true",
+			Act: func() { Expect(true).To(BeTrue()) },
+		},
+		{Scenario: "ToNot BeTrue when false",
+			Act: func() { Expect(false).ToNot(BeTrue()) },
+		},
+
+		// supported options
+		{Scenario: "ExpectFalse with name",
+			Act: func() { ExpectFalse(true, "this will fail") },
+			Assert: func(result *R) {
+				result.Expect(
+					"this will fail:",
+					"  expected false, got true",
+				)
 			},
 		},
-		{scneario: "Bool(false).IsTrue()",
-			act: func(t T) { Bool(t, false, "got").IsTrue() },
-			assert: func(test HelperTest) {
-				test.DidFail()
-				test.Report.Contains("FAIL: TestBool/Bool(false).IsTrue()/got/is_true")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: true",
-					"got   : false",
-				})
+		{Scenario: "ExpectFalse with custom failure report",
+			Act: func() {
+				ExpectFalse(true, opt.FailureReport(func(...any) []string {
+					return []string{"custom failure report"}
+				}))
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"custom failure report",
+				)
 			},
 		},
-		{scneario: "Bool(true).Equals(false)",
-			act: func(t T) { Bool(t, true, "got").Equals(false) },
-			assert: func(test HelperTest) {
-				test.DidFail()
-				test.Report.Contains("FAIL: TestBool/Bool(true).Equals(false)/got/equals")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: false",
-					"got   : true",
-				})
+		{Scenario: "ExpectFalse with name and custom failure report",
+			Act: func() {
+				ExpectFalse(true, "this will fail", opt.FailureReport(func(...any) []string {
+					return []string{"custom failure report"}
+				}))
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"this will fail:",
+					"  custom failure report",
+				)
 			},
 		},
-		{scneario: "Bool(false).Equals(true)",
-			act: func(t T) { Bool(t, false, "got").Equals(true) },
-			assert: func(test HelperTest) {
-				test.DidFail()
-				test.Report.Contains("FAIL: TestBool/Bool(false).Equals(true)/got/equals")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: true",
-					"got   : false",
-				})
+		{Scenario: "ExpectTrue with name",
+			Act: func() { ExpectTrue(false, "this will fail") },
+			Assert: func(result *R) {
+				result.Expect(
+					"this will fail:",
+					"  expected true, got false",
+				)
 			},
 		},
-		{scneario: "IsFalse(true)",
-			act: func(t T) { IsFalse(t, true) },
-			assert: func(test HelperTest) {
-				test.DidFail()
-				test.Report.Contains("IsFalse(true)/is_false")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: false",
-					"got   : true",
-				})
+		{Scenario: "ExpectTrue with custom failure report",
+			Act: func() {
+				ExpectTrue(false, opt.FailureReport(func(...any) []string {
+					return []string{"custom failure report"}
+				}))
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"custom failure report",
+				)
 			},
 		},
-		{scneario: "IsTrue(false)",
-			act: func(t T) { IsTrue(t, false) },
-			assert: func(test HelperTest) {
-				test.DidFail()
-				test.Report.Contains("IsTrue(false)/is_true")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: true",
-					"got   : false",
-				})
+		{Scenario: "ExpectTrue with name and custom failure report",
+			Act: func() {
+				ExpectTrue(false, "this will fail", opt.FailureReport(func(...any) []string {
+					return []string{"custom failure report"}
+				}))
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"this will fail:",
+					"  custom failure report",
+				)
 			},
 		},
-	}
-	for _, tc := range testcases {
-		t.Run(tc.scneario, func(t T) {
-			tc.assert(Helper(t, tc.act))
-		})
-	}
+		{Scenario: "BeFalse with custom failure report",
+			Act: func() {
+				Expect(true).To(BeFalse(), opt.FailureReport(func(...any) []string {
+					return []string{"custom failure report"}
+				}))
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"custom failure report",
+				)
+			},
+		},
+		{Scenario: "BeTrue with custom failure report",
+			Act: func() {
+				Expect(false).To(BeTrue(), opt.FailureReport(func(...any) []string {
+					return []string{"custom failure report"}
+				}))
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"custom failure report",
+				)
+			},
+		},
+	})
+}
+
+func ExampleExpectFalse() {
+	With(ExampleTestRunner{})
+
+	ExpectFalse(true)
+
+	// Output:
+	// expected false, got true
+}
+
+func ExampleExpectTrue() {
+	With(ExampleTestRunner{})
+
+	ExpectTrue(false)
+
+	// Output:
+	// expected true, got false
+}
+
+func ExampleBeFalse() {
+	With(ExampleTestRunner{})
+
+	Expect(true).To(BeFalse())
+
+	// Output:
+	// expected false, got true
+}
+
+func ExampleBeTrue() {
+	With(ExampleTestRunner{})
+
+	Expect(false).To(BeTrue())
+
+	// Output:
+	// expected true, got false
 }

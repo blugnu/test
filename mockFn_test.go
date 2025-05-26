@@ -6,25 +6,27 @@ import (
 )
 
 func TestMockFnRecordCall(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	testcases := []struct {
 		scenario string
-		exec     func(t *testing.T)
+		exec     func()
 	}{
 		{scenario: "mapped results are configured",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
-					responses: map[int]*Fake[int]{},
+					responses: map[int]*FakeResult[int]{},
 				}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT
 				_, _ = sut.RecordCall(42)
 			},
 		},
 		{scenario: "unexpected call",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{}
 
@@ -32,16 +34,16 @@ func TestMockFnRecordCall(t *testing.T) {
 				result, err := sut.RecordCall()
 
 				// ASSERT
-				That(t, result).Equals(0)
-				Error(t, err).Is(ErrUnexpectedCall)
+				Expect(result).To(Equal(0))
+				Expect(err).Is(ErrUnexpectedCall)
 			},
 		},
 		{scenario: "unexpected arguments",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
 					expectations: []*mockFnCall[int, int]{
-						{args: AddressOf(42), result: 84},
+						{args: byref(42), result: 84},
 					},
 				}
 				sut.expected = sut.expectations[0]
@@ -50,17 +52,17 @@ func TestMockFnRecordCall(t *testing.T) {
 				result, err := sut.RecordCall(0)
 
 				// ASSERT
-				That(t, result).Equals(84)
-				Error(t, err).Is(ErrUnexpectedArgs)
+				Expect(result).To(Equal(84))
+				Expect(err).Is(ErrUnexpectedArgs)
 			},
 		},
 		{scenario: "further expectations",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
 					expectations: []*mockFnCall[int, int]{
-						{args: AddressOf(42), result: 84},
-						{args: AddressOf(43), result: 86},
+						{args: byref(42), result: 84},
+						{args: byref(43), result: 86},
 					},
 				}
 				sut.expected = sut.expectations[0]
@@ -69,18 +71,18 @@ func TestMockFnRecordCall(t *testing.T) {
 				result, err := sut.RecordCall(42)
 
 				// ASSERT
-				Error(t, err).IsNil()
-				That(t, result).Equals(84)
-				That(t, sut.expected).Equals(sut.expectations[1])
-				That(t, sut.idxExpected).Equals(1)
+				Expect(err).IsNil()
+				Expect(result).To(Equal(84))
+				Expect(sut.expected).To(Equal(sut.expectations[1]))
+				Expect(sut.idxExpected).To(Equal(1))
 			},
 		},
 		{scenario: "no further expectations",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
 					expectations: []*mockFnCall[int, int]{
-						{args: AddressOf(42), result: 84},
+						{args: byref(42), result: 84},
 					},
 				}
 				sut.expected = sut.expectations[0]
@@ -89,18 +91,18 @@ func TestMockFnRecordCall(t *testing.T) {
 				result, err := sut.RecordCall(42)
 
 				// ASSERT
-				Error(t, err).IsNil()
-				That(t, result).Equals(84)
-				That(t, sut.expected).IsNil()
-				That(t, sut.idxExpected).Equals(-1)
+				Expect(err).IsNil()
+				Expect(result).To(Equal(84))
+				Expect(sut.expected).IsNil()
+				Expect(sut.idxExpected).To(Equal(-1))
 			},
 		},
 		{scenario: "arguments expected but not recorded",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
 					expectations: []*mockFnCall[int, int]{
-						{args: AddressOf(42), result: 84},
+						{args: byref(42), result: 84},
 					},
 				}
 				sut.expected = sut.expectations[0]
@@ -109,26 +111,46 @@ func TestMockFnRecordCall(t *testing.T) {
 				result, err := sut.RecordCall()
 
 				// ASSERT
-				That(t, result).Equals(84)
-				Error(t, err).Is(ErrExpectedArgs)
+				Expect(result).To(Equal(84))
+				Expect(err).Is(ErrExpectedArgs)
+			},
+		},
+		{scenario: "call expected regardless of arguments",
+			exec: func() {
+				// ARRANGE
+				sut := MockFn[int, int]{
+					expectations: []*mockFnCall[int, int]{
+						{args: nil, result: 84},
+					},
+				}
+				sut.expected = sut.expectations[0]
+
+				// ACT
+				result, err := sut.RecordCall(42)
+
+				// ASSERT
+				Expect(err).IsNil()
+				Expect(result).To(Equal(84))
 			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+		Run(tc.scenario, func() {
+			tc.exec()
 		})
 	}
 }
 
 func TestMockFnExpectationsWereMet(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	testcases := []struct {
 		scenario string
-		exec     func(t *testing.T)
+		exec     func()
 	}{
 		{scenario: "no errors",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{}
 
@@ -136,11 +158,11 @@ func TestMockFnExpectationsWereMet(t *testing.T) {
 				err := sut.ExpectationsWereMet()
 
 				// ASSERT
-				Error(t, err).IsNil()
+				Expect(err).IsNil()
 			},
 		},
 		{scenario: "expected calls/one error",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{}
 				sut.errs = append(sut.errs, errors.New("expected error"))
@@ -149,12 +171,12 @@ func TestMockFnExpectationsWereMet(t *testing.T) {
 				err := sut.ExpectationsWereMet()
 
 				// ASSERT
-				Error(t, err).Is(ErrExpectationsNotMet)
-				Error(t, err).Is(sut.errs[0])
+				Expect(err).Is(ErrExpectationsNotMet)
+				Expect(err).Is(sut.errs[0])
 			},
 		},
 		{scenario: "expected calls/multiple errors",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				err1 := errors.New("expected error 1")
 				err2 := errors.New("expected error 2")
@@ -166,69 +188,71 @@ func TestMockFnExpectationsWereMet(t *testing.T) {
 				err := sut.ExpectationsWereMet()
 
 				// ASSERT
-				Error(t, err).Is(ErrExpectationsNotMet)
-				Error(t, err).Is(err1)
-				Error(t, err).Is(err2)
+				Expect(err).Is(ErrExpectationsNotMet)
+				Expect(err).Is(err1)
+				Expect(err).Is(err2)
 			},
 		},
 		{scenario: "mapped results/unused results",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
-					responses: map[int]*Fake[int]{42: {Result: 84}},
+					responses: map[int]*FakeResult[int]{42: {Result: 84}},
 				}
 
 				// ACT
 				err := sut.ExpectationsWereMet()
 
 				// ASSERT
-				Error(t, err).Is(ErrExpectationsNotMet)
-				Error(t, err).Is(ErrResultNotUsed)
+				Expect(err).Is(ErrExpectationsNotMet)
+				Expect(err).Is(ErrResultNotUsed)
 			},
 		},
 		{scenario: "mapped results/all used",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
-					responses: map[int]*Fake[int]{42: {Result: 84}},
-					actual:    []*mockFnCall[int, int]{{args: AddressOf(42), result: 84}},
+					responses: map[int]*FakeResult[int]{42: {Result: 84}},
+					actual:    []*mockFnCall[int, int]{{args: byref(42), result: 84}},
 				}
 
 				// ACT
 				err := sut.ExpectationsWereMet()
 
 				// ASSERT
-				Error(t, err).IsNil()
+				Expect(err).IsNil()
 			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+		Run(tc.scenario, func() {
+			tc.exec()
 		})
 	}
 }
 
 func TestMockFnExpectCall(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	testcases := []struct {
 		scenario string
-		exec     func(t *testing.T)
+		exec     func()
 	}{
 		{scenario: "mapped results configured",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
-					responses: map[int]*Fake[int]{},
+					responses: map[int]*FakeResult[int]{},
 				}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT + ASSERT
 				sut.ExpectCall()
 			},
 		},
 		{scenario: "valid configuration",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{}
 
@@ -236,13 +260,13 @@ func TestMockFnExpectCall(t *testing.T) {
 				result := sut.ExpectCall()
 
 				// ASSERT
-				That(t, result).Equals(&mockFnCall[int, int]{})
-				That(t, sut.expectations).Equals([]*mockFnCall[int, int]{result})
-				That(t, sut.expected).Equals(result)
+				Expect(result).To(DeepEqual(&mockFnCall[int, int]{}))
+				Expect(sut.expectations).To(DeepEqual([]*mockFnCall[int, int]{result}))
+				Expect(sut.expected).To(Equal(result))
 			},
 		},
 		{scenario: "multiple expectations",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{}
 
@@ -251,27 +275,29 @@ func TestMockFnExpectCall(t *testing.T) {
 				result2 := sut.ExpectCall().WithArgs(2)
 
 				// ASSERT
-				That(t, result1).Equals(&mockFnCall[int, int]{args: AddressOf(1)})
-				That(t, result2).Equals(&mockFnCall[int, int]{args: AddressOf(2)})
-				That(t, sut.expectations).Equals([]*mockFnCall[int, int]{{args: AddressOf(1)}, {args: AddressOf(2)}})
-				That(t, sut.expected).Equals(result1)
+				Expect(result1).To(DeepEqual(&mockFnCall[int, int]{args: byref(1)}))
+				Expect(result2).To(DeepEqual(&mockFnCall[int, int]{args: byref(2)}))
+				Expect(sut.expectations).To(DeepEqual([]*mockFnCall[int, int]{{args: byref(1)}, {args: byref(2)}}))
+				Expect(sut.expected).To(Equal(result1))
 			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+		Run(tc.scenario, func() {
+			tc.exec()
 		})
 	}
 }
 
 func TestMockFnReset(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	sut := MockFn[int, int]{
-		responses:    map[int]*Fake[int]{42: {Result: 84}},
-		expectations: []*mockFnCall[int, int]{{args: AddressOf(42), result: 84}},
-		expected:     &mockFnCall[int, int]{args: AddressOf(42), result: 84},
-		actual:       []*mockFnCall[int, int]{{args: AddressOf(42), result: 84}},
+		responses:    map[int]*FakeResult[int]{42: {Result: 84}},
+		expectations: []*mockFnCall[int, int]{{args: byref(42), result: 84}},
+		expected:     &mockFnCall[int, int]{args: byref(42), result: 84},
+		actual:       []*mockFnCall[int, int]{{args: byref(42), result: 84}},
 		idxExpected:  1,
 		errs:         []error{errors.New("expected error")},
 	}
@@ -280,93 +306,97 @@ func TestMockFnReset(t *testing.T) {
 	sut.Reset()
 
 	// ASSERT
-	That(t, sut).Equals(MockFn[int, int]{})
+	Expect(sut).To(DeepEqual(MockFn[int, int]{}))
 }
 
 func TestMockFnResultFor(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	testcases := []struct {
 		scenario string
-		exec     func(t *testing.T)
+		exec     func()
 	}{
 		{scenario: "expected calls are configured",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
-					expectations: []*mockFnCall[int, int]{{args: AddressOf(42), result: 84}},
+					expectations: []*mockFnCall[int, int]{{args: byref(42), result: 84}},
 				}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT
 				sut.ResultFor(42)
 			},
 		},
 		{scenario: "no result configured for arguments",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
-					responses: map[int]*Fake[int]{42: {Result: 84}},
+					responses: map[int]*FakeResult[int]{42: {Result: 84}},
 				}
-				defer ExpectPanic(ErrNoResultForArgs).Assert(t)
+				defer Expect(Panic(ErrNoResultForArgs)).DidOccur()
 
 				// ACT
 				sut.ResultFor(-1)
 			},
 		},
 		{scenario: "valid configuration",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{
-					responses: map[int]*Fake[int]{42: {Result: 84}},
+					responses: map[int]*FakeResult[int]{42: {Result: 84}},
 				}
 
 				// ACT
 				result := sut.ResultFor(42)
 
 				// ASSERT
-				That(t, result).Equals(Fake[int]{Result: 84})
+				Expect(result).To(Equal(FakeResult[int]{Result: 84}))
 			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+		Run(tc.scenario, func() {
+			tc.exec()
 		})
 	}
 }
 
 func TestMockFnWhenCalledWith(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	testcases := []struct {
 		scenario string
-		exec     func(t *testing.T)
+		exec     func()
 	}{
 		{scenario: "combined with expected calls",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE + ASSERT
 				sut := MockFn[int, int]{}
-				sut.expectations = []*mockFnCall[int, int]{{args: AddressOf(42), result: 84}}
+				sut.expectations = []*mockFnCall[int, int]{{args: byref(42), result: 84}}
 
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT
 				sut.WhenCalledWith(42)
 			},
 		},
 		{scenario: "duplicate arguments",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE + ASSERT
 				sut := MockFn[int, int]{}
-				sut.responses = map[int]*Fake[int]{42: {Result: 84}}
+				sut.responses = map[int]*FakeResult[int]{42: {Result: 84}}
 
-				defer ExpectPanic(ErrInvalidArgument).Assert(t)
+				defer Expect(Panic(ErrInvalidArgument)).DidOccur()
 
 				// ACT
 				sut.WhenCalledWith(42)
 			},
 		},
 		{scenario: "valid configuration",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := MockFn[int, int]{}
 
@@ -374,25 +404,27 @@ func TestMockFnWhenCalledWith(t *testing.T) {
 				sut.WhenCalledWith(42).Returns(84)
 
 				// ASSERT
-				That(t, sut.responses).Equals(map[int]*Fake[int]{42: {Result: 84}})
+				Expect(sut.responses).To(EqualMap(map[int]*FakeResult[int]{42: {Result: 84}}))
 			},
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+		Run(tc.scenario, func() {
+			tc.exec()
 		})
 	}
 }
 
 func TestMockFnCallWillReturn(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	testcases := []struct {
 		scenario string
-		exec     func(t *testing.T)
+		exec     func()
 	}{
 		{scenario: "returns value",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := mockFnCall[int, int]{}
 
@@ -400,11 +432,11 @@ func TestMockFnCallWillReturn(t *testing.T) {
 				sut.WillReturn(42)
 
 				// ASSERT
-				That(t, sut).Equals(mockFnCall[int, int]{result: 42})
+				Expect(sut).To(Equal(mockFnCall[int, int]{result: 42}))
 			},
 		},
 		{scenario: "returns error",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := mockFnCall[int, int]{}
 				err := errors.New("expected error")
@@ -413,11 +445,11 @@ func TestMockFnCallWillReturn(t *testing.T) {
 				sut.WillReturn(err)
 
 				// ASSERT
-				That(t, sut).Equals(mockFnCall[int, int]{err: err})
+				Expect(sut).To(Equal(mockFnCall[int, int]{err: err}))
 			},
 		},
 		{scenario: "returns value and error",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := mockFnCall[int, int]{}
 				err := errors.New("expected error")
@@ -426,35 +458,35 @@ func TestMockFnCallWillReturn(t *testing.T) {
 				sut.WillReturn(42, err)
 
 				// ASSERT
-				That(t, sut).Equals(mockFnCall[int, int]{result: 42, err: err})
+				Expect(sut).To(Equal(mockFnCall[int, int]{result: 42, err: err}))
 			},
 		},
 		{scenario: "multiple return values",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE + ASSERT
 				sut := mockFnCall[int, int]{}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT
 				sut.WillReturn(42, 42)
 			},
 		},
 		{scenario: "multiple errors",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE + ASSERT
 				sut := mockFnCall[int, int]{}
 				err := errors.New("expected error")
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT
 				sut.WillReturn(err, err)
 			},
 		},
 		{scenario: "invalid type",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE + ASSERT
 				sut := mockFnCall[int, int]{}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT
 				sut.WillReturn("invalid type")
@@ -462,20 +494,22 @@ func TestMockFnCallWillReturn(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+		Run(tc.scenario, func() {
+			tc.exec()
 		})
 	}
 }
 
 func TestMockFnCallWithArgs(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	testcases := []struct {
 		scenario string
-		exec     func(t *testing.T)
+		exec     func()
 	}{
 		{scenario: "valid configuration",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE
 				sut := &mockFnCall[int, int]{}
 
@@ -483,15 +517,15 @@ func TestMockFnCallWithArgs(t *testing.T) {
 				result := sut.WithArgs(42)
 
 				// ASSERT
-				That(t, sut).Equals(&mockFnCall[int, int]{args: AddressOf(42)})
-				Value(t, result).Equals(sut)
+				Expect(sut).To(DeepEqual(&mockFnCall[int, int]{args: byref(42)}))
+				Expect(result).To(Equal(sut))
 			},
 		},
 		{scenario: "multiple arguments configured",
-			exec: func(t *testing.T) {
+			exec: func() {
 				// ARRANGE + ASSERT
 				sut := &mockFnCall[int, int]{}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
+				defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 				// ACT
 				_ = sut.WithArgs(42)
@@ -500,8 +534,8 @@ func TestMockFnCallWithArgs(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+		Run(tc.scenario, func() {
+			tc.exec()
 		})
 	}
 }

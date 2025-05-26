@@ -5,96 +5,99 @@ import (
 	"testing"
 )
 
-func TestFake(t *testing.T) {
+func TestFakeResult(t *testing.T) {
+	With(t)
+
 	// ARRANGE
-	fake := Fake[int]{Result: 42}
+	sut := FakeResult[int]{Result: 42, Err: errors.New("faked error")}
 
 	// ACT
-	fake.Reset()
+	sut.Reset()
 
 	// ASSERT
-	That(t, fake.Result).Equals(0)
+	Expect(sut).Is(FakeResult[int]{})
 }
 
-func TestFakeReturns(t *testing.T) {
-	// ARRANGE
-	testcases := []struct {
+func TestFakeResult_Returns(t *testing.T) {
+	With(t)
+
+	type testcase struct {
 		scenario string
-		exec     func(t *testing.T)
-	}{
-		{scenario: "returns value",
-			exec: func(t *testing.T) {
-				// ARRANGE
-				sut := Fake[int]{}
-
-				// ACT
-				sut.Returns(42)
-
-				// ASSERT
-				That(t, sut).Equals(Fake[int]{Result: 42})
-			},
-		},
-		{scenario: "returns error",
-			exec: func(t *testing.T) {
-				// ARRANGE
-				sut := Fake[int]{}
-				err := errors.New("fake error")
-
-				// ACT
-				sut.Returns(err)
-
-				// ASSERT
-				That(t, sut).Equals(Fake[int]{Err: err})
-			},
-		},
-		{scenario: "returns result and error",
-			exec: func(t *testing.T) {
-				// ARRANGE
-				sut := Fake[int]{}
-				err := errors.New("fake error")
-
-				// ACT
-				sut.Returns(42, err)
-
-				// ASSERT
-				That(t, sut).Equals(Fake[int]{Result: 42, Err: err})
-			},
-		},
-		{scenario: "multiple result values",
-			exec: func(t *testing.T) {
-				// ARRANGE + ASSERT
-				sut := Fake[int]{}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
-
-				// ACT
-				sut.Returns(1, 2)
-			},
-		},
-		{scenario: "multiple error values",
-			exec: func(t *testing.T) {
-				// ARRANGE + ASSERT
-				sut := Fake[int]{}
-				err := errors.New("fake error")
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
-
-				// ACT
-				sut.Returns(err, err)
-			},
-		},
-		{scenario: "invalid type",
-			exec: func(t *testing.T) {
-				// ARRANGE + ASSERT
-				sut := Fake[int]{}
-				defer ExpectPanic(ErrInvalidOperation).Assert(t)
-
-				// ACT
-				sut.Returns("invalid type")
-			},
-		},
+		exec     func()
 	}
-	for _, tc := range testcases {
-		t.Run(tc.scenario, func(t *testing.T) {
-			tc.exec(t)
+	RunScenarios(
+		func(tc *testcase, _ int) {
+			tc.exec()
+		},
+		[]testcase{
+			{scenario: "returns value",
+				exec: func() {
+					// ARRANGE
+					sut := FakeResult[int]{}
+
+					// ACT
+					sut.Returns(42)
+
+					// ASSERT
+					Expect(sut).To(Equal(FakeResult[int]{Result: 42}))
+				},
+			},
+			{scenario: "returns error",
+				exec: func() {
+					// ARRANGE
+					sut := FakeResult[int]{}
+					err := errors.New("fake error")
+
+					// ACT
+					sut.Returns(err)
+
+					// ASSERT
+					Expect(sut).To(Equal(FakeResult[int]{Err: err}))
+				},
+			},
+			{scenario: "returns result and error",
+				exec: func() {
+					// ARRANGE
+					sut := FakeResult[int]{}
+					err := errors.New("fake error")
+
+					// ACT
+					sut.Returns(42, err)
+
+					// ASSERT
+					Expect(sut).To(Equal(FakeResult[int]{Result: 42, Err: err}))
+				},
+			},
+			{scenario: "multiple result values",
+				exec: func() {
+					// ARRANGE + ASSERT
+					sut := FakeResult[int]{}
+					defer Expect(Panic(ErrInvalidOperation)).DidOccur()
+
+					// ACT
+					sut.Returns(1, 2)
+				},
+			},
+			{scenario: "multiple error values",
+				exec: func() {
+					// ARRANGE + ASSERT
+					sut := FakeResult[int]{}
+					err := errors.New("fake error")
+					defer Expect(Panic(ErrInvalidOperation)).DidOccur()
+
+					// ACT
+					sut.Returns(err, err)
+				},
+			},
+			{scenario: "invalid type",
+				exec: func() {
+					// ARRANGE + ASSERT
+					sut := FakeResult[int]{}
+					defer Expect(Panic(ErrInvalidOperation)).DidOccur()
+
+					// ACT
+					sut.Returns("invalid type")
+				},
+			},
 		})
-	}
 }

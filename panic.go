@@ -1,88 +1,104 @@
 package test
 
 import (
-	"errors"
-	"testing"
+	"fmt"
+	"runtime"
+
+	"github.com/blugnu/test/matchers/panics"
+	"github.com/blugnu/test/opt"
 )
 
-// provides methods for testing panics.
-type PanicTest struct {
-	r any
+// Panic returns an expectation subject that can be used to test whether a
+// panic has occurred, optionally identifying a value that should match the
+// value recovered from the expected panic.
+//
+// NOTE: At most ONE panic test should be expected per function.  In addition,
+// extreme care should be exercised when combining panic tests with other
+// deferred recover() calls as these will also interfere with a panic test
+// (or vice versa).
+//
+// # Usage
+//
+//   - If called with no arguments, any panic will satisfy the expectation,
+//     regardless of the value recovered.
+//
+//   - If called with a single argument, it will expect to recover a panic that
+//     recovers that value (unless the argument is nil; see The Panic(nil)
+//     Special Case, below)
+//
+//   - If called with > 1 argument, the test will be failed as invalid.
+//
+// # The Panic(nil) Special Case
+//
+// Panic(nil) is a special case that is equivalent to "no panic expected".
+// This is motivated by table-driven tests to avoid having to write conditional
+// code to handle test cases where a panic is expected vs those where not.
+//
+// Treating Panic(nil) as "no panic expected" allows you to write:
+//
+//	defer Expect(Panic(testcase.expectedPanic)).DidOccur()
+//
+// When testcase.expectedPanic is nil, this is equivalent to:
+//
+//	defer Expect(Panic()).DidNotOccur()
+//
+// Should you need to test for an actual panic(nil), use:
+//
+//	defer Expect(NilPanic()).DidOccur()
+//
+// Or, in a table-driven test, specify an expected recovery value of
+// &runtime.PanicNilError{}.
+func Panic(r ...any) panics.Expected {
+	switch len(r) {
+	case 0:
+		return panics.Expected{}
+	case 1:
+		if r[0] == nil {
+			return panics.Expected{R: opt.NoPanicExpected(true)}
+		}
+		return panics.Expected{R: r[0]}
+	}
+
+	T().Helper()
+	invalidTest(fmt.Sprintf("Panic: expected at most one argument, got %d", len(r)))
+	return panics.Expected{}
 }
 
-// fails the test if the expected panic does not occur.
+// NilPanic returns an expectation that a panic will occur that recovers
+// a *runtime.PanicNilError.
 //
-// The test will pass if:
+// Panic(nil) is syntactic sugar for "no panic expected", to simplify
+// table-drive tests where each test case may or may not expect a panic,
+// enabling the use of a single Expect() call.
 //
-//   - there is no expected panic and none has occurred
-//   - there is a panic and the recovered value is an error
-//     that satisfies errors.Is() with respect to the expected error
+// i.e. instead of writing:
 //
-// Panics are tested by arranging an ExpectedPanic and then deferring a call to
-// Assert() in the test function.
+//	if testcase.expectedPanic == nil {
+//		defer Expect(Panic()).DidNotOccur()
+//	} else {
+//		defer Expect(Panic(testcase.expectedPanic)).DidOccur()
+//	}
 //
-// Example:
+// you can write:
 //
-//	  func TestSomething(t *testing.T) {
-//		// ARRANGE
-//		defer test.ExpectPanic(err).Assert(t)
+//	defer Expect(Panic(testcase.expectedPanic)).DidOccur()
 //
-//		// ACT
-//		doSomething()
-//	  }
+// When testcase.expectedPanic is nil, this is equivalent to:
 //
-// Assert may be called on a nil receiver and is equivalent to calling Assert() on
-// a *Panic with a nil error. This simplifies panic tests in data-driven tests where
-// the expected panic may be nil for some test cases (indicating no panic is expected).
-func (e *PanicTest) Assert(t *testing.T) {
-	t.Helper()
-
-	err := error(nil)
-	iserr := false
-	if e != nil && e.r != nil {
-		err, iserr = e.r.(error)
-	}
-
-	r := recover()
-
-	switch {
-	case e == nil && r == nil:
-		return
-	case e == nil && r != nil:
-		t.Errorf("\nunexpected panic: %[1]T: %[1]v", r)
-	case e != nil && r == nil:
-		t.Errorf("\nwanted: panic: %[1]T: %[1]v\ngot   : (did not panic)", e.r)
-	case iserr && r != nil:
-		if got, ok := r.(error); !ok || !errors.Is(got, err) {
-			t.Errorf("\nwanted: panic: %[1]T: %[1]v\ngot   : panic: %[2]T: %[2]v", err, r)
-		}
-	default:
-		if e.r != r {
-			t.Errorf("\nwanted: panic: %[1]T: %[1]v\ngot   : panic: %[2]T: %[2]v", e.r, r)
-		}
-	}
-}
-
-// returns a *Panic that can be used to test that an expected panic is
-// recovered with a specified error.
+//	defer Expect(Panic()).DidNotOccur()
 //
-// A *Panic is also be used to verify that no panic occured, by calling
-// the Assert(t) method on a nil *Panic or passing nil as the
-// expected recovery value (in which case the function will return a
-// nil *Panic).
+// Without having to write conditional code to handle the different
+// expectations.
 //
-// Example:
+// # Testing for a nil panic
 //
-//	  func TestSomething(t *testing.T) {
-//		// ARRANGE
-//		defer test.ExpectPanic(err).Assert(t)
+// In the unlikely event that you specifically need to test for a
+// panic(nil), you can use the NilPanic() function, which will
+// create an expectation for a panic that recovers a *runtime.PanicNilError.
 //
-//		// ACT
-//		doSomething()
-//	  }
-func ExpectPanic(recover any) *PanicTest {
-	if recover == nil {
-		return nil
-	}
-	return &PanicTest{recover}
+// see: https://go.dev/blog/compat#expanded-godebug-support-in-go-121
+func NilPanic() panics.Expected {
+	// This is a convenience function to create an expectation for a nil panic.
+	// It is equivalent to Panic(nil).
+	return panics.Expected{R: &runtime.PanicNilError{}}
 }

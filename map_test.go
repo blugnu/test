@@ -1,45 +1,103 @@
 package test
 
-import "testing"
+import (
+	"testing"
 
-func TestMaps(t *testing.T) {
-	// ARRANGE
-	testcases := []struct {
-		scenraio string
-		act      func(T)
-		assert   func(HelperTest)
-	}{
-		{scenraio: "same keys and values",
-			act: func(t T) {
-				w := map[string]int{"a": 1, "b": 2}
-				g := map[string]int{"a": 1, "b": 2}
-				Map(t, g).Equals(w)
+	"github.com/blugnu/test/opt"
+)
+
+func TestKeysOfMap(t *testing.T) {
+	With(t)
+
+	sut := map[string]int{
+		"ford":   42,
+		"arthur": 23,
+	}
+	result := KeysOfMap(sut)
+	Expect(result).To(EqualSlice([]string{"ford", "arthur"}), opt.AnyOrder())
+}
+
+func TestValuesOfMap(t *testing.T) {
+	With(t)
+
+	sut := map[string]int{
+		"ford":   42,
+		"arthur": 23,
+	}
+	result := ValuesOfMap(sut)
+	Expect(result).To(EqualSlice([]int{23, 42}), opt.AnyOrder())
+}
+
+func TestContainMap(t *testing.T) {
+	With(t)
+
+	Expect(map[string]int{
+		"ford":   42,
+		"arthur": 23,
+		"marvin": 2,
+	}).To(ContainMap(map[string]int{
+		"arthur": 23,
+		"ford":   42,
+	}))
+
+	RunTestScenarios([]TestScenario{
+		{Scenario: "with nil map",
+			Act: func() {
+				var nilmap map[string]int
+				Expect(map[string]int{}).To(ContainMap(nilmap))
 			},
-			assert: func(test HelperTest) {
-				test.DidPass()
-				test.Report.IsEmpty()
+			Assert: func(result *R) {
+				result.Expect(
+					"ContainMap() called with nil map",
+					"Did you mean Expect(map).IsNil() or Expect(map).IsEmpty()?",
+				)
 			},
 		},
-		{scenraio: "same keys different values",
-			act: func(t T) {
-				w := map[string]int{"a": 1, "b": 2}
-				g := map[string]int{"a": 1, "b": 3}
-				Map(t, g).Equals(w)
+		{Scenario: "with empty map",
+			Act: func() {
+				Expect(map[string]int{}).To(ContainMap(map[string]int{}))
 			},
-			assert: func(test HelperTest) {
-				test.DidFail()
-				test.Report.Contains("same_keys_different_values")
-				test.Report.Contains([]string{
-					currentFilename(),
-					"wanted: map[a:1 b:2]",
-					"got   : map[a:1 b:3]",
-				})
+			Assert: func(result *R) {
+				result.Expect(
+					"ContainMap() called with empty map",
+					"Did you mean Expect(map).To(EqualMap(<empty map>)) or Expect(map).IsEmpty()?",
+				)
 			},
 		},
+	})
+}
+
+func TestContainMapEntry(t *testing.T) {
+	With(t)
+
+	Expect(map[string]int{
+		"ford":   42,
+		"arthur": 23,
+	}).To(ContainMapEntry("ford", 42))
+}
+
+func TestEqualMap(t *testing.T) {
+	With(t)
+
+	Expect(map[string]int{
+		"ford":   42,
+		"arthur": 23,
+	}).To(EqualMap(map[string]int{
+		"ford":   42,
+		"arthur": 23,
+	}))
+}
+
+func ExampleEqualMap() {
+	With(ExampleTestRunner{})
+
+	sut := map[string]int{
+		"ford":   42,
+		"arthur": 23,
 	}
-	for _, tc := range testcases {
-		t.Run(tc.scenraio, func(t *testing.T) {
-			tc.assert(Helper(t, tc.act))
-		})
-	}
+
+	Expect(sut).To(EqualMap(map[string]int{
+		"ford":   42,
+		"arthur": 23,
+	}))
 }

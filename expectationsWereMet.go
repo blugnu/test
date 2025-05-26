@@ -1,74 +1,62 @@
 package test
 
-import "testing"
+import "github.com/blugnu/test/opt"
 
 // Mock is an interface describing the methods required to be supported by a
-// mock that can be tested using test.MockExpectations().
+// mock that can be tested using ExpectationsWereMet().
 type Mock interface {
 	ExpectationsWereMet() error
 	Resetter
 }
 
-// ExpectationsWereMet is a convenience function for testing and resetting mocks.
-// It verifies that all expectations set on the mocks have been met and resets
-// the mocks to their initial state.  If any expectations were not met an error
-// is reported.  All mocks are tested, even if some mocks have failed to meet
-// their expectations.
-//
-// It is recommended that the test function should call this function using the
-// defer statement to ensure that the mocks are tested and reset after the test
-// function completes.
-//
-// This function support mocks that implement the test.Mock interface:
+// ExpectationsWereMet is a convenience function for testing and resetting expectations
+// of a mock that implements the test.Mock interface:
 //
 //	type Mock interface {
 //		ExpectationsWereMet() error
-//		Resetter
-//	}
-//
-//	type Resetter interface {
 //		Reset()
 //	}
 //
-// The Resetter interface is used to reset the mocks to their initial state and
-// is also used to support resetting fakes (see: test.Fake[R]).  A mock is always
-// reset after expectations have been tested, regardless of whether the test
-// passed or failed.
+// The mock is guaranteed to be reset whether expecations were met or not.
 //
-// Where a mock is used to provide a more complex fake implementation of an
-// interface but details (i.e. expectations) of how the interface is used are not
-// of interest to this test, the Resetter interface can be used to reset the
-// mock without testing the expectations.
+// If a test is not concerned with expectations being met and is using a mock
+// simply to provide complex mocked responses, the mock can be reset without
+// checking expectations by passing the mock to the Reset() helper.
 //
-// # Example
+// # Supported Options
+//
+//	string    // a name for the expectation; the name is used in
+//	          // the failure message if the expectation fails.
+//
+// // # Example
 //
 //	func TestSomething(t *testing.T) {
+//		With(t)
+//
 //		// ARRANGE
 //		mock1 := NewMock()
 //		mock2 := NewMock()
-//		defer test.ExpectationsWereMet(t, mock1, mock2)
+//		mock3 := NewMock()
+//		defer Reset(mock1, mock2, mock3)
 //
-//		// .. set expectations on mock1 and mock2
+//		// .. configure expectations on mocks
 //
 //		// ACT
 //		// .. call the code under test
 //
 //		// ASSERT
-//		// .. assertions additional to testing mock expectations (if any)
+//		// .. additional assertions prior to the deferred testing
+//		test.ExpectationsWereMet(mock1, "mock 1")
+//		test.ExpectationsWereMet(mock2, "mock 2")
+//		test.ExpectationsWereMet(mock3, "mock 3")
 //	}
-func ExpectationsWereMet(t *testing.T, m ...Mock) {
-	t.Helper()
+func ExpectationsWereMet(m Mock, opts ...any) {
+	T().Helper()
 
-	// ensure that all mocks are reset after all expectations have been tested
-	defer func() {
-		for _, mock := range m {
-			mock.Reset()
-		}
-	}()
+	defer m.Reset()
 
-	for _, mock := range m {
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Error(err)
-		}
-	}
+	err := m.ExpectationsWereMet()
+	Expect(err, opts...).IsNil(
+		append(opts, opt.OnFailure(err.Error())),
+	)
 }

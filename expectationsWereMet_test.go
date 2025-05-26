@@ -5,38 +5,34 @@ import (
 	"testing"
 )
 
-type mockExpectationsWereMet struct {
-	ExpectationsWereMetWasCalled bool
-	ResetWasCalled               bool
-	error
+type mock struct {
+	expectationsWereMet_wasCalled bool
+	reset_wasCalled               bool
 }
 
-func (mock *mockExpectationsWereMet) ExpectationsWereMet() error {
-	mock.ExpectationsWereMetWasCalled = true
-	return mock.error
+func (mock *mock) ExpectationsWereMet() error {
+	mock.expectationsWereMet_wasCalled = true
+	return errors.New("mock expectation error")
 }
 
-func (mock *mockExpectationsWereMet) Reset() {
-	mock.ResetWasCalled = true
+func (mock *mock) Reset() {
+	mock.reset_wasCalled = true
 }
 
 func TestExpectationsWereMet(t *testing.T) {
+	With(t)
+
 	// ARRANGE
-	mock1 := &mockExpectationsWereMet{error: errors.New("mock1 error")}
-	mock2 := &mockExpectationsWereMet{error: errors.New("mock2 error")}
+	mock := &mock{}
 
 	// ACT
-	test := Helper(t, func(st *testing.T) { ExpectationsWereMet(st, mock1, mock2) })
+	result := Test(func() { ExpectationsWereMet(mock) })
 
 	// ASSERT
-	Bool(t, mock1.ExpectationsWereMetWasCalled).IsTrue()
-	Bool(t, mock2.ExpectationsWereMetWasCalled).IsTrue()
-	Bool(t, mock1.ResetWasCalled).IsTrue()
-	Bool(t, mock2.ResetWasCalled).IsTrue()
+	Expect(mock.expectationsWereMet_wasCalled, "expectationsWereMet was called").Is(true)
+	Expect(mock.reset_wasCalled, "reset was called").Is(true)
 
-	test.DidFail()
-	test.Report.Contains([]string{
-		"mock1 error",
-		"mock2 error",
-	})
+	result.Expect(
+		"mock expectation error",
+	)
 }

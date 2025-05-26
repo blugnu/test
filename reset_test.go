@@ -15,6 +15,8 @@ func (r *resettableString) Reset() {
 }
 
 func TestReset(t *testing.T) {
+	With(t)
+
 	// ARRANGE
 	var i resettableInt = 42
 	var s resettableString = "hello"
@@ -23,6 +25,6 @@ func TestReset(t *testing.T) {
 	Reset(&i, &s)
 
 	// ASSERT
-	That(t, i).Equals(0)
-	That(t, s).Equals("")
+	Expect(i).To(Equal[resettableInt](0))
+	Expect(s).To(Equal[resettableString](""))
 }
