@@ -2,5 +2,5 @@ name: release
 on: push
 jobs:
   module-qa:
-    uses: blugnu/.reusable/.github/workflows/pipeline.module-release.yml@bb8b30bac311bb9edb7579799e41bd3892ff3213
+    uses: blugnu/.reusable/.github/workflows/pipeline.module-release.yml@v0.7.1
     secrets: inherit
