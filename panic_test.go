@@ -6,6 +6,7 @@ import (
 
 	"github.com/blugnu/test/matchers/panics"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestNilPanic(t *testing.T) {
@@ -50,6 +51,8 @@ func TestPanic(t *testing.T) {
 }
 
 func ExamplePanic() {
+	test.Example()
+
 	defer Expect(Panic("some string")).DidOccur()
 
 	panic("some other string")
