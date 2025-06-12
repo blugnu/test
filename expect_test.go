@@ -1,7 +1,6 @@
 package test
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -45,6 +44,15 @@ func (m matcherImplementingFormatValue[T]) FormatValue(v any, _ ...any) string {
 	return fmt.Sprintf("%v", v)
 }
 
+type matcherImplementingTestFailureAnyOptsReturningString[T any] struct {
+	match[T]
+	report string
+}
+
+func (m matcherImplementingTestFailureAnyOptsReturningString[T]) OnTestFailure(any, ...any) string {
+	return m.report
+}
+
 type matcherImplementingTestFailureOptsReturningString[T any] struct {
 	match[T]
 	report string
@@ -65,10 +73,7 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 				Expect(any(nil)).err(nil)
 			},
 			Assert: func(result *R) {
-				// TODO: support regex matching for failure report entries to avoid having to test separately for different elements on the same line of a report
-				result.Expect(
-					"test failed",
-				)
+				result.Expect("test failed")
 			},
 		},
 		{Scenario: "named expectation fails with a nil report",
@@ -124,22 +129,6 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect("name: failed with message")
-			},
-		},
-		{Scenario: "expectation fails with a formatted string report",
-			Act: func() {
-				Expect(any(nil)).errf("failed with %s", "message")
-			},
-			Assert: func(result *R) {
-				result.Expect("failed with message")
-			},
-		},
-		{Scenario: "named expectation fails with a formatted string report",
-			Act: func() {
-				Expect(any(nil), "named").errf("failed with %s", "message")
-			},
-			Assert: func(result *R) {
-				result.Expect("named: failed with message")
 			},
 		},
 
@@ -270,6 +259,14 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 				result.Expect("custom test failure report")
 			},
 		},
+		{Scenario: "matcher with failure report accepting any",
+			Act: func() {
+				Expect(12).To(matcherImplementingTestFailureAnyOptsReturningString[int]{match[int]{}, "custom test failure report"})
+			},
+			Assert: func(result *R) {
+				result.Expect("custom test failure report")
+			},
+		},
 		{Scenario: "matcher implementing FormatValue",
 			Act: func() {
 				Expect(12).To(matcherImplementingFormatValue[int]{Expected: 10, prefix: "formatted"})
@@ -297,7 +294,7 @@ func TestExpect_Is(t *testing.T) {
 			Act:      func() { var a any = 1; Expect(a).Is(nil) },
 			Assert: func(result *R) {
 				result.ExpectInvalid(
-					"test.IsNil: values of type 'int' are not nilable",
+					"nilness.Matcher: values of type 'int' are not nilable",
 				)
 			},
 		},
@@ -361,126 +358,49 @@ func TestExpect_Is(t *testing.T) {
 	})
 }
 
-func TestExpect_IsNil(t *testing.T) {
+func TestExpect_Should(t *testing.T) {
 	With(t)
 
 	RunTestScenarios([]TestScenario{
-		{Scenario: "nil is nil",
-			Act: func() { Expect((any)(nil)).IsNil() },
-		},
-		{Scenario: "int is nil",
-			Act: func() { Expect(0).IsNil() },
+		{Scenario: "no matcher",
+			Act: func() { Expect(42).Should(nil) },
 			Assert: func(result *R) {
-				result.ExpectInvalid(
-					"test.IsNil: values of type 'int' are not nilable",
-				)
+				result.ExpectInvalid("test.Should: a matcher must be specified")
 			},
 		},
-		{Scenario: "struct is nil",
-			Act: func() { Expect(struct{}{}).IsNil() },
-			Assert: func(result *R) {
-				result.ExpectInvalid(
-					"test.IsNil: values of type 'struct {}' are not nilable",
-				)
-			},
+		{Scenario: "matcher passes",
+			Act: func() { Expect([]int{}).Should(BeEmpty()) },
 		},
-		{Scenario: "error is nil",
-			Act: func() { Expect(errors.New("some error message")).IsNil() },
-			Assert: func(result *R) {
-				result.Expect("expected nil, got error: some error message")
-			},
-		},
-		{Scenario: "nil slice",
-			Act: func() { Expect([]int(nil)).IsNil() },
-		},
-		{Scenario: "non-nil slice",
-			Act: func() { Expect([]int{1}).IsNil() },
-			Assert: func(result *R) {
-				result.Expect("expected nil, got []int{1}")
-			},
-		},
-		{Scenario: "nil interface",
-			Act: func() { var x any; Expect(x).IsNil() },
-		},
-		{Scenario: "non-nil interface",
-			Act: func() { var x any = byref("any"); Expect(x).IsNil() },
-			Assert: func(result *R) {
-				result.Expect(`expected nil, got &("any")`)
-			},
-		},
-		{Scenario: "*string nil",
-			Act: func() { var ptr *string; Expect(ptr).IsNil() },
-		},
-		{Scenario: "*string non-nil",
-			Act: func() { Expect(byref("string")).IsNil() },
-			Assert: func(result *R) {
-				result.Expect("expected nil, got &(\"string\")")
-			},
-		},
-		{Scenario: "*string non-nil with unquoted strings",
-			Act: func() { Expect(byref("string")).IsNil(opt.UnquotedStrings()) },
-			Assert: func(result *R) {
-				result.Expect("expected nil, got &(string)")
-			},
-		},
-		{Scenario: "string not-nil",
-			Act: func() { Expect("non-empty string").IsNil() },
-			Assert: func(result *R) {
-				result.ExpectInvalid(
-					"test.IsNil: values of type 'string' are not nilable",
-				)
-			},
-		},
-		{Scenario: "*string not-nil",
-			Act: func() { ptr := byref("non-empty string"); Expect(ptr).IsNil() },
-			Assert: func(result *R) {
-				result.Expect("expected nil, got &(\"non-empty string\")")
-			},
-		},
-		{Scenario: "*struct not-nil",
-			Act: func() { ptr := byref(struct{ a int }{a: 1}); Expect(ptr).IsNil() },
-			Assert: func(result *R) {
-				result.Expect("expected nil, got &(struct { a int }{a:1})")
-			},
-		},
-
-		{Scenario: "with custom failure report",
+		{Scenario: "matcher fails",
 			Act: func() {
-				Expect(byref(42)).IsNil(opt.FailureReport(func(a ...any) []string {
-					return []string{"custom failure report"}
-				}))
+				Expect([]int{1}).Should(BeEmpty())
 			},
 			Assert: func(result *R) {
-				result.Expect("custom failure report")
+				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of Should(); matcher report is not significant
 			},
 		},
 	})
 }
 
-func TestExpect_IsNotNil(t *testing.T) {
+func TestExpect_ShouldNot(t *testing.T) {
 	With(t)
 
 	RunTestScenarios([]TestScenario{
-		{Scenario: "got non-nil nillable type",
-			Act: func() { Expect(errors.New("error")).IsNotNil() },
-		},
-		{Scenario: "got non-nillable type",
-			Act: func() { Expect(0).IsNotNil() },
-		},
-		{Scenario: "got nil",
-			Act: func() { Expect(any(nil)).IsNotNil() },
+		{Scenario: "no matcher",
+			Act: func() { Expect(true).ShouldNot(nil) },
 			Assert: func(result *R) {
-				result.Expect("expected not nil, got nil")
+				result.ExpectInvalid("test.ShouldNot: a matcher must be specified")
 			},
 		},
-		{Scenario: "with custom failure report",
+		{Scenario: "matcher fails",
+			Act: func() { Expect([1]int{}).ShouldNot(BeEmpty()) },
+		},
+		{Scenario: "matcher passes",
 			Act: func() {
-				Expect(any(nil)).IsNotNil(opt.FailureReport(func(a ...any) []string {
-					return []string{"custom failure report"}
-				}))
+				Expect([]int{}).ShouldNot(BeEmpty())
 			},
 			Assert: func(result *R) {
-				result.Expect("custom failure report")
+				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(); matcher report is not significant
 			},
 		},
 	})
@@ -505,18 +425,41 @@ func TestExpect_ToNot(t *testing.T) {
 	With(t)
 
 	RunTestScenarios([]TestScenario{
-		{Scenario: "a heterogenous matcher does not match and was not expected to",
-			Act: func() { Expect(context.Background()).ToNot(HaveContextKey(99)) },
+		{Scenario: "matcher fails, as expected",
+			Act: func() { Expect(true).ToNot(Equal(false)) },
 		},
-		{Scenario: "a heterogenous matcher matches and was not expected to",
+		{Scenario: "matcher does not fail but should have",
 			Act: func() {
-				type k int
-				ctx := context.WithValue(context.Background(), k(99), "value")
-				Expect(ctx).ToNot(HaveContextKey(k(99)))
+				Expect(true).ToNot(Equal(true))
 			},
 			Assert: func(result *R) {
 				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(), not the output of the matcher used
 			},
 		},
 	})
+}
+
+func TestRequire(t *testing.T) {
+	With(t)
+
+	result := Test(func() {
+		Require(true).To(Equal(false))
+		Expect("black").To(Equal("white"))
+	})
+
+	result.Expect("expected false, got true")
+}
+
+func ExampleRequire() {
+	With(&ExampleTestRunner{})
+
+	// this test will fail
+	Require(true).To(Equal(false))
+
+	// this will not be executed because the previous expectation was
+	// required to pass and did not
+	Expect("apples").To(Equal("oranges"))
+
+	// Output:
+	// expected false, got true
 }

@@ -127,10 +127,6 @@ func TestPanic_DidOccur(t *testing.T) {
 				result.ExpectInvalid(
 					"DidNotOccur: may not be used with Panic(nil); did you mean NilPanic()?",
 				)
-				result.Expect(
-					"unexpected panic:",
-					"  recovered: string(\"foo\")",
-				)
 			},
 		},
 
