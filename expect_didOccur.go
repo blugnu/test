@@ -51,7 +51,7 @@ func (e expectation[T]) DidOccur(opts ...any) {
 
 	switch v := any(e.subject).(type) {
 	case panics.Expected:
-		match := &panics.MatchRecoveredValue{R: recover()}
+		match := &panics.MatchRecovered{R: recover()}
 		if !match.Match(v, opts...) {
 			e.err(match.OnTestFailure())
 		}
@@ -98,7 +98,7 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 
 		// first let's grab any recoverable value and create a
 		// matcher which we'll use later...
-		matcher := &panics.MatchRecoveredValue{R: recover()}
+		matcher := &panics.MatchRecovered{R: recover()}
 
 		// first, using DidNotOccur with Panic(nil) is invalid since it
 		// is likely to cause confusion
@@ -146,7 +146,7 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 			//
 			// we could just emit a test report, but that would duplicate the report
 			// handling logic in the matcher and require us to also , so we use the matcher to
-			matcher := &panics.MatchRecoveredValue{R: matcher.R}
+			matcher := &panics.MatchRecovered{R: matcher.R}
 			matcher.Match(panics.Expected{R: nil})
 			e.err(matcher.OnTestFailure(opts...))
 		}

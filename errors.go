@@ -17,5 +17,4 @@ var (
 	ErrCapture          = errors.New("test.Capture")
 	ErrInvalidArgument  = errors.New("invalid argument")
 	ErrInvalidOperation = errors.New("invalid operation")
-	ErrNotNilable       = errors.New("values of this type are not nilable")
 )
