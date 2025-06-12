@@ -9,8 +9,7 @@ package test
 // of accepting (but ignoring) a nil function.
 func Cleanup(fn func()) {
 	if fn == nil {
-		return
+		return // NO-OP
 	}
-
 	T().Cleanup(fn)
 }
