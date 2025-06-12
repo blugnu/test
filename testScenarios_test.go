@@ -20,6 +20,9 @@ func TestRunTestScenarios(t *testing.T) {
 					{Skip: true},
 				})
 			},
+			Assert: func(result *R) {
+				result.Expect("WARNING: 1 tests were skipped")
+			},
 		},
 		{Scenario: "scenario with no Act function",
 			Act: func() {
@@ -65,6 +68,9 @@ func TestRunTestScenarios(t *testing.T) {
 						},
 					},
 				})
+			},
+			Assert: func(result *R) {
+				result.Expect("WARNING: 1 tests were run with Debug: true")
 			},
 		},
 	})

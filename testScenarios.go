@@ -13,18 +13,20 @@ type TestScenario struct {
 func RunTestScenarios(scns []TestScenario) {
 	T().Helper()
 
+	skipped := 0
+
 	fn := func(tc *TestScenario, _ int) {
 		t := T()
 		t.Helper()
 
 		if tc.Skip {
+			skipped++
 			t.SkipNow()
 			return
 		}
 
 		if tc.Act == nil {
 			test.Invalid("test.RunTestScenarios: no Act function defined")
-			return
 		}
 
 		result := Test(tc.Act)
@@ -32,10 +34,10 @@ func RunTestScenarios(scns []TestScenario) {
 			result.Expect(TestPassed)
 			return
 		}
+
 		tc.Assert(&result)
 		if !result.checked {
 			test.Invalid("test.RunTestScenarios: result not tested; *R.Expect(...) or *R.ExpectInvalid(...) must be called")
-			return
 		}
 	}
 
@@ -54,4 +56,11 @@ func RunTestScenarios(scns []TestScenario) {
 	}
 
 	RunScenarios(fn, scns)
+
+	if len(debug) > 0 {
+		T().Errorf("WARNING: %d tests were run with Debug: true", len(debug))
+	}
+	if skipped > 0 {
+		T().Errorf("WARNING: %d tests were skipped", skipped)
+	}
 }
