@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 type match[T any] struct{ result bool }
@@ -225,6 +226,14 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(`got 12`)
+			},
+		},
+		{Scenario: "matcher (pointer) with Expected field",
+			Act: func() {
+				Expect(12).To(&matcherWithExpectedField[int]{match[int]{false}, 10})
+			},
+			Assert: func(result *R) {
+				result.Expect(`expected 10, got 12`)
 			},
 		},
 		{Scenario: "matcher with Expected field",
@@ -451,7 +460,7 @@ func TestRequire(t *testing.T) {
 }
 
 func ExampleRequire() {
-	With(&ExampleTestRunner{})
+	test.Example()
 
 	// this test will fail
 	Require(true).To(Equal(false))

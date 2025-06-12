@@ -95,10 +95,8 @@ func ContainMap[K comparable, V any](want map[K]V) maps.ContainsMatcher[K, V] {
 			"ContainMap() called with empty map.",
 			"Did you mean Expect(map).To(EqualMap(<empty map>)) or Expect(map).IsEmpty()?",
 		)
-	default:
-		return maps.ContainsMatcher[K, V]{Expected: want}
 	}
-	return maps.ContainsMatcher[K, V]{}
+	return maps.ContainsMatcher[K, V]{Expected: want}
 }
 
 // ContainMapEntry is a convenience function to test that a map contains

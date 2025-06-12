@@ -2,11 +2,16 @@ package test
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/blugnu/test/internal/testframe"
+	"github.com/blugnu/test/matchers/slices"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 type TestOutcome int
@@ -48,49 +53,48 @@ type R struct {
 	// names of any tests that failed
 	FailedTests []string
 
-	t       TestingT
 	checked bool
+	t       TestingT
 }
 
 // Expect verifies that the test result (R) matches the expected outcome.
 //
-// When called without arguments it verifies that the test outcome is
-// TestPassed with an empty test report.
+// At least one argument must be provided to Expect() to specify the expected
+// outcome of the test. The arguments can be:
 //
-// If called with a specific TestOutcome, it verifies that the test
-// outcome matches the expected outcome.  If the expected outcome
+// - a TestOutcome value (TestPassed, TestFailed, TestPanicked)
+// - a string or slice of strings that are expected to be present in the test report
+// - a combination of the above, with options to control the assertion behavior
+//
+// The function will check the test outcome, the test report, and any recovered value
+// from a panic, and will fail the test if any of the expectations are not met.
+//
+// Currently, any additional output to stdout produced by the test function is
+// ignored and must not be specified in any expected test report.
+//
+// If no arguments are provided, Expect() will fail the test with an error message
+// indicating that at least one expected outcome or report line is required.
+//
+// If the test outcome is expected to be TestPanicked, the first argument must be a
+// TestOutcome value (TestPanicked) with a single string argument that is expected to
+// match the string representation (%v) of the value recovered from the panic.
 func (r *R) Expect(exp ...any) {
 	r.t.Helper()
-	T().Helper()
 
+	if len(exp) == 0 {
+		// if no arguments are given, we expect the test to have passed
+		test.Invalid("R.Expect: no arguments; an expected TestOutcome and/or test report are required")
+	}
+
+	// we have some expectations so can mark the result as having been checked
 	r.checked = true
 
-	var expectedReport []string
-	for _, v := range exp {
-		switch s := v.(type) {
-		case string:
-			expectedReport = append(expectedReport, s)
-		case []string:
-			expectedReport = append(expectedReport, s...)
-		}
-	}
+	expectedOutcome, expectedReport, opts := r.analyseArgs(exp...)
 
-	var rpt = make([]string, 0, len(r.Report))
-	var sig = false
-	for _, s := range r.Report {
-		if sig = sig || strings.TrimSpace(s) != ""; sig {
-			rpt = append(rpt, s)
-		}
-	}
-	if r.Report = rpt; len(rpt) == 0 {
-		r.Report = nil
-	}
-
-	expectedOutcome := TestPassed
-	if opt.IsSet(exp, TestPanicked) {
-		expectedOutcome = TestPanicked
-	} else if opt.IsSet(exp, TestFailed) || len(expectedReport) > 0 {
-		expectedOutcome = TestFailed
+	// multiple assertions will be made and we want to fail early, so we
+	// set the IsRequired option if not already set.
+	if !opt.IsSet(opts, opt.IsRequired(true)) {
+		opts = append(opts, opt.IsRequired(true))
 	}
 
 	// setup an expectation for the failed tests; exactly what is expected
@@ -100,59 +104,165 @@ func (r *R) Expect(exp ...any) {
 	// that it is used.
 	expectFailedTests := Expect(r.FailedTests, "failed tests")
 
-	Expect(r.Outcome, "test outcome").To(Equal(expectedOutcome))
+	r.assertOutcome(expectedOutcome, opts...)
+
 	switch {
 	case expectedOutcome == TestPanicked:
-		Expect(r.Recovered, "recovered").IsNotNil()
-		if len(expectedReport) > 0 {
-			Expect(fmt.Sprintf("%v", r.Recovered), "recovered").To(ContainString(expectedReport[0]), strings.Contains, opt.UnquotedStrings())
-		}
-
-	case expectedOutcome == TestPassed && r.Recovered != nil:
-		r.t.Error(strings.Join([]string{
-			"\nunexpected panic:",
-			fmt.Sprintf("  recovered: %[1]T(%[1]v)", r.Recovered),
-		}, "\n"))
+		r.assertPanicked(expectedReport, opts...)
 
 	case len(expectedReport) > 0:
 		// first we check that the test we are running was identified as failed
-		expectFailedTests.To(ContainItem(r.t.Name()))
+		expectFailedTests.To(ContainItem(r.t.Name()), opts...)
 
+		testfile := testFilename()
 		if len(r.Report) > 0 {
-			// FUTURE: this could be made more robust by getting the filename of
-			// the test function (func Test...) that was executing rather than naively
-			// assuming that this will always be the direct caller of this function.
-			testFilename := CallerFilename()
-
 			// if a report is expected we expect the first line of the report
 			// to contain the name of the test file that was executing at the time
-			Expect(r.Report[0]).To(ContainString(testFilename), opt.UnquotedStrings())
+			Expect(r.Report[0]).To(ContainString(testfile),
+				append(opts, opt.UnquotedStrings())...,
+			)
 		}
 
 		// now we check that the report contains the expected lines
-		Expect(r.Report).To(ContainSlice(expectedReport), strings.Contains, opt.UnquotedStrings())
+		Expect(r.Report).To(ContainSlice(expectedReport),
+			append(opts, strings.Contains, opt.UnquotedStrings())...,
+		)
 
-	case expectedOutcome == TestFailed && opt.IsSet(exp, opt.IgnoreReport(true)):
-		expectFailedTests.To(ContainItem(r.t.Name()))
+	case expectedOutcome == TestFailed && opt.IsSet(opts, opt.IgnoreReport(true)):
+		expectFailedTests.To(ContainItem(r.t.Name()), opts...)
 
 	default:
-		expectFailedTests.IsEmptyOrNil()
-		Expect(r.Report, "test report").IsEmptyOrNil(opt.FailureReport(func(...any) []string {
-			report := make([]string, 2, len(r.Report)+2)
-			report[0] = "expected: <no report>"
-			report[1] = "got:"
-			for _, s := range r.Report {
-				report = append(report, "| "+s)
-			}
-			return report
-		}))
+		expectFailedTests.Should(BeEmptyOrNil(), opts...)
+		Expect(r.Report, "test report").Should(BeEmptyOrNil(),
+			append(opts, opt.FailureReport(func(...any) []string {
+				report := make([]string, 2, len(r.Report)+2)
+				report[0] = "expected: <no report>"
+				report[1] = "got:"
+				for _, s := range r.Report {
+					report = append(report, "| "+s)
+				}
+				return report
+			}))...,
+		)
 	}
 }
 
-func (r *R) ExpectInvalid(report ...string) {
+// ExpectInvalid verifies that the test result (R) indicates an invalid test; that is,
+// the test.Invalid() function was called during evaluation of the test, indicating
+// some problem that makes the test result unreliable or meaningless.
+//
+// When called without arguments it verifies that the test outcome is failed and that
+// the test report consists only of the '<== INVALID TEST' label.  i.e. if any additional
+// report lines are present in the test report then the ExpectInvalid() call will itself
+// fail.
+//
+// If the test report is not significant to a test, it must be explicitly ignored by
+// passing the opt.IgnoreReport(true) option:
+//
+//	result.ExpectInvalid(opt.IgnoreReport(true))
+//
+// # Invalid Tests
+//
+// The Go standard library testing framework does not provide a way to mark a test
+// as invalid; the test.Invalid() function fails a test and emits a message labelled
+// with '<== INVALID TEST'.
+//
+// When testing for an invalid test:
+//
+// - the test outcome is expected to be TestFailed
+// - the test report is expected to start with the '<== INVALID TEST' label
+// - the test report is expected to contain any report lines specified
+func (r *R) ExpectInvalid(report ...any) {
 	r.t.Helper()
-	r.Expect(append([]string{"<== INVALID TEST"}, report...))
-	r.Expect(append([]string{CallerFilename()}, report...))
+	r.Expect(append([]any{"<== INVALID TEST"}, report...)...)
+}
+
+// analyseArgs processes the expected arguments passed to Expect().
+// It separates the expected report strings from the options and determines
+// the expected outcome of the test based on the options provided.
+// It returns the expected outcome, the report strings, and the options.
+func (r *R) analyseArgs(exp ...any) (TestOutcome, []string, []any) {
+	var (
+		report  []string
+		opts    []any
+		outcome = TestPassed
+	)
+
+	// separate the expected report strings from any options
+	for _, v := range exp {
+		switch s := v.(type) {
+		case string:
+			report = append(report, s)
+		case []string:
+			report = append(report, s...)
+		default:
+			opts = append(opts, v)
+		}
+	}
+
+	if opt.IsSet(opts, TestPanicked) {
+		outcome = TestPanicked
+	} else if opt.IsSet(opts, TestFailed) || len(report) > 0 {
+		outcome = TestFailed
+	}
+
+	return outcome, report, opts
+}
+
+// assertOutcome checks that the test outcome matches the expected outcome.
+//
+// The function is used internally by Expect() to verify the test outcome.
+func (r *R) assertOutcome(expected TestOutcome, opts ...any) {
+	T().Helper()
+
+	Expect(r.Outcome, "test outcome").To(Equal(expected),
+		append(opts, opt.FailureReport(func(...any) []string {
+			report := []string{
+				fmt.Sprintf("expected: %s", expected),
+				fmt.Sprintf("got     : %s", r.Outcome),
+			}
+
+			switch {
+			case r.Outcome == TestPanicked:
+				return append(report, fmt.Sprintf("recovered:\n  %[1]T(%[1]v)", r.Recovered))
+			case len(r.Report) > 0:
+				return slices.AppendToReport(report, r.Report, "with report:", opt.QuotedStrings(false))
+			default:
+				return report
+			}
+		}))...,
+	)
+}
+
+// assertPanicked checks that the test result indicates a panic and that the
+// recovered value matches the expected report (if specified).
+//
+// The function is used internally by Expect() to verify the test outcome when a panic
+// is expected.
+//
+// FUTURE: accept an error in the arguments and assert that the recovered value
+// matches the error.  This would provide more robust assertions for error panics
+//
+// For now, if an expected report is given, we check that the recovered value
+// matches the first line of the report. If the expected report has > 1 line, we
+// fail the test as invalid, as we don't know how to handle that case yet.
+func (r *R) assertPanicked(expectedReport []string, opts ...any) {
+	T().Helper()
+
+	if len(expectedReport) > 1 {
+		test.Invalid(fmt.Sprintf("R.Expect: only 1 string may be specified to match a recovered value from an expected panic (got %d)", len(expectedReport)))
+	}
+
+	Expect(r.Recovered, "recovered").IsNotNil(opts...)
+
+	if len(expectedReport) == 0 {
+		return
+	}
+
+	s := fmt.Sprintf("%v", r.Recovered)
+	Expect(s, "recovered").To(ContainString(expectedReport[0]),
+		append(opts, strings.Contains, opt.UnquotedStrings())...,
+	)
 }
 
 // Test runs a function that exercises a test function returning an R that captures the
@@ -173,10 +283,10 @@ func Test(f func()) R {
 
 	var recovered any
 	stdout, stderr, outcome := runInternal(t, func(internal *testing.T) {
-		testFrames.push(internal)
+		testframe.Push(internal)
 		defer func() {
 			recovered = recover()
-			testFrames.pop()
+			testframe.Pop()
 		}()
 		f()
 	})
@@ -185,28 +295,14 @@ func Test(f func()) R {
 		outcome = TestPanicked
 	}
 
-	failed := []string{}
-	rxFailed := regexp.MustCompile(`--- FAIL: (.*) \((\d+\.\d+)s\)$`)
-
-	newStdout := make([]string, 0, len(stdout))
-	for _, s := range stdout {
-		if match := rxFailed.FindStringSubmatch(s); len(match) > 0 {
-			failed = append(failed, match[1])
-		} else {
-			newStdout = append(newStdout, s)
-		}
-	}
-	stdout = newStdout
-	if len(failed) == 0 {
-		failed = nil
-	}
+	_, report, failed := analyseReport(stdout)
 
 	return R{
 		t:           t,
 		FailedTests: failed,
 		Recovered:   recovered,
 		Log:         stderr,
-		Report:      stdout,
+		Report:      report,
 		Outcome:     outcome,
 	}
 }
@@ -251,6 +347,7 @@ func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, TestOutc
 	for i := len(stdout) - 1; i >= 0; i-- {
 		s := strings.TrimSpace(stdout[i])
 		if strings.HasPrefix(s, "=== RUN") ||
+			strings.HasPrefix(s, "=== NAME") ||
 			strings.HasPrefix(s, "=== PAUSE") ||
 			strings.HasPrefix(s, "=== CONT") ||
 			strings.HasPrefix(s, "--- PASS: ") ||
@@ -260,4 +357,95 @@ func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, TestOutc
 	}
 
 	return stdout, stderr, result
+}
+
+var isTestFile = func(s string) bool {
+	return strings.HasSuffix(s, "_test.go")
+}
+
+// testFilename returns the name of the first test file (_test.go) that is found
+// in the call stack.
+func testFilename() string {
+	pcs := make([]uintptr, 64)
+	n := runtime.Callers(2, pcs)
+	pcs = pcs[:n]
+
+	frames := runtime.CallersFrames(pcs)
+
+	frame, more := frames.Next()
+	for more {
+		if isTestFile(frame.File) {
+			return filepath.Base(frame.File)
+		}
+		frame, more = frames.Next()
+	}
+
+	return "<unknown test file>"
+}
+
+// analyseReport removes any initial empty lines from the test report
+// and extracts the names of any tests.
+//
+// It returns stdout output (additional to any test report output), the report
+// and a slice of names of tests that failed.
+//
+// If any slice is empty, nil is returned instead of an empty slice.
+func analyseReport(stdout []string) ([]string, []string, []string) {
+	failed := []string{}
+	namePattern := regexp.MustCompile(`--- FAIL: (.*) \((\d+\.\d+)s\)$`)
+	locnPattern := regexp.MustCompile(`(.*)_test\.go:[0-9]+:`)
+
+	// FUTURE: properly support multiple test failures in a report.
+	//
+	// The implementation below assumes one test failure in the report, of
+	// the form:
+	//
+	// --- FAIL: <test name> (<duration>s)
+	//     <stdout output (if any)>
+	//     <test filename>:<line no>:
+	//         report line 1
+	//         report line 2
+	//
+	// But if the output consists of multiple test failures it will be:
+	//
+	// --- FAIL: <test name> (<duration>s)
+	//     <stdout output (if any)>
+	//     <test filename>:<line no>:
+	//         report line 1
+	//         report line 2
+	//         ...
+	//     <test filename>:<line no>:
+	//         report line 1
+	//     ...
+	output := make([]string, 0, len(stdout))
+	report := make([]string, 0, len(stdout))
+	inReport := false
+	for _, s := range stdout {
+		if match := namePattern.FindStringSubmatch(s); len(match) > 0 {
+			failed = append(failed, match[1])
+			continue
+		}
+
+		if match := locnPattern.FindStringSubmatch(s); len(match) > 0 {
+			// if we find a location line, we assume that the next lines are part of
+			// the report for the test that failed.
+			inReport = true
+		}
+
+		switch inReport {
+		case true:
+			report = append(report, s)
+		default:
+			output = append(output, s)
+		}
+	}
+
+	ornil := func(s []string) []string {
+		if len(s) == 0 {
+			return nil
+		}
+		return s
+	}
+
+	return ornil(output), ornil(report), ornil(failed)
 }
