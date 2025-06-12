@@ -53,7 +53,7 @@ func (e expectation[T]) DidOccur(opts ...any) {
 	case panics.Expected:
 		match := &panics.MatchRecovered{R: recover()}
 		if !match.Match(v, opts...) {
-			e.err(match.OnTestFailure())
+			e.fail(match, opts...)
 		}
 	case error:
 		if v != nil {
@@ -104,13 +104,6 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 		// is likely to cause confusion
 		if expected.R == opt.NoPanicExpected(true) {
 			test.Invalid("DidNotOccur: may not be used with Panic(nil); did you mean NilPanic()?")
-
-			// if we did not panic, then we can return early, otherwise
-			// we will continue to check the recovered value even though
-			// the result may be meaningless
-			if matcher.R == nil {
-				return
-			}
 		}
 
 		// if we expect Panic(x) did NOT occur, but Panic(y) DID occur,
@@ -124,10 +117,9 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 		// if the recovered value matches the expected value, then
 		// the test has failed since this panic should not have occurred...
 		if recoveredExpectedValue && expected.R != nil {
-			// for the error report, we add the ToNotMatch(true) option
-			// to indicate that the expectation was that the panic should
-			// not have occurred but did
-			e.err(matcher.OnTestFailure(append(opts, opt.ToNotMatch(true))...))
+			// we add the ToNotMatch(true) option to indicate that the
+			// expectation was that the panic should not have occurred
+			e.fail(matcher, append(opts, opt.ToNotMatch(true))...)
 			return
 		}
 
@@ -137,18 +129,14 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 		// recovered value is not nil, then we have an unexpected panic to report...
 		if matcher.R != nil {
 			// the existing matcher has already been used to test the recovered
-			// value against an expected value; we cannot use this to produce
-			// the failure report since it will incorrectly report "expecting X, got Y"
-			// when we want to report "unexpected panic: got Y"
+			// value against an expected value where-as we now need to report an
+			// unexpected panic (i.e. expected nil)
 			//
-			// so we create a new matcher with the recovered value, match it
-			// against an expected R:nil and use THAT to report the failure
-			//
-			// we could just emit a test report, but that would duplicate the report
-			// handling logic in the matcher and require us to also , so we use the matcher to
+			// so we create a new panic matcher, matching against an expected R:nil
+			// and use THAT to report the failure
 			matcher := &panics.MatchRecovered{R: matcher.R}
 			matcher.Match(panics.Expected{R: nil})
-			e.err(matcher.OnTestFailure(opts...))
+			e.fail(matcher, opts...)
 		}
 
 	case error:
