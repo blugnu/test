@@ -13,11 +13,14 @@ type TestScenario struct {
 func RunTestScenarios(scns []TestScenario) {
 	T().Helper()
 
+	skipped := 0
+
 	fn := func(tc *TestScenario, _ int) {
 		t := T()
 		t.Helper()
 
 		if tc.Skip {
+			skipped++
 			t.SkipNow()
 			return
 		}
@@ -54,4 +57,11 @@ func RunTestScenarios(scns []TestScenario) {
 	}
 
 	RunScenarios(fn, scns)
+
+	if len(debug) > 0 {
+		T().Errorf("WARNING: %d tests were run with Debug: true", len(debug))
+	}
+	if skipped > 0 {
+		T().Errorf("WARNING: %d tests were skipped", skipped)
+	}
 }
