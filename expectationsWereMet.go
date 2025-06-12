@@ -55,8 +55,10 @@ func ExpectationsWereMet(m Mock, opts ...any) {
 
 	defer m.Reset()
 
-	err := m.ExpectationsWereMet()
-	Expect(err, opts...).IsNil(
-		append(opts, opt.OnFailure(err.Error())),
-	)
+	// if err is non-nil we use an IsNil test to report the
+	// failure with any options applied
+	if err := m.ExpectationsWereMet(); err != nil {
+		Expect(err).IsNil(append(opts, opt.OnFailure(err.Error()))...)
+	}
+
 }
