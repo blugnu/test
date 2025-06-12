@@ -3,6 +3,8 @@ package test
 import (
 	"fmt"
 	"testing"
+
+	"github.com/blugnu/test/test"
 )
 
 func TestTestOutcome(t *testing.T) {
@@ -38,7 +40,7 @@ func TestTest(t *testing.T) {
 			}
 		}()
 
-		With(ExampleTestRunner{})
+		test.Example()
 		_ = Test(func() {})
 	})
 
@@ -95,12 +97,6 @@ func TestR_Expect(t *testing.T) {
 					"test outcome:",
 					"  expected: TestPassed",
 					"  got     : TestFailed",
-					// failed on test report
-					TestFilename(),
-					"test report:",
-					"  expected: <no report>",
-					"  got:",
-					"  | report",
 				)
 			},
 		},
@@ -130,10 +126,26 @@ func TestR_Expect(t *testing.T) {
 					"test outcome:",
 					"  expected: TestPassed",
 					"  got     : TestPanicked",
-					// failed on recovered value
-					TestFilename(),
-					"unexpected panic:",
-					"  recovered: string(recovered)",
+					"recovered:",
+					"  string(recovered)",
+				)
+			},
+		},
+		{Scenario: "expected to fail with no report, failed with report",
+			Act: func() {
+				sut := R{
+					t:       T(),
+					Outcome: TestFailed,
+					Report:  []string{"actual report"},
+				}
+				sut.Expect(TestFailed)
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"test report:",
+					"  expected: <no report>",
+					"  got:",
+					"  | actual report",
 				)
 			},
 		},
@@ -164,8 +176,6 @@ func Test_runInternal(t *testing.T) {
 		// with the -v flag.  We ensure that the RUN: and PASS: lines are removed from
 		// the output to avoid false negatives in tests that expect an empty output for
 		// a passing test.
-		//
-		// FUTURE: perhaps this should be handled by R.Expect() instead of runInternal()?
 
 		t := T().(*testing.T)
 
@@ -179,7 +189,29 @@ func Test_runInternal(t *testing.T) {
 
 		// ASSERT
 		Expect(outcome).To(Equal(TestPassed))
-		Expect(stdout).IsEmpty()
-		Expect(stderr).IsNil()
+		Expect(stdout).Should(BeEmpty())
+		Expect(stderr).Should(BeNil())
+	})
+}
+
+func Test_testFilename(t *testing.T) {
+	With(t)
+
+	Run("called from a test file", func() {
+		// ACT
+		result := testFilename()
+
+		// ASSERT
+		Expect(result).To(Equal("test_test.go"))
+	})
+
+	Run("called from a non-test file (simulated)", func() {
+		defer Restore(Original(&isTestFile).ReplacedBy(func(s string) bool { return false }))
+
+		// ACT
+		result := testFilename()
+
+		// ASSERT
+		Expect(result).To(Equal("<unknown test file>"))
 	})
 }

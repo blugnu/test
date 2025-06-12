@@ -44,7 +44,7 @@ func Expect[T any](value T, opts ...any) *expectation[T] {
 // opt.Required(true) option to a matcher invoked using Expect().
 // i.e. the following are equivalent:
 //
-//	Expect(value).To(Equal(expected), opt.Required(true))
+//	Expect(value).To(Equal(expected), opt.IsRequired(true))
 //	Require(value).To(Equal(expected))
 //
 // # Supported Options
@@ -91,7 +91,7 @@ type expectation[T any] struct {
 // If the first msg is a []string, it is used as the message with each
 // string in the slice on a new line. If the expectation has a name,
 // it is prepended to the first string in the slice.
-func (e expectation[T]) err(msg any) {
+func (e *expectation[T]) err(msg any) {
 	e.t.Helper()
 
 	// the fail funcs will set Error by default...
@@ -155,7 +155,7 @@ func (e expectation[T]) err(msg any) {
 
 // fail determines how the test failure should be reported, formats the
 // test failure report then fails the test with the report.
-func (e expectation[T]) fail(matcher any, opts ...any) {
+func (e *expectation[T]) fail(matcher any, opts ...any) {
 	e.t.Helper()
 
 	// check for a custom test failure report function in the
@@ -166,6 +166,10 @@ func (e expectation[T]) fail(matcher any, opts ...any) {
 	if report == nil {
 		report = matcher
 	}
+
+	// expectation.required may be preset or may have been specified
+	// as an option
+	e.required = e.required || opt.IsSet(opts, opt.IsRequired(true))
 
 	switch report := report.(type) {
 	case interface{ OnTestFailure(...any) string }:
@@ -215,10 +219,15 @@ func (e expectation[T]) fail(matcher any, opts ...any) {
 // matcher is a struct with an Expected or expected field, that value
 // is returned.  If the matcher implements an Expected() method, that
 // value is returned.  Otherwise, nil is returned.
-func (e expectation[T]) getExpected(matcher any) any {
+func (e *expectation[T]) getExpected(matcher any) any {
+	// check for an Expected field if the matcher is a struct or pointer
+	// to struct
 	// check for an Expected field if the matcher is a struct
-	if reflect.ValueOf(matcher).Kind() == reflect.Struct {
-		m := reflect.Indirect(reflect.ValueOf(matcher))
+	rv := reflect.ValueOf(matcher)
+	if rv.Kind() == reflect.Struct || (rv.Kind() == reflect.Ptr && rv.Elem().Kind() == reflect.Struct) {
+		m := reflect.Indirect(rv)
+		// if reflect.ValueOf(matcher).Kind() == reflect.Struct {
+		// 	m := reflect.Indirect(reflect.ValueOf(matcher))
 		if fld := m.FieldByName("Expected"); fld.IsValid() {
 			return fld.Interface()
 		}
@@ -247,7 +256,7 @@ func (e expectation[T]) getExpected(matcher any) any {
 // - interface{ TestFailure(T, ...any) []string }
 //
 // If no matching function is found, nil is returned.
-func (e expectation[T]) getTestFailureReporter(opts ...any) any {
+func (e *expectation[T]) getTestFailureReporter(opts ...any) any {
 	for _, opt := range opts {
 		switch opt := opt.(type) {
 		case
@@ -295,7 +304,7 @@ func (e expectation[T]) getTestFailureReporter(opts ...any) any {
 //
 //	opt.OnFailure(string)        // a simple string to output as the
 //	                             // failure report if the test fails.
-func (e expectation[T]) Should(match matcher.ForAny, opts ...any) {
+func (e *expectation[T]) Should(match matcher.ForAny, opts ...any) {
 	e.t.Helper()
 
 	if match == nil {
@@ -338,7 +347,7 @@ func (e expectation[T]) Should(match matcher.ForAny, opts ...any) {
 //
 //	opt.OnFailure(string)        // a simple string to output as the
 //	                             // failure report if the test fails.
-func (e expectation[T]) ShouldNot(match matcher.ForAny, opts ...any) {
+func (e *expectation[T]) ShouldNot(match matcher.ForAny, opts ...any) {
 	e.t.Helper()
 
 	if match == nil {
@@ -403,7 +412,7 @@ func (e *expectation[T]) To(matcher matcher.ForType[T], opts ...any) {
 //
 //	opt.OnFailure(string)        // a simple string to output as the
 //	                             // failure report if the test fails.
-func (e expectation[T]) ToNot(matcher matcher.ForType[T], opts ...any) {
+func (e *expectation[T]) ToNot(matcher matcher.ForType[T], opts ...any) {
 	e.t.Helper()
 
 	opts = append(opts, opt.ToNotMatch(true))
@@ -447,7 +456,7 @@ func (e expectation[T]) ToNot(matcher matcher.ForType[T], opts ...any) {
 //
 //	opt.OnFailure(string)       // a string to output as the failure
 //	                            // report if the test fails.
-func (e expectation[T]) Is(expected T, opts ...any) {
+func (e *expectation[T]) Is(expected T, opts ...any) {
 	e.t.Helper()
 
 	switch {
