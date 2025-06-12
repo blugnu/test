@@ -7,6 +7,7 @@ import (
 
 	"github.com/blugnu/test/matchers/slices"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 type lengthResult struct {
@@ -157,7 +158,7 @@ func (e expectation[T]) isEmpty(orNil bool, opts ...any) {
 
 	if !result.hasLength && !result.isNil {
 		if orNil {
-			invalidTest(
+			test.Invalid(
 				"IsEmptyOrNil: requires a value that is a slice, channel, or map, or is of",
 				"              a type that implements a Count(), Len(), or Length() function",
 				"              returning an int, int64, uint, or uint64.",
@@ -165,7 +166,7 @@ func (e expectation[T]) isEmpty(orNil bool, opts ...any) {
 				fmt.Sprintf("              A value of type %T does not meet these criteria.", e.subject),
 			)
 		} else {
-			invalidTest(
+			test.Invalid(
 				"IsEmpty: requires a value that is a string, array, slice, channel or map,",
 				"         or is of a type that implements a Count(), Len(), or Length()",
 				"         function returning an int, int64, uint, or uint64.",
@@ -287,7 +288,7 @@ func (e expectation[T]) IsNotEmpty(opts ...any) {
 
 	result := e.getLengthResult(e.subject)
 	if !result.hasLength {
-		invalidTest(
+		test.Invalid(
 			"IsNotEmpty: requires a value of type string, array, slice, channel or map,",
 			"            or a type that implements a Count(), Len(), or Length() function",
 			"            returning int, int64, uint, or uint64.",

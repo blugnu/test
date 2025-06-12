@@ -1,113 +1,67 @@
 package test
 
 import (
-	"sync"
 	"testing"
+
+	"github.com/blugnu/test/internal/testframe"
+	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
-func await(f func()) {
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		f()
-	}()
-	wg.Wait()
+func TestGetT(t *testing.T) {
+	With(t)
+
+	Run("GetT", func() {
+		t1 := GetT()
+		Expect(t1).IsNotNil()
+	})
 }
 
 func TestT(t *testing.T) {
 	With(t)
-
-	Run("GetT", func() {
-		Run("when test frame set", func() {
-			t1 := GetT()
-			Expect(t1).IsNotNil()
-			Expect(t1.Name()).To(Equal("TestT/GetT/when_test_frame_set"))
-		})
-
-		Run("when test frame not set", func() {
-			defer Expect(Panic(ErrNoTestFrame)).DidOccur()
-
-			With(nil)
-			_ = GetT()
-		})
+	Run("T", func() {
+		t1 := T()
+		Expect(t1).IsNotNil()
 	})
 
-	Run("T", func() {
-		Run("when test frame set", func() {
-			t1 := T()
-			Expect(t1).IsNotNil()
-			Expect(t1.Name()).To(Equal("TestT/T/when_test_frame_set"))
-		})
+}
 
-		Run("when test frame not set", func() {
-			defer Expect(Panic(ErrNoTestFrame)).DidOccur()
+func TestT_Name(t *testing.T) {
+	With(t)
 
-			With(nil)
-			_ = T()
-		})
+	Run("Subtest", func() {
+		s := T()
+		Expect(t.Name()).To(Equal("TestT_Name"))
+		Expect(s.Name()).To(Equal("TestT_Name/Subtest"))
 	})
 }
 
-func TestExampleTestRunner(t *testing.T) {
+func TestWith(t *testing.T) {
 	With(t)
 
-	sut := ExampleTestRunner{}
+	// pushing nil is invalid and should panic
+	Run("nil", func() {
+		// the panic test must be setup before niling the test frame
+		defer Expect(Panic(testframe.ErrNoTestFrame)).DidOccur()
 
-	Run("no-ops coverage", func() {
-		out, log := Record(func() {
-			sut.Cleanup(nil)
-			sut.Fail()
-			sut.Helper()
-			sut.Parallel()
-			sut.Run("no-op", nil)
-			sut.Setenv("no-op", "no-op")
-			sut.SkipNow()
-		})
-		Expect(out).IsNil()
-		Expect(log).IsNil()
+		With(nil)
 	})
 
-	Run("non-fatal errors", func() {
-		out, err := Record(func() {
-			await(func() {
-				sut.Error("error")
-				sut.Errorf("errorf %s", "formatted")
-			})
-		})
+	// to test a simulated lack of test frame, we can use a test.NilFrame()
+	Run("test.NilFrame()", func() {
+		// the panic test must be setup before pushing the test frame
+		defer Expect(Panic(testframe.ErrNoTestFrame)).DidOccur()
 
-		Expect(err).IsNil()
-		Expect(out).To(EqualSlice([]string{
-			"error",
-			"errorf formatted",
-		}))
+		// pushing test.NilFrame() to simulate a nil test frame
+		With(test.NilFrame())
+
+		// this should panic with ErrNoTestFrame
+		T()
+
+		// so this should not be reached at all
+		Expect(false).To(BeTrue(), opt.OnFailure("this test should not be reached"))
 	})
 
-	Run("fatal error", func() {
-		out, err := Record(func() {
-			await(func() {
-				sut.Fatal("fatal error")
-				sut.Error("this is not reached")
-			})
-		})
-
-		Expect(err).IsNil()
-		Expect(out).To(EqualSlice([]string{
-			"fatal error",
-		}))
-	})
-
-	Run("fatalf error", func() {
-		out, err := Record(func() {
-			await(func() {
-				sut.Fatalf("fatal error %s", "formatted")
-				sut.Error("this is not reached")
-			})
-		})
-
-		Expect(err).IsNil()
-		Expect(out).To(EqualSlice([]string{
-			"fatal error formatted",
-		}))
-	})
+	// to ensure that this should not panic
+	Expect(T().Name()).To(Equal("TestWith"))
 }

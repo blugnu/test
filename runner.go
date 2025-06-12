@@ -1,5 +1,7 @@
 package test
 
+import "github.com/blugnu/test/test"
+
 type Runner[T any] struct {
 	BeforeEach func(*T, int)
 	AfterEach  func(*T, int)
@@ -12,7 +14,7 @@ func (r Runner[T]) RunParallel(fn func(*T, int), scns []T) {
 	t.Helper()
 
 	if IsParallel() {
-		invalidTest("Runner.RunParallel() must not be called from a parallel test")
+		test.Invalid("Runner.RunParallel() must not be called from a parallel test")
 		return
 	}
 

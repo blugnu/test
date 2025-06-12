@@ -1,5 +1,7 @@
 package test
 
+import "github.com/blugnu/test/test"
+
 type TestScenario struct {
 	Scenario string
 	Debug    bool
@@ -21,7 +23,7 @@ func RunTestScenarios(scns []TestScenario) {
 		}
 
 		if tc.Act == nil {
-			invalidTest("test.RunTestScenarios: no Act function defined")
+			test.Invalid("test.RunTestScenarios: no Act function defined")
 			return
 		}
 
@@ -32,7 +34,7 @@ func RunTestScenarios(scns []TestScenario) {
 		}
 		tc.Assert(&result)
 		if !result.checked {
-			invalidTest("test.RunTestScenarios: result not tested; *R.Expect(...) or *R.ExpectInvalid(...) must be called")
+			test.Invalid("test.RunTestScenarios: result not tested; *R.Expect(...) or *R.ExpectInvalid(...) must be called")
 			return
 		}
 	}

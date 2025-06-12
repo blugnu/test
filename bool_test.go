@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestBooleans(t *testing.T) {
@@ -126,7 +127,7 @@ func TestBooleans(t *testing.T) {
 }
 
 func ExampleExpectFalse() {
-	With(ExampleTestRunner{})
+	With(test.ExampleT())
 
 	ExpectFalse(true)
 
@@ -135,7 +136,7 @@ func ExampleExpectFalse() {
 }
 
 func ExampleExpectTrue() {
-	With(ExampleTestRunner{})
+	With(test.ExampleT())
 
 	ExpectTrue(false)
 
@@ -144,7 +145,7 @@ func ExampleExpectTrue() {
 }
 
 func ExampleBeFalse() {
-	With(ExampleTestRunner{})
+	With(test.ExampleT())
 
 	Expect(true).To(BeFalse())
 
@@ -153,7 +154,7 @@ func ExampleBeFalse() {
 }
 
 func ExampleBeTrue() {
-	With(ExampleTestRunner{})
+	With(test.ExampleT())
 
 	Expect(false).To(BeTrue())
 
