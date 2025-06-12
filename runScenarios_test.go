@@ -1,7 +1,6 @@
 package test
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -28,18 +27,27 @@ func Test_getScenarioName(t *testing.T) {
 
 	var result string
 
-	result = getScenarioName(reflect.ValueOf(structWith_Scenario{"name"}))
+	result = getScenarioName(nil, 1)
+	Expect(result, "nil").To(Equal("testcase-001"))
+
+	result = getScenarioName("no name", 1)
+	Expect(result, "default").To(Equal("testcase-001"))
+
+	result = getScenarioName(&structWith_Scenario{"name"}, 1)
 	Expect(result, "Scenario").To(Equal("name"))
 
-	result = getScenarioName(reflect.ValueOf(structWith_scenario{"name"}))
+	result = getScenarioName(structWith_Scenario{"name"}, 1)
+	Expect(result, "Scenario").To(Equal("name"))
+
+	result = getScenarioName(structWith_scenario{"name"}, 1)
 	Expect(result, "scenario").To(Equal("name"))
 
-	result = getScenarioName(reflect.ValueOf(structWith_Name{"name"}))
+	result = getScenarioName(structWith_Name{"name"}, 1)
 	Expect(result, "Name").To(Equal("name"))
 
-	result = getScenarioName(reflect.ValueOf(structWith_name{"name"}))
+	result = getScenarioName(structWith_name{"name"}, 1)
 	Expect(result, "name").To(Equal("name"))
 
-	result = getScenarioName(reflect.ValueOf(structWith_scenario_and_name{scenario: "scenario", name: "name"}))
+	result = getScenarioName(structWith_scenario_and_name{scenario: "scenario", name: "name"}, 1)
 	Expect(result, "scenario (not name)").To(Equal("scenario"))
 }
