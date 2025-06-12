@@ -1,6 +1,10 @@
 package test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/blugnu/test/test"
+)
 
 func TestEqual(t *testing.T) {
 	With(t)
@@ -33,7 +37,7 @@ func TestDeepEqual(t *testing.T) {
 }
 
 func ExampleEqual() {
-	With(ExampleTestRunner{})
+	test.Example()
 
 	Expect(1).To(Equal(2))
 	Expect("the hobbit").To(Equal("the lord of the rings"))
@@ -58,7 +62,7 @@ func ExampleEqual() {
 }
 
 func ExampleDeepEqual() {
-	With(ExampleTestRunner{})
+	test.Example()
 
 	Expect([]byte{1, 2, 3}).To(DeepEqual([]byte{1, 2, 4}))
 	Expect([]uint8{1, 1, 2, 3, 5}).To(DeepEqual([]uint8{1, 2, 4, 8, 16}))

@@ -6,6 +6,7 @@ import (
 
 	"github.com/blugnu/test/matchers/panics"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 // Panic returns an expectation subject that can be used to test whether a
@@ -60,7 +61,7 @@ func Panic(r ...any) panics.Expected {
 	}
 
 	T().Helper()
-	invalidTest(fmt.Sprintf("Panic: expected at most one argument, got %d", len(r)))
+	test.Invalid(fmt.Sprintf("Panic: expected at most one argument, got %d", len(r)))
 	return panics.Expected{}
 }
 

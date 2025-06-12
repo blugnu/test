@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestSlices(t *testing.T) {
@@ -135,7 +136,7 @@ func TestSlices(t *testing.T) {
 }
 
 func ExampleContainItem() {
-	With(ExampleTestRunner{})
+	test.Example()
 
 	sut := []string{"a", "b"}
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestContext(t *testing.T) {
@@ -59,7 +60,7 @@ func TestContext(t *testing.T) {
 }
 
 func ExampleHaveContextKey() {
-	With(ExampleTestRunner{})
+	test.Example()
 
 	type key int
 	ctx := context.WithValue(context.Background(), key(57), "varieties")
@@ -79,7 +80,7 @@ func ExampleHaveContextKey() {
 func ExampleHaveContextValue() {
 	// this is needed to make the example work; this would be usually
 	// be `With(t)` where `t` is the *testing.T
-	With(ExampleTestRunner{})
+	test.Example()
 
 	type key int
 	ctx := context.WithValue(context.Background(), key(57), "varieties")

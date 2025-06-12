@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 // Matcher[T] is a generic interface that defines a method for
@@ -248,7 +249,7 @@ func (e expectation[T]) To(matcher Matcher[T], opts ...any) {
 	e.t.Helper()
 
 	if matcher == nil {
-		invalidTest("test.To: a matcher must be specified")
+		test.Invalid("test.To: a matcher must be specified")
 		return
 	}
 
@@ -400,7 +401,7 @@ func (e expectation[T]) IsNil(opts ...any) {
 	case error:
 		// since it is expected that the value being tested is nil, the value
 		// being of a non-nilable type is an invalid test
-		invalidTest(
+		test.Invalid(
 			fmt.Sprintf("test.IsNil: values of type '%T' are not nilable", e.subject),
 		)
 	}

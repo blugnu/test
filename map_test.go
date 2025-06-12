@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestKeysOfMap(t *testing.T) {
@@ -89,15 +90,26 @@ func TestEqualMap(t *testing.T) {
 }
 
 func ExampleEqualMap() {
-	With(ExampleTestRunner{})
+	test.Example()
 
 	sut := map[string]int{
 		"ford":   42,
 		"arthur": 23,
 	}
 
+	// this test will pass
 	Expect(sut).To(EqualMap(map[string]int{
 		"ford":   42,
 		"arthur": 23,
 	}))
+
+	// this test will fail
+	sut = map[string]int{"marvin": 99}
+	Expect(sut).To(EqualMap(map[string]int{"trillian": 24}))
+
+	// Output:
+	// expected map:
+	//   "trillian" => 24
+	// got:
+	//   "marvin" => 99
 }

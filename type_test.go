@@ -3,6 +3,10 @@ package test
 import (
 	"fmt"
 	"testing"
+
+	"github.com/blugnu/test/matchers/emptiness"
+	"github.com/blugnu/test/matchers/matcher"
+	"github.com/blugnu/test/test"
 )
 
 func TestExpectType(t *testing.T) {
@@ -45,12 +49,7 @@ func TestExpectType(t *testing.T) {
 		},
 		{Scenario: "expecting interface implementation",
 			Act: func() {
-				type Countable interface {
-					Count() int
-				}
-				result, ok := ExpectType[Countable](implementsCount[int]{})
-				Expect(result).IsNil()
-				Expect(ok).To(BeFalse())
+				ExpectType[matcher.ForAny](emptiness.Matcher{})
 			},
 			Assert: func(result *R) {
 				result.ExpectInvalid(
@@ -62,7 +61,7 @@ func TestExpectType(t *testing.T) {
 }
 
 func ExampleExpectType() {
-	With(ExampleTestRunner{})
+	test.Example()
 
 	// ExpectType returns the value as the expected type and true if the
 	// value is of that type

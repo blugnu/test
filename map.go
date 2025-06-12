@@ -1,6 +1,9 @@
 package test
 
-import "github.com/blugnu/test/matchers/maps"
+import (
+	"github.com/blugnu/test/matchers/maps"
+	"github.com/blugnu/test/test"
+)
 
 // KeysOfMap returns the keys of a map as a slice, provided to enable
 // map keys to be tests using slice matchers, written expressively as:
@@ -83,12 +86,12 @@ func ContainMap[K comparable, V any](want map[K]V) maps.ContainsMatcher[K, V] {
 	T().Helper()
 	switch {
 	case want == nil:
-		invalidTest(
+		test.Invalid(
 			"ContainMap() called with nil map.",
 			"Did you mean Expect(map).IsNil() or Expect(map).IsEmpty()?",
 		)
 	case len(want) == 0:
-		invalidTest(
+		test.Invalid(
 			"ContainMap() called with empty map.",
 			"Did you mean Expect(map).To(EqualMap(<empty map>)) or Expect(map).IsEmpty()?",
 		)

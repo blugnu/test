@@ -5,6 +5,7 @@ import (
 
 	"github.com/blugnu/test/matchers/panics"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 // DidOccur is used to check whether an expected panic or error occurred.
@@ -61,7 +62,7 @@ func (e expectation[T]) DidOccur(opts ...any) {
 	case nil:
 		e.err("expected error, got nil")
 	default:
-		invalidTest("test.DidOccur: may only be used with Panic() or error values")
+		test.Invalid("test.DidOccur: may only be used with Panic() or error values")
 	}
 }
 
@@ -102,7 +103,7 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 		// first, using DidNotOccur with Panic(nil) is invalid since it
 		// is likely to cause confusion
 		if expected.R == opt.NoPanicExpected(true) {
-			invalidTest("DidNotOccur: may not be used with Panic(nil); did you mean NilPanic()?")
+			test.Invalid("DidNotOccur: may not be used with Panic(nil); did you mean NilPanic()?")
 
 			// if we did not panic, then we can return early, otherwise
 			// we will continue to check the recovered value even though
@@ -163,6 +164,6 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 		return
 
 	default:
-		invalidTest("test.DidNotOccur: may only be used with Panic() or error values")
+		test.Invalid("test.DidNotOccur: may only be used with Panic() or error values")
 	}
 }
