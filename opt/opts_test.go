@@ -16,3 +16,23 @@ func TestAnyOrder(t *testing.T) {
 		Expect(value).To(Equal(opt.ExactOrder(false)))
 	}
 }
+
+func TestRequired(t *testing.T) {
+	With(t)
+
+	result := opt.Required()
+
+	if value, ok := ExpectType[opt.IsRequired](result); ok {
+		Expect(value).To(Equal(opt.IsRequired(true)))
+	}
+}
+
+func TestUnquotedStrings(t *testing.T) {
+	With(t)
+
+	result := opt.UnquotedStrings()
+
+	if value, ok := ExpectType[opt.QuotedStrings](result); ok {
+		Expect(value).To(Equal(opt.QuotedStrings(false)))
+	}
+}

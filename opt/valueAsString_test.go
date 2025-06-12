@@ -39,6 +39,11 @@ func TestValueAsString(t *testing.T) {
 	if result != "42" {
 		t.Errorf("Expected '42', got '%s'", result)
 	}
+
+	result = opt.ValueAsString([]int{1}, opt.AsDeclaration(true))
+	if result != "[]int{1}" {
+		t.Errorf("Expected '[]int{1}', got '%s'", result)
+	}
 }
 
 func ExampleValueAsString() {
