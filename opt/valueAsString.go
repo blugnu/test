@@ -21,9 +21,16 @@ func ValueAsString(v any, opts ...any) string {
 		return "nil"
 	}
 
-	spec := "%q"
-	if reflect.TypeOf(v).Kind() != reflect.String || IsSet(opts, QuotedStrings(false)) {
+	isString := reflect.TypeOf(v).Kind() == reflect.String
+
+	spec := "%v"
+	switch {
+	case isString && IsSet(opts, QuotedStrings(false)):
 		spec = "%v"
+	case isString:
+		spec = "%q"
+	case IsSet(opts, AsDeclaration(true)):
+		spec = "%#v"
 	}
 
 	return fmt.Sprintf(spec, v)

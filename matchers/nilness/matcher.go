@@ -78,6 +78,6 @@ func (m Matcher) OnTestFailure(subject any, opts ...any) string {
 			}
 			return fmt.Sprintf("%s, got &(%#v)", expect, v)
 		}
-		return fmt.Sprintf("%s, got %s", expect, opt.ValueAsString(got, opts...))
+		return fmt.Sprintf("%s, got %s", expect, opt.ValueAsString(got, append(opts, opt.AsDeclaration(true))...))
 	}
 }
