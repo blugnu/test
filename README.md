@@ -113,6 +113,61 @@ go get github.com/blugnu/test
 1. [dot-importing the `blugnu/test` package](.assets/readme/dot-import.md)
 2. [Test Frames](.assets/readme/test-frames.md)
 
+### Writing a Test: With(t)
+
+The `With()` function is used to set up a test frame for the current test.  This
+function is typically called at the start of a test function, passing the `*testing.T` value
+from the test function as an argument:
+
+```go
+  func TestDoSomething(t *testing.T) {
+     With(t) // establishes the initial test frame
+     // ...
+  }
+```
+
+> :bulb: Calling `Parallel(t)` is equivalent to calling `With(t)` followed by `Parallel()` or `t.Parallel()`.
+
+There is no cleanup required after calling `With(t)`; the test frame is automatically cleaned up
+when the test completes.
+
+If you use the `blugnu/test` package functions for running table-driven tests or explicit subtests
+the test frame stack is managed for you:
+
+```go
+  func TestDoSomething(t *testing.T) {
+     With(t) // establishes the initial test frame
+
+     Run("subtest", func() {
+        // no need to call With(t) here; it is managed automatically
+        // ...
+     })
+  }
+```
+
+If a new test frame is created outside of the `test` package, then the `With(t)` function
+must be called again to push that test frame onto the stack.  For example, if you choose to create
+a subtest using `testing.T.Run()` and want to use the `blugnu/test` functions in that subtest:
+
+```go
+  func TestDoSomething(t *testing.T) {
+     With(t) // establishes the initial test frame
+
+     // using the testing.T.Run method...
+     t.Run("subtest", func(t *testing.T) {
+        With(t) // so a new test frame must be established
+        // ...
+     })
+  }
+```
+
+Generally speaking it is much easier to use the `blugnu/test` package functions to avoid having
+to use `With(t)` (or `Parallel(t)`) for anything other than establishing the initial test frame
+for each test function.
+
+> :warning: Neither `With(t)` nor `Parallel(t)` should be called unless required
+> to establish a test frame for a new `*testing.T` value.
+
 ### Writing a Test: Expect
 
 Almost all tests are written using `Expect` to create an expectation
@@ -129,8 +184,9 @@ Some expectation methods test the value directly, such as `IsEmpty()`, `IsNil()`
 ### Using Matchers
 
 The `To` method of an expectation delegates the evaluation of a test
-to a matcher, usually provided by a factory function where the factory
-function itself is named to fluently express the expected outcome, e.g.:
+to a type-safe matcher, usually provided by a factory function where the
+factory function itself is named to fluently express the expected outcome,
+e.g.:
 
 ```go
   Expect(got).To(Equal(expected))
@@ -140,15 +196,30 @@ In this example, the `Equal()` function is a factory function that
 returns an `equal.Matcher`, used to test that the subject is equal to
 some expected value.
 
+The `Should` method provides the same functionality as `To()`, but
+accepts matchers that are not type-safe, referred to as _any-matchers_ as
+they accept `any` as the subject type.  This is necessary for matchers which
+do not accept any arguments or where the compatible arguments cannot be
+expressed as a generic type constraint.
+
+An example of an any-matcher is `BeEmpty()`, which can be used to
+test whether a slice, map, channel or string is empty:
+
+```go
+  Expect(got).Should(BeEmpty())
+```
+
+> Further information on any-matchers is provided in the section on [Type-Safety: Any-Matchers](#type-safety-any-matchers)
+
 ### Type-Safety: Matcher Compatibility
 
 `Expect()` is a generic function, where the type `T` is inferred from
 the subject value; the `To()` function will only accept matchers that
 are compatible with the type of the subject value.
 
-For example, in the previous example, the `equal.Matcher` uses the `==` operator to determine
-equality, so is constrained to types that satisfy `comparable`. As a result, values of
-non-comparable type cannot be tested using this matcher:
+For example, in the previous example, the `equal.Matcher` uses the `==` operator
+to determine equality, so is constrained to types that satisfy `comparable`. As
+a result, values of non-comparable type cannot be tested using this matcher:
 
 ```go
   Expect(got).To(Equal([]byte("expected result"))) // ERROR: cannot use `Equal` with `[]byte`
@@ -156,14 +227,61 @@ non-comparable type cannot be tested using this matcher:
 
 In this case, two alternatives exist:
 
-1. `DeepEqual()` returns a `equal.DeepMatcher` that may be used with _any_ type, using `reflect.DeepEqual` for equality.
+1. `DeepEqual()` returns a `equal.DeepMatcher` that may be used with _any_ type, using `reflect.DeepEqual` for equality;
 
 2. `EqualBytes` returns a `bytes.EqualMatcher` which provides test failure reports that are specific to `[]byte` values.
 
-The `EqualBytes()` factory function returns a `bytes.EqualMatcher`:
+```go
+  // DeepEqual can be used with any type; uses reflect.DeepEqual for equality
+  // but can result in verbose failure reports since both expected and got
+  // values are printed in full
+  Expect(got).To(DeepEqual([]byte("expected result")))
+
+  // EqualBytes is a type-safe matcher specifically for []byte values
+  // providing failure reports that report and highlight differences between
+  // byte slices accurately and concisely
+  Expect(got).To(EqualBytes([]byte("expected result")))
+```
+
+### Type-Safety: Any-Matchers
+
+Not all matchers are constrained by types; some matchers accept `any` as the
+subject type, allowing them to be used with any value, referred to as
+"_any-matchers_".
+
+There are two main use cases for any-matchers:
+
+- the matcher supports testing values of a variety of types that cannot be
+described in a generic type constraint
+
+> **Why?**: if a matcher is designed to work with a set of types that
+> cannot be described in a generic type constraint, it must accept `any` as the
+> subject type.
+>
+> For example, the `BeEmpty()` matcher can be used to test whether a slice, map,
+> channel or string is empty (and more), but there is no way to express that
+> set of types in a type constraint.
+
+- the type of the expected value is _implicit_ in the test, rather than
+explicit
+
+> **Why?**: without an explicit expected value, it is not possible to infer the
+> corresponding subject type; the matcher must accept `any` as the subject type
+
+Whilst any-matchers _can_ be used with `To()`, by casting the subject to `any`,
+this can be cumbersome and disrupts the fluency of the test:
 
 ```go
-  Expect(got).To(EqualBytes([]byte("expected result"))) // OK: uses `bytes.EqualMatcher`
+  Expect(any(got)).To(BeEmpty())
+```
+
+As an alternative, the `Should()` and `ShouldNot()` methods provide the same
+functionality as `To()`/`ToNot()`, but accepting any-matchers rather than
+type-safe matchers:
+
+```go
+  Expect(got).Should(BeEmpty())
+  Expect(got).ShouldNot(BeEmpty())
 ```
 
 ### Type-Safety: Invalid Tests fail as Invalid
@@ -187,6 +305,7 @@ is not possible.
 ## Basic Usage
 
 - [Setting Expectations](#setting-expectations)
+- [Short-Circuit Evaluation](#short-circuit-evaluation)
 - [Testing for Nil/Not Nil](#testing-nilnot-nil)
 - [Testing Errors](#testing-errors)
 - [Testing for Panics](#testing-for-panics)
@@ -236,22 +355,66 @@ express an expectation over a value.  The expectation is evaluated when a test m
 is called on the expectation, such as `IsNil()`, `IsNotNil()`, `IsEmpty()`, `To()` or
 `DidOccur()`.
 
+# Short-Circuit Evaluation
+
+If an expectation is critical to the test, it can be useful to short-circuit the test
+execution if the expectation fails.  For example, if a value is expected to not be
+`nil` and further tests on that value will panic or be guaranteed to fail:
+
+```go
+  Expect(value).ShouldNot(BeNil())
+  Expect(value.Name).To(Equal("some name"))  // this test will panic if value is nil
+```
+
+To short-circuit the test execution if the expectation fails, the `opt.IsRequired(true)`
+option can be passed to the expectation method:
+
+```go
+  Expect(value).ShouldNot(BeNil(), opt.IsRequired(true))
+  Expect(value.Name).To(Equal("some name"))  // this test will not be executed if value is nil
+```
+
+Alternatively, the `Require()` function can be used to create the expectation:
+
+```go
+  Require(value).ShouldNot(BeNil())
+  Expect(value.Name).To(Equal("some name"))  // this test will not be executed if value is nil
+```
+
+In both cases, if the expectation fails the current test exits without evaluating any further
+expectations. Execution continues with the next test.
+
 # Testing Nil/Not Nil
 
-The `IsNil()` and `IsNotNil()` methods are used to test whether a value is `nil` or not.
+A nilness matcher is provided which may be used with the `Should()` or `ShouldNot()`
+methods:
+
+```go
+  Expect(value).Should(BeNil())      // fails if value is not nil or of a non-nilable type
+  Expect(value).ShouldNot(BeNil())   // fails if value is nil
+```
+
+Since these tests are common, `IsNil()` and `IsNotNil()` convenience methods are also
+provided on expectations:
 
 ```go
     Expect(value).IsNil()      // fails if value is not nil or of a non-nilable type
     Expect(value).IsNotNil()   // fails if value is nil
 ```
 
-> :bulb: _If the value being tested by `test.IsNil()` is of a type that does not
-> have a meaningful `nil` value the test will fail as invalid_.
+> :bulb: _If `IsNil()`/`Should(BeNil())` is used on a subject of a type that does not have a
+> meaningful `nil` value, the test will fail as invalid_.
 >
 > _Types that may be tested for `nil` are: `chan`, `func`, `interface`, `slice`, `map`, and
 > `pointer`_.
 >
-> `IsNotNil()` is a valid test for all types.
+> `IsNotNil()`/`ShouldNot(BeNil())` will **NOT** fail on a non-nilable subject.
+
+```go
+  var got 42
+  Expect(got).IsNil()      // <== INVALID TEST: `int` is not nilable
+  Expect(got).IsNotNil()   // <== VALID TEST: `int` is not nilable, so this test passes
+```
 
 # Testing Errors
 
@@ -411,21 +574,23 @@ is provided, so the above can be simplified to:
 
 ### Testing Emptiness
 
-The `IsEmpty()`, `IsEmptyOrNil()` and `IsNotEmpty()` methods can be used to test
-whether a value is considered empty, or not.
+The `BeEmpty()` and `BeEmptyOrNil()` matchers are provided to test whether a
+value is considered empty, or not.  These are any-matchers for use with the
+`Should()` or `ShouldNot()` methods.
 
 ```go
-  Expect(value).IsEmpty()        // fails if value is not empty or nil
-  Expect(value).IsEmptyOrNil()   // fails if value is not empty and not nil
-  Expect(value).IsNotEmpty()     // fails if value is empty
+  Expect(value).Should(BeEmpty())         // fails if value is not empty or nil
+  Expect(value).Should(BeEmptyOrNil())    // fails if value is not empty and not nil
+  Expect(value).ShouldNot(BeEmpty())      // fails if value is empty
 ```
 
-The distinction between `IsEmpty()` and `IsEmptyOrNil()` can be useful when it
-is important to differentiate between empty and `nil` values.  For example,
-if testing a slice, `IsEmpty()` will pass if the slice is empty but will fail
-if the slice is `nil`, while `IsEmptyOrNil()` will pass in both cases.
+`BeEmpty()` and `BeEmptyOrNil()` are provided to differentiate between empty
+and `nil` values where useful.
 
-All tests will fail as invalid if emptiness of the value cannot be determined.
+For example, if testing a slice, `IsEmpty()` will pass if the slice is empty
+but will fail if the slice is `nil`, while `IsEmptyOrNil()` will pass in both cases.
+
+Emptiness tests will fail as invalid if emptiness of the value cannot be determined.
 
 Emptiness is defined as follows:
 
@@ -439,29 +604,56 @@ Emptiness is defined as follows:
 
 # Testing With Matchers
 
-The `To()` and `ToNot()` methods delegate the evaluation of a test to a matcher, usually
-provided by a factory function.  Matcher factory functions are typically named to describe
-the expected outcome in a fluent fashion as part of the test expression, e.g.:
+The `To()`, `ToNot()`, `Should()` and `ShouldNot`() methods delegate the evaluation
+of a test to a matcher, usually provided by a factory function.  Matcher factory
+functions are typically named to describe the expected outcome in a fluent fashion
+as part of the test expression, e.g.:
 
 ```go
-  Expect(got).To(Equal(expected))
+  Expect(got).To(Equal(expected))  // uses an equal.Matcher{} from the 'blugnu/test/matchers/equal' package
 ```
 
-Matchers are generic types that implement the `Matcher[T]` interface, which
-provides a `Matches(value T, opts ...any) bool` method to test whether the value matches
-the expectation.
+> _**"Matching" Methods**_: For brevity, the `To()`, `ToNot()`, `Should()` and
+> `ShouldNot()` methods are referred to generically as _Matching Methods_.
 
-The type `T` of a matcher must be compatible with the type of the subject value
-in the expectation.  If the type of the subject value is not compatible with the
-matcher type, the test will not compile.
+## Type-Safe Matchers
+
+A type-safe matcher is a matcher that is compatible with a specific type of subject
+value.  A type-safe matcher may be constrained to a single, explicit formal type,
+or it may be a generic matcher where type compatability is expressed through the
+constraints on the generic type parameter.
+
+For example:
+
+- `HasContextKey()`: is explicitly compatible only with `context.Context` values
+- `Equal()`: uses a generic matcher that is compatible with any type `T` that
+  satisfies the `comparable` constraint
+
+By contrast:
+
+- `BeEmpty()` is **NOT** type-safe: _it is compatible with (literally) any type_
+
+## Any-Matchers
+
+An any-matcher is a matcher that accepts `any` as the subject type, allowing it to be used
+with literally any value.  Any-matchers are used with the `Should()` or `ShouldNot()` matching
+methods.
+
+> Any-matchers may also be used with the `To()` or `ToNot()` matching methods
+> if the formal type of the subject is `any`, but this is not recommended.
+
+# Built-In Matchers
 
 A number of matchers are provided in the `test` package, including:
 
 <!-- markdownlint-disable MD013 -->
 | Factory Function | Subject Type | Description |
 | --- | --- | --- |
+| `BeEmpty()` | `any` | Tests that the subject is empty but not nil |
+| `BeEmptyOrNil()` | `any` | Tests that the subject is empty or nil |
 | `BeGreaterThan(T)` | `T cmp.Ordered` | Tests that the subject is greater than the expected value using the `>` operator |
 | `BeLessThan(T)` | `T cmp.Ordered` | Tests that the subject is less than the expected value using the `<` operator |
+| `BeNil()` | `any` | Tests that the subject is nil |
 | `Equal(T)` | `T comparable` | Tests that the subject is equal to the expected value using the `==` operator |
 | `DeepEqual(T)` | `T any` | Tests that the subject is deeply equal to the expected value using `reflect.DeepEqual` |
 | `EqualBytes([]byte)` | `[]byte` | Tests that `[]byte` slices are equal, with detailed failure report highlighting different bytes |
@@ -476,13 +668,12 @@ A number of matchers are provided in the `test` package, including:
 | `HaveContextValue(K,V)` | `context.Context` | Tests that the context contains the expected key and value |
 <!-- markdownlint-enable -->
 
-Matchers are used by calling the `To()` or `ToNot()` methods on an expectation, passing
-the matcher as an argument plus any options to configure the behaviour of the expectation
-or the matcher.
+Matchers are used by passing the matcher to one of th expectation matching methods together
+with options to control the behaviour of the expectation or the matcher itself.
 
-The matcher is usually constructed by a factory function accepting any arguments required
-by the matcher.  Any options supported by the matcher are passed via the `To()` or `ToNot()`
-methods, rather than the factory:
+A matcher is typically constructed by a factory function accepting any arguments required
+by the matcher.  It is worth repeating that _options_ supported by the matcher are passed
+as arguments to the matching method, _not_ the matcher factory:
 
 ```go
   // the opt.OnFailure option replaces the default error report
@@ -500,60 +691,69 @@ methods, rather than the factory:
 
 ## Matcher Options
 
-In addition to a matcher, the `To()` and `ToNot()` methods accept options passed as variadic
-arguments.
+Matching methods accept options as variadic arguments following the matcher.
 
-The `To()` and `ToNot()` methods themselves support options for customising the test error
-report in the event of failure.
+The matching methods themselves support options for customising the test error report
+in the event of failure.
 
 ```go
-  Expect(got).To(Equal(expected, test.WithMessage("expected %v, got %v", expected, got)))
+  Expect(got).To(Equal(expected),
+    opt.OnFailure(fmt.Sprintf("expected %v, got %v", expected, got)),
+  )
 ```
 
-Most matchers support options to modify their behaviour.  The specific options supported by
-a matcher are documented on the relevant matcher factory function.
-
-Some options that are supported by the `To()` and `ToNot()` methods themeselves and therefore
-may be used with all matchers:
+Options supported by matching methods (and therefore _all_ matchers) include:
 
 <!-- markdownlint-disable MD013 -->
 | Option | Description |
 | --- | --- |
-| opt.FailureReport(func) | a function that returns a custom error report for the test failure; the function must be of type `func(...any) []string` |
-| opt.OnFailure(string) | a string to use as the error report for the test failure; this overrides the default error report for the matcher |
+| `opt.FailureReport(func)` | a function that returns a custom error report for the test failure; the function must be of type `func(...any) []string` |
+| `opt.OnFailure(string)`   | a string to use as the error report for the test failure; this overrides the default error report for the matcher |
+| `opt.AsDeclaration(bool)` | a boolean to indicate whether values (other than strings) in test failure reports should be formatted as declarations (`%#v` rather than `%v`) |
+| `opt.QuotedStrings(bool)` | a boolean to indicate whether string values should be quoted in failure reports; defaults to `true` |
+| `opt.IsRequired(bool)`    | a boolean to indicate whether the expectation is required; defaults to `false` |
 <!-- markdownlint-enable -->
 
-> `opt.OnFailure()` is a convenience function that returns an `opt.FailureReport()` with a
+> `opt.OnFailure()` is a convenience function that returns an `opt.FailureReport` with a
 > function that returns the specified string in the report.
 >
-> `opt.FailureReport()` and `opt.OnFailure()` are mutually exclusive; if both are specified, only the
+> `opt.FailureReport` and `opt.OnFailure()` are mutually exclusive; if both are specified, only the
 > first in the options list will be used.
 
-The `...any` argument to the `opt.FailureReport()` function is used to pass any options supplied to the
+The `...any` argument to an `opt.FailureReport` function is used to pass any options supplied to the
 matcher, so that the error report can respect those options where appropriate.
 
 > See the [Custom Failure Report Guide](.assets/readme/custom-failure-reports.md) for details.
 
+Matchers may support options to modify their behaviour.  The specific options supported
+by a matcher are documented on the relevant matcher factory function.
+
 Examples of other options supported by some matchers include:
 
 <!-- markdownlint-disable MD013 -->
-| Option | Description |
-| --- | --- |
-| `opt.ExactOrder(bool)` | a boolean to indicate whether the order of items in a collection is significant; defaults to `false` |
-| `opt.CaseSensitive(bool)` | a boolean to indicate whether string comparisons should be case-insensitive; defaults to `true` |
-| `opt.QuotedStrings(bool)` | a boolean to indicate whether string values should be quoted in failure reports; default to `true` |
-| `func(T, T) bool` | a type-safe custom comparison function; the type `T` is the type of the subject value |
-| `func(any, any) bool` | a custom comparison function accepting `expected` and `subject` values as `any` |
+| Option | Description | Default |
+| --- | --- | --- |
+| `opt.ExactOrder(bool)` | a boolean to indicate whether the order of items in a collection is significant | `false` |
+| `opt.CaseSensitive(bool)` | a boolean to indicate whether string comparisons should be case-insensitive | `true` |
+| `opt.AsDeclaration(bool)` | a boolean to indicate whether values other than strings should be formatted as declarations (`%#v` vs `%v`) | `false` |
+| `opt.QuotedStrings(bool)` | a boolean to indicate whether string values should be quoted in failure reports | `true` |
+| `func(T, T) bool` | a type-safe custom comparison function; the type `T` is the type of the subject value |  |
+| `func(any, any) bool` | a custom comparison function accepting `expected` and `subject` values as `any` |  |
 <!-- markdownlint-enable -->
 
 > type-safe custom comparison functions are preferred over `any` comparisons.  Only one
 > should be specified; if multiple comparison functions are specified, the first type-safe
-> function will be used in prerence over the first `any` function.
+> function will be used in preference over the first `any` function.
 
 ## Custom Matchers
 
-Custom matchers may be implemented by defining a type that implements the `Matcher[T]`
-interface.
+Custom matchers may be implemented by defining a type that implements a `Match(T, ...any) bool` method.
+
+`T` may be:
+
+- an explicit, formal type
+- a generic type parameter with constraints
+- `any` if the matcher is not type-safe
 
 Refer to the [Custom Matchers Implementation Guide](.assets/readme/custom-matchers.md) for details.
 

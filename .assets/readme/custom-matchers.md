@@ -2,15 +2,17 @@
 
 Documentation for implementing custom matchers in the testing framework will be provided here.
 
-Almost all of the matchers provided by the `test` package are implemented as custom matchers
-with factory functions in the `test` package itself.  These matchers and factories may be used
-as reference implementations.
+All of the matchers provided by the `test` package are implemented as custom matchers
+with factory functions in the `test` package itself.  These matchers and factories may
+be used as reference implementations.
 
 These may be useful as an introduction:
 
 <!-- markdownlint-disable MD013 -->
 | Matcher (factory) | Implemented by |
 |---|---|
+| `BeEmpty()`                     | [`matchers/emptiness.Matcher`](../../matchers/emptiness/matcher.go) |
+| `BeNil()`                       | [`matchers/nilness.Matcher`](../../matchers/nilness/matcher.go) |
 | `Equal(value)`                  | [`matchers/equal.Matcher`](../../matchers/equal/equal.go) |
 | `DeepEqual(value)`              | [`matchers/equal.DeepMatcher`](../../matchers/equal/deepEqual.go) |
 | `HaveContextKey(key)`           | [`matchers/contexts.KeyMatcher`](../../matchers/contexts/keyMatcher.go) |
@@ -27,10 +29,12 @@ failure reporting methods:
 <!-- markdownlint-disable MD013 -->
 | Method Signature | Description |
 |---|---|
-| OnTestFailure(opts ...any) string           | return a formatted string describing the failure |
-| OnTestFailure(opts ...any) []string         | return a slice of formatted strings describing the failure |
-| OnTestFailure(got T, opts ...any) string    | return a formatted string describing the failure, including the value of `got` |
-| OnTestFailure(got T, opts ...any) []string  | return a slice of formatted strings describing the failure, including the value of `got` |
+| `OnTestFailure(opts ...any) string`            | return a formatted string describing the failure |
+| `OnTestFailure(opts ...any) []string`          | return a slice of formatted strings describing the failure |
+| `OnTestFailure(got T, opts ...any) string`     | return a formatted string describing the failure, including the value of `got` |
+| `OnTestFailure(got T, opts ...any) []string`   | return a slice of formatted strings describing the failure, including the value of `got` |
+| `OnTestFailure(got any, opts ...any) string`   | return a formatted string describing the failure, including the value of `got` |
+| `OnTestFailure(got any, opts ...any) []string` | return a slice of formatted strings describing the failure, including the value of `got` |
 <!-- markdownlint-enable MD013 -->
 
 Where `T` is the type of the value being matched against.
