@@ -54,8 +54,8 @@ func TestRecord(t *testing.T) {
 		stdout, stderr := record(sut, func() { writeOutput() })
 
 		// ASSERT
-		Expect(stdout, "stdout").IsEmpty()
-		Expect(stderr, "stderr").IsEmpty()
+		Expect(stdout, "stdout").Should(BeEmpty())
+		Expect(stderr, "stderr").Should(BeEmpty())
 	})
 
 	RunParallelScenarios(func(_ *string, _ int) {

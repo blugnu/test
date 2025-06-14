@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 // ExpectType tests that a value is of an expected type.  If the test passes,
@@ -18,7 +19,7 @@ func ExpectType[T any](got any, opts ...any) (T, bool) {
 	expectedType := reflect.TypeOf(z)
 
 	if fmt.Sprintf("%s", expectedType) == "%!s(<nil>)" { //nolint:gosimple // .String() on a nil is not a great idea!
-		invalidTest("ExpectType: cannot be used to test for interfaces")
+		test.Invalid("ExpectType: cannot be used to test for interfaces")
 		return z, false
 	}
 

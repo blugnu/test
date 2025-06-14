@@ -8,7 +8,7 @@ import (
 	"github.com/blugnu/test/opt"
 )
 
-// MatchRecoveredValue is a struct that implements the Matcher[Expected]
+// MatchRecovered is a struct that implements the Matcher[Expected]
 // interface.
 //
 // NOTE: This one is a bit different from the others since it is not
@@ -21,10 +21,10 @@ import (
 //	Expect(Panic(x))    <-- expectation subject is a panics.Expected{}
 //	                         with R = x
 //
-// A *MatchRecoveredValue is created by the (deferred) Did/DidNotOccur()
+// A *MatchRecovered is created by the (deferred) Did/DidNotOccur()
 // function, which captures the value that was actually recovered:
 //
-//	defer Expect(Panic(x)).DidOccur()  <-- creates a *MatchRecoveredValue
+//	defer Expect(Panic(x)).DidOccur()  <-- creates a *MatchRecovered
 //	                                        with R = recover()
 //
 // i.e. the value captured by Expect() is the "expected" value, rather
@@ -38,7 +38,7 @@ import (
 // TestFailure function for reporting any failure, the Match() function
 // unpacks the R values from the two Matchers and assigns them to the
 // unexported got and expected fields of the receiver.
-type MatchRecoveredValue struct {
+type MatchRecovered struct {
 	R        any
 	got      any
 	expected any
@@ -48,7 +48,7 @@ type Expected struct {
 	R any
 }
 
-func (pm *MatchRecoveredValue) Match(target Expected, opts ...any) bool {
+func (pm *MatchRecovered) Match(target Expected, opts ...any) bool {
 	pm.got = pm.R
 	pm.expected = target.R
 
@@ -83,7 +83,7 @@ func (pm *MatchRecoveredValue) Match(target Expected, opts ...any) bool {
 }
 
 // OnTestFailure returns a report of the failure for the matcher.
-func (pm *MatchRecoveredValue) OnTestFailure(opts ...any) []string {
+func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 	switch {
 	case pm.got == nil:
 		// when got is nil, some expected panic has failed to occur

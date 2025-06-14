@@ -1,9 +1,9 @@
 package test
 
 import (
-	"fmt"
-	"runtime"
 	"testing"
+
+	"github.com/blugnu/test/internal/testframe"
 )
 
 type TestingT interface {
@@ -14,6 +14,7 @@ type TestingT interface {
 	Errorf(string, ...any)
 	Fail()
 	FailNow()
+	Failed() bool
 	Fatal(...any)
 	Fatalf(string, ...any)
 	Helper()
@@ -22,76 +23,79 @@ type TestingT interface {
 	SkipNow()
 }
 
-var _ TestingT = (*ExampleTestRunner)(nil)
-
-// MARK: ExampleTestRunner
-
-// ExampleTestRunner is a mock implementation of the TestRunner interface.
-//
-// It is used to provide a TestRunner for Example...() functions since these
-// do not have a *testing.T available.  The implementation is a no-op for
-// most operations except those that produce output or fail the test.
-type ExampleTestRunner struct{}
-
-func (m ExampleTestRunner) Name() string {
-	return "ExampleTestRunner"
-}
-
-func (m ExampleTestRunner) Run(name string, f func(t *testing.T)) bool {
-	return false
-}
-func (m ExampleTestRunner) Error(args ...any) {
-	fmt.Println(args...)
-}
-func (m ExampleTestRunner) Errorf(format string, args ...any) {
-	fmt.Printf(format, args...)
-	fmt.Println()
-}
-func (m ExampleTestRunner) Fail()    { /* no-op */ }
-func (m ExampleTestRunner) FailNow() { runtime.Goexit() }
-func (m ExampleTestRunner) Fatal(args ...any) {
-	m.Error(args...)
-	m.FailNow()
-}
-func (m ExampleTestRunner) Fatalf(format string, args ...any) {
-	m.Errorf(format, args...)
-	m.FailNow()
-}
-func (m ExampleTestRunner) Cleanup(func())        { /* no-op */ }
-func (m ExampleTestRunner) Helper()               { /* no-op */ }
-func (m ExampleTestRunner) Parallel()             { /* no-op */ }
-func (m ExampleTestRunner) Setenv(string, string) { /* no-op */ }
-func (m ExampleTestRunner) SkipNow()              { /* no-op */ }
-
 // MARK: T()
 
 // GetT retrieves the *testing.T for the calling test frame, by calling T().
 //
 // This is used where calling the T() function directly is not possible
 // e.g. due to a name collision with a generic type parameter.
-func GetT() TestingT {
-	t := TestFrame(3)
-	if t == nil {
-		panic(fmt.Errorf("GetT: %w", ErrNoTestFrame))
-	}
-	return t
-}
-
-// hasT retrieves the *testing.T for the calling test frame, by calling T().
-//
-// This is used where calling the T() function directly is not possible
-// e.g. due to a name collision with a generic type parameter.
-func hasT() TestingT {
-	return TestFrame(3)
+func GetT() (t TestingT) {
+	return testframe.MustPeek[TestingT]()
 }
 
 // T retrieves the TestRunner for the calling test frame. When running in a test
 // frame, this will return the *testing.T for the test.  When running in an
-// example, this will return an ExampleTestRunner.
-func T() TestingT {
-	t := TestFrame(3)
+// example, this will return an ExampleT()estRunner.
+func T() (t TestingT) {
+	return testframe.MustPeek[TestingT]()
+}
+
+// With pushes the given TestingT onto the test frame stack; if the TestingT is
+// not nil it will be popped from the stack when the test has completed.
+//
+// This is used to set the current test frame for the test package, typically
+// called as the first line of a Test() function:
+//
+//	func TestSomething(t *testing.T) {
+//	    With(t)
+//
+//	    // ... rest of the test code ...
+//	}
+//
+// If `blugnu/test` functions are used to run subtests etc, no further calls to With()
+// are required in a test function; the test frame will be automatically managed
+// by the test package.
+//
+// If a new test frame is explicitly created, e.g. by calling t.Run(string, func(t *testing.T)),
+// then With(t) must be called to push the new test frame onto the stack.  Again, this
+// will be automatically popped from the stack when the new test frame completes:
+//
+//	func TestSomething(t *testing.T) {
+//	    With(t)
+//
+//	    // when using test package functions to run subtests you do not
+//	    // need to call With() again
+//
+//	    Run("subtest", func() {
+//	        // ... rest of the subtest code ...
+//	    })
+//
+//	    // but With() must be called if a new test frame is explicitly created
+//
+//	    t.Run("subtest", func(t *testing.T) {
+//	        With(t)
+//	        // ... rest of the subtest code ...
+//	    })
+//
+//	    // ... rest of the test code ...
+//	}
+//
+// To simultaneously push a test frame and mark it for parallel execution,
+// you can use the Parallel() function:
+//
+//	func TestSomething(t *testing.T) {
+//	    Parallel(t)
+//
+//	    // ... rest of the test code ...
+//	}
+func With(t TestingT) {
 	if t == nil {
-		panic(fmt.Errorf("GetT: %w", ErrNoTestFrame))
+		panic(testframe.ErrNoTestFrame)
 	}
-	return t
+
+	testframe.Push(t)
+
+	t.Cleanup(func() {
+		testframe.Pop()
+	})
 }

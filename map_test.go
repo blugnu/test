@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestKeysOfMap(t *testing.T) {
@@ -89,7 +90,7 @@ func TestEqualMap(t *testing.T) {
 }
 
 func ExampleEqualMap() {
-	With(ExampleTestRunner{})
+	With(test.ExampleT())
 
 	sut := map[string]int{
 		"ford":   42,
