@@ -1,9 +1,10 @@
 package test
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/blugnu/test/test"
 )
 
 // isParallel checks if the given TestingT is running in parallel.
@@ -48,7 +49,7 @@ func Parallel(t ...TestingT) {
 	parallel := func(t TestingT) {
 		if isParallel(t) {
 			t.Helper()
-			invalidTest("Parallel() must not be called from a parallel test")
+			test.Invalid("Parallel() must not be called from a parallel test")
 			return
 		}
 
@@ -66,12 +67,10 @@ func Parallel(t ...TestingT) {
 		parallel(t[0])
 
 	default:
-		if t := hasT(); t != nil {
-			t.Helper()
-			invalidTest("Parallel() must be called with 0 or 1 test runner arguments")
-			return
-		}
-		panic(fmt.Errorf("%w: Parallel() must be called with 0 or 1 test runner arguments", ErrInvalidArgument))
+		test.T().Helper()
+		test.Error(ErrInvalidArgument,
+			"Parallel() must be called with 0 or 1 test runner arguments",
+		)
 	}
 }
 
@@ -84,7 +83,7 @@ func RunParallel(n string, fn func()) {
 	t.Helper()
 
 	if IsParallel() {
-		invalidTest("RunParallel() must not be called from a parallel test")
+		test.Invalid("RunParallel() must not be called from a parallel test")
 		return
 	}
 
@@ -102,7 +101,7 @@ func RunParallelScenarios[T any](f func(tc *T, i int), scns []T) {
 	GetT().Helper()
 
 	if IsParallel() {
-		invalidTest("RunParallelScenarios() must not be called from a parallel test")
+		test.Invalid("RunParallelScenarios() must not be called from a parallel test")
 		return
 	}
 

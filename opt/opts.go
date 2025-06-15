@@ -1,5 +1,10 @@
 package opt
 
+// AsDeclaration is an option supported by opt.ValueAsString that may be used
+// to format values as a declaration, i.e. with the type name and value
+// included in the output.
+type AsDeclaration bool
+
 // CaseSensitive may be used to indicate that the contents of strings
 // should be compared in a case-sensitive manner (or not).
 //
@@ -18,6 +23,14 @@ type ExactOrder bool
 // This is useful when the test report is not significant to the test outcome.
 type IgnoreReport bool
 
+// IsRequired may be used to indicate that an expectation is required to pass; if
+// the expectation is not met the current test is failed and execution continues
+// with the *next* test.  No further expectations in the current test will be
+// evaluated.
+//
+// see also: Require()
+type IsRequired bool
+
 // NoPanic is an internal option used as a sentinel recover value by the panic
 // testing mechanism to signal that a panic is NOT expected to occur
 type NoPanicExpected bool
@@ -35,15 +48,22 @@ type PrefixInlineWithFirstItem bool
 // typically by using the opt.UnquotedStrings() convenience function.
 type QuotedStrings bool
 
-// ToNotMatch is set automatically when a matcher is invoked in a ToNot() test.
-// The option is not set when the matcher is invoked in a To() test.
+// ToNotMatch is set internall when a matcher is invoked in a ToNot() or
+// ShouldNot() test.
+//
 // Matchers should test for this option to phrase the test report correctly
-// when the test fails.
+// when the test fails (and/or to modify the behaviour of the matcher when
+// matching, if appropriate; it usually isn't).
 type ToNotMatch bool
 
 // AnyOrder is a convenience function that returns ExactOrder(false).
 func AnyOrder() ExactOrder {
 	return ExactOrder(false)
+}
+
+// Required is a convenience function that returns IsRequired(true).
+func Required() IsRequired {
+	return IsRequired(true)
 }
 
 // UnquotedStrings is a convenience function that returns QuotedStrings(false).

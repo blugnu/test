@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestSliceOfBytes(t *testing.T) {
@@ -40,7 +41,7 @@ func TestSliceOfBytes(t *testing.T) {
 }
 
 func ExampleEqualBytes() {
-	With(ExampleTestRunner{})
+	test.Example()
 
 	a := []byte{0x01, 0x02, 0x03}
 	b := []byte{0x01, 0x03, 0x02}

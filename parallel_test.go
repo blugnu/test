@@ -4,6 +4,9 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/blugnu/test/internal/testframe"
+	"github.com/blugnu/test/test"
 )
 
 func TestIsParallel(t *testing.T) {
@@ -21,7 +24,9 @@ func TestIsParallel(t *testing.T) {
 	})
 
 	Run("example runner is always non-parallel", func() {
-		With(ExampleTestRunner{})
+		test.Example()
+		defer testframe.Pop()
+
 		Parallel()
 		Expect(IsParallel()).To(BeFalse())
 	})
@@ -48,6 +53,7 @@ func TestParallel(t *testing.T) {
 			Parallel(t, t)
 		})
 		result.ExpectInvalid(
+			"ERROR: invalid argument",
 			"Parallel() must be called with 0 or 1 test runner arguments",
 		)
 	})
@@ -62,9 +68,10 @@ func TestParallel_MultipleArgumentsNoTestFrame(t *testing.T) {
 			return
 		}
 		if !errors.Is(err, ErrInvalidArgument) {
-			t.Errorf("expected panic with ErrInvalidArgument, got: %v", r)
+			t.Errorf("\nexpected panic with ErrInvalidArgument\ngot: %v", r)
 		}
 	}()
+
 	Parallel(t, t)
 }
 

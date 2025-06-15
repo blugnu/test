@@ -95,7 +95,7 @@ func compareFuncFor[K comparable, V any](opts ...any) func(a, b any) bool {
 
 	// FUTURE: options should also be applied when comparing values that are maps.
 	//
-	// This maynot be straightforward as the values in the map cannot be assumed to be
+	// This may not be straightforward as the values in the map cannot be assumed to be
 	// of the same type as the map being tested so must be treated as a map[comparable]any
 	// with functions equivalent to containsMap etc that operate on K:comparable, V:any
 

@@ -31,7 +31,7 @@ import (
 //
 //	opt.OnFailure(string)    // a string to output as the failure
 //	                         // report if the test fails
-func BeGreaterThan[T cmp.Ordered](want T) Matcher[T] {
+func BeGreaterThan[T cmp.Ordered](want T) ordered.IsGreaterThan[T] {
 	return ordered.IsGreaterThan[T]{Expected: want}
 }
 
@@ -60,6 +60,6 @@ func BeGreaterThan[T cmp.Ordered](want T) Matcher[T] {
 //
 //	opt.OnFailure(string)    // a string to output as the failure
 //	                         // report if the test fails
-func BeLessThan[T cmp.Ordered](want T) Matcher[T] {
+func BeLessThan[T cmp.Ordered](want T) ordered.IsLessThan[T] {
 	return ordered.IsLessThan[T]{Expected: want}
 }

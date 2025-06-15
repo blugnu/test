@@ -2,10 +2,14 @@ package test
 
 import (
 	"fmt"
+	"path"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/blugnu/test/internal/testframe"
+	"github.com/blugnu/test/matchers/slices"
 	"github.com/blugnu/test/opt"
 )
 
@@ -60,10 +64,17 @@ type R struct {
 // If called with a specific TestOutcome, it verifies that the test
 // outcome matches the expected outcome.  If the expected outcome
 func (r *R) Expect(exp ...any) {
+	// TODO: cognitive complexity 27 > 15
 	r.t.Helper()
 	T().Helper()
 
 	r.checked = true
+
+	// in some cases there are multiple tests performed where if the first
+	// test fails all following tests are certain to run, producing multiple
+	// failures where only the first is helpful, so we set the IsRequired
+	// option in addition to any options supplied
+	opts := []any{opt.IsRequired(true)}
 
 	var expectedReport []string
 	for _, v := range exp {
@@ -72,6 +83,8 @@ func (r *R) Expect(exp ...any) {
 			expectedReport = append(expectedReport, s)
 		case []string:
 			expectedReport = append(expectedReport, s...)
+		default:
+			opts = append(opts, v)
 		}
 	}
 
@@ -87,9 +100,9 @@ func (r *R) Expect(exp ...any) {
 	}
 
 	expectedOutcome := TestPassed
-	if opt.IsSet(exp, TestPanicked) {
+	if opt.IsSet(opts, TestPanicked) {
 		expectedOutcome = TestPanicked
-	} else if opt.IsSet(exp, TestFailed) || len(expectedReport) > 0 {
+	} else if opt.IsSet(opts, TestFailed) || len(expectedReport) > 0 {
 		expectedOutcome = TestFailed
 	}
 
@@ -100,59 +113,80 @@ func (r *R) Expect(exp ...any) {
 	// that it is used.
 	expectFailedTests := Expect(r.FailedTests, "failed tests")
 
-	Expect(r.Outcome, "test outcome").To(Equal(expectedOutcome))
+	Expect(r.Outcome, "test outcome").To(Equal(expectedOutcome),
+		append(opts, opt.FailureReport(func(...any) []string {
+			report := []string{
+				fmt.Sprintf("expected: %s", expectedOutcome),
+				fmt.Sprintf("got     : %s", r.Outcome),
+			}
+
+			switch {
+			case r.Outcome == TestPanicked:
+				return append(report, fmt.Sprintf("recovered:\n  %[1]T(%[1]v)", r.Recovered))
+			case len(r.Report) > 0:
+				return slices.AppendToReport(report, r.Report, "with report:", opt.QuotedStrings(false))
+			default:
+				return report
+			}
+		}))...,
+	)
 	switch {
 	case expectedOutcome == TestPanicked:
-		Expect(r.Recovered, "recovered").IsNotNil()
+		Expect(r.Recovered, "recovered").IsNotNil(opts...)
 		if len(expectedReport) > 0 {
-			Expect(fmt.Sprintf("%v", r.Recovered), "recovered").To(ContainString(expectedReport[0]), strings.Contains, opt.UnquotedStrings())
+			s := fmt.Sprintf("%v", r.Recovered)
+			Expect(s, "recovered").To(ContainString(expectedReport[0]),
+				append(opts, strings.Contains, opt.UnquotedStrings())...,
+			)
 		}
-
-	case expectedOutcome == TestPassed && r.Recovered != nil:
-		r.t.Error(strings.Join([]string{
-			"\nunexpected panic:",
-			fmt.Sprintf("  recovered: %[1]T(%[1]v)", r.Recovered),
-		}, "\n"))
 
 	case len(expectedReport) > 0:
 		// first we check that the test we are running was identified as failed
-		expectFailedTests.To(ContainItem(r.t.Name()))
+		expectFailedTests.To(ContainItem(r.t.Name()), opts...)
 
+		testfile := testFilename()
 		if len(r.Report) > 0 {
-			// FUTURE: this could be made more robust by getting the filename of
-			// the test function (func Test...) that was executing rather than naively
-			// assuming that this will always be the direct caller of this function.
-			testFilename := CallerFilename()
-
 			// if a report is expected we expect the first line of the report
 			// to contain the name of the test file that was executing at the time
-			Expect(r.Report[0]).To(ContainString(testFilename), opt.UnquotedStrings())
+			Expect(r.Report[0]).To(ContainString(testfile),
+				append(opts, opt.UnquotedStrings())...,
+			)
 		}
 
 		// now we check that the report contains the expected lines
-		Expect(r.Report).To(ContainSlice(expectedReport), strings.Contains, opt.UnquotedStrings())
+		Expect(r.Report).To(ContainSlice(expectedReport),
+			append(opts, strings.Contains, opt.UnquotedStrings())...,
+		)
 
-	case expectedOutcome == TestFailed && opt.IsSet(exp, opt.IgnoreReport(true)):
-		expectFailedTests.To(ContainItem(r.t.Name()))
+	case expectedOutcome == TestFailed && opt.IsSet(opts, opt.IgnoreReport(true)):
+		expectFailedTests.To(ContainItem(r.t.Name()), opts...)
 
 	default:
-		expectFailedTests.IsEmptyOrNil()
-		Expect(r.Report, "test report").IsEmptyOrNil(opt.FailureReport(func(...any) []string {
-			report := make([]string, 2, len(r.Report)+2)
-			report[0] = "expected: <no report>"
-			report[1] = "got:"
-			for _, s := range r.Report {
-				report = append(report, "| "+s)
+		optx := []any{}
+		for _, o := range opts {
+			if o == opt.IsRequired(true) {
+				continue
 			}
-			return report
-		}))
+			optx = append(optx, o)
+		}
+		expectFailedTests.Should(BeEmptyOrNil(), optx...)
+		Expect(r.Report, "test report").Should(BeEmptyOrNil(),
+			append(opts, opt.FailureReport(func(...any) []string {
+				report := make([]string, 2, len(r.Report)+2)
+				report[0] = "expected: <no report>"
+				report[1] = "got:"
+				for _, s := range r.Report {
+					report = append(report, "| "+s)
+				}
+				return report
+			}))...,
+		)
 	}
 }
 
-func (r *R) ExpectInvalid(report ...string) {
+func (r *R) ExpectInvalid(report ...any) {
 	r.t.Helper()
-	r.Expect(append([]string{"<== INVALID TEST"}, report...))
-	r.Expect(append([]string{CallerFilename()}, report...))
+	r.Expect(append([]any{"<== INVALID TEST"}, report...)...)
 }
 
 // Test runs a function that exercises a test function returning an R that captures the
@@ -173,10 +207,10 @@ func Test(f func()) R {
 
 	var recovered any
 	stdout, stderr, outcome := runInternal(t, func(internal *testing.T) {
-		testFrames.push(internal)
+		testframe.Push(internal)
 		defer func() {
 			recovered = recover()
-			testFrames.pop()
+			testframe.Pop()
 		}()
 		f()
 	})
@@ -251,6 +285,7 @@ func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, TestOutc
 	for i := len(stdout) - 1; i >= 0; i-- {
 		s := strings.TrimSpace(stdout[i])
 		if strings.HasPrefix(s, "=== RUN") ||
+			strings.HasPrefix(s, "=== NAME") ||
 			strings.HasPrefix(s, "=== PAUSE") ||
 			strings.HasPrefix(s, "=== CONT") ||
 			strings.HasPrefix(s, "--- PASS: ") ||
@@ -260,4 +295,29 @@ func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, TestOutc
 	}
 
 	return stdout, stderr, result
+}
+
+var isTestFile = func(s string) bool {
+	return strings.HasSuffix(s, "_test.go")
+}
+
+// testFilename returns the name of the first test file (_test.go) that is found
+// in the call stack.
+func testFilename() string {
+	pcs := make([]uintptr, 20)
+	n := runtime.Callers(2, pcs)
+	pcs = pcs[:n]
+
+	frames := runtime.CallersFrames(pcs)
+
+	frame, more := frames.Next()
+	for more {
+		if isTestFile(frame.File) {
+			_, filename := path.Split(frame.File)
+			return filename
+		}
+		frame, more = frames.Next()
+	}
+
+	return "<unknown test file>"
 }
