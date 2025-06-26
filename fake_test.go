@@ -1,8 +1,10 @@
-package test
+package test_test
 
 import (
 	"errors"
 	"testing"
+
+	. "github.com/blugnu/test"
 )
 
 func TestFakeResult(t *testing.T) {
@@ -21,17 +23,10 @@ func TestFakeResult(t *testing.T) {
 func TestFakeResult_Returns(t *testing.T) {
 	With(t)
 
-	type testcase struct {
-		scenario string
-		exec     func()
-	}
-	RunScenarios(
-		func(tc *testcase, _ int) {
-			tc.exec()
-		},
-		[]testcase{
-			{scenario: "returns value",
-				exec: func() {
+	RunTestScenarios(
+		[]TestScenario{
+			{Scenario: "returns value",
+				Act: func() {
 					// ARRANGE
 					sut := FakeResult[int]{}
 
@@ -42,8 +37,8 @@ func TestFakeResult_Returns(t *testing.T) {
 					Expect(sut).To(Equal(FakeResult[int]{Result: 42}))
 				},
 			},
-			{scenario: "returns error",
-				exec: func() {
+			{Scenario: "returns error",
+				Act: func() {
 					// ARRANGE
 					sut := FakeResult[int]{}
 					err := errors.New("fake error")
@@ -55,8 +50,20 @@ func TestFakeResult_Returns(t *testing.T) {
 					Expect(sut).To(Equal(FakeResult[int]{Err: err}))
 				},
 			},
-			{scenario: "returns result and error",
-				exec: func() {
+			{Scenario: "returns result and nil",
+				Act: func() {
+					// ARRANGE
+					sut := FakeResult[int]{}
+
+					// ACT
+					sut.Returns(42, nil)
+
+					// ASSERT
+					Expect(sut).To(Equal(FakeResult[int]{Result: 42}))
+				},
+			},
+			{Scenario: "returns result and error",
+				Act: func() {
 					// ARRANGE
 					sut := FakeResult[int]{}
 					err := errors.New("fake error")
@@ -68,36 +75,43 @@ func TestFakeResult_Returns(t *testing.T) {
 					Expect(sut).To(Equal(FakeResult[int]{Result: 42, Err: err}))
 				},
 			},
-			{scenario: "multiple result values",
-				exec: func() {
+			{Scenario: "multiple result values",
+				Act: func() {
 					// ARRANGE + ASSERT
 					sut := FakeResult[int]{}
-					defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 					// ACT
 					sut.Returns(1, 2)
 				},
+				Assert: func(result *R) {
+					result.ExpectInvalid(ErrInvalidOperation)
+				},
 			},
-			{scenario: "multiple error values",
-				exec: func() {
+			{Scenario: "multiple error values",
+				Act: func() {
 					// ARRANGE + ASSERT
 					sut := FakeResult[int]{}
 					err := errors.New("fake error")
-					defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 					// ACT
 					sut.Returns(err, err)
 				},
+				Assert: func(result *R) {
+					result.ExpectInvalid(ErrInvalidOperation)
+				},
 			},
-			{scenario: "invalid type",
-				exec: func() {
+			{Scenario: "invalid type",
+				Act: func() {
 					// ARRANGE + ASSERT
 					sut := FakeResult[int]{}
-					defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 					// ACT
 					sut.Returns("invalid type")
 				},
+				Assert: func(result *R) {
+					result.ExpectInvalid(ErrInvalidOperation)
+				},
 			},
-		})
+		},
+	)
 }

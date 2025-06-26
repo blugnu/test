@@ -1,6 +1,10 @@
 package test
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/blugnu/test/test"
+)
 
 // FakeResult[R] is a generic type that can be used to help fake a function returning
 // some result type R and/or an error. It can be useful for creating simple fakes
@@ -14,10 +18,10 @@ import "fmt"
 //
 // No mechanism is provided for configuring expected calls, capturing or testing
 // for expected arguments, or returning different values for multiple calls.
-// FakeResult[R} is intended for simple cases where a faked function or method is
-// returning a consistent result value and/or error for all calls.
+// FakeResult[R] is for simple cases where a fake function or method consistently
+// returns a specific result.
 //
-// For cases requiring such capabilities, consider using test.MockFn[A, R].
+// For cases requiring more advanced capabilities, consider using test.MockFn[A, R].
 //
 // # Example: Mocking an interface with a single method
 //
@@ -25,20 +29,20 @@ import "fmt"
 //		MyMethod() (int, error)
 //	}
 //
-//	type mockMyMethodInterface struct {
+//	type fakeMyMethodInterface struct {
 //		FakeResult[int]
 //	}
 //
-//	func (mock *MyFake) MyMethod() (int, error) {
-//		return mock.Result, mock.Err
+//	func (fake *MyFake) MyMethod() (int, error) {
+//		return fake.Result, fake.Err
 //	}
 //
-//	// FakeResult[R] implements Reset() so by using an embedded field this is promoted
-//	// to the mockMyMethodInterface struct itself.
+//	// FakeResult[R] implements Reset(); embedding promotes the Reset method
+//	// to the fakeMyMethodInterface struct itself.
 //
-// If mocking an interface with multiple methods, the mockMyMethodInterface
-// struct would implement a Reset() method to reset each of the FakeResult[R] fields
-// individually.
+// If mocking an interface with multiple methods, the fakeMyMethodInterface
+// struct would implement an explicit Reset() method to reset all FakeResult[R]
+// fields individually.
 //
 // # Returning Multiple Values
 //
@@ -50,12 +54,13 @@ import "fmt"
 //		MyMethod() (int, string, error)
 //	}
 //
-//	type myMethodResult struct {
-//		myMethod FakeResult[struct{name string; age int}]
+//	type fakeMyMethod struct {
+//		fakeMyMethodFn FakeResult[struct{name string; age int}]
 //	}
 //
-//	func (mock *mockMyInterface) MyMethod() (int, string, error) {
-//		return mock.myMethod.Result.name, mock.myMethod.Result.age, mock.myMethod.Err
+//	func (fake *fakeMyMethod) MyMethod() (int, string, error) {
+//		fn := fake.fakeMyMethodFn
+//		return fn.Result.age, fn.Result.name, fn.Err
 //	}
 //
 // # Return Value(s) with No Error
@@ -65,8 +70,30 @@ import "fmt"
 //
 // # Returning Only an Error
 //
-// To fake a method that returns only an error, specify a result type of any and
-// ignore the Result field.
+// When faking a function that only returns an error, use FakeResult[error].  This
+// provides a FakeResult with a Result type of error in addition to the Err field; the
+// Result field should be ignored.
+//
+// The use of the error type as the Result type clarifies the intent of the fake and
+// avoids confusiion. Consider:
+//
+//	func (s MyStruct) SomeMethod() error {
+//		return s.SomeMethodFn.Err
+//	}
+//
+// It is clear at this point that the SomeMethodFn field is a FakeResult where only the
+// error is relevant, and the Result field is ignored.  This is a common pattern when
+// faking methods that return only an error.
+//
+// Now consider the possibilities when declaring the SomeMethodFn field:
+//
+// s.SomeMethodFn := FakeResult[any]{}     // does this fake a function returning any or is the Result ignored?
+// s.SomeMethodFn := FakeResult[error]{}   // this fake is clearly for a function returning (only) an error
+//
+// The SomeMethodFn field is a FakeResult; since the Result field is ignored, the type
+// parameter R can be any type, but using FakeResult[error] makes it clear that the
+// fake is for a function that returns an error, even though the Result field, to which the
+// type parameter 'error' relates, is ignored.
 type FakeResult[R any] struct {
 	Result R
 	Err    error
@@ -80,30 +107,51 @@ func (fake *FakeResult[R]) Reset() {
 // Returns sets the result value and/or error to be returned by the fake.
 //
 // The first R value in the variadic parameter list is used to set the result
-// value, and the first error value is used to set the error.
+// value, and the first error value is used to set the error.  nil values are
+// ignored.  A value of any other type will cause the current test to fail as
+// invalid.
 //
-// If multiple R or error values are provided, the function will panic.  This
-// ensures that a test that is not setup correctly fails immediately without
-// yielding potentially incorrect results.
+// R and error values may be specified in any order, but for symmetry it is
+// recommended that they are specified in the order they will be returned.
+//
+// e.g. when faking a function:
+//
+//	func MyFunc() (int, error)
+//
+//	fakeMyFuncFn := &FakeResult[int]{}
+//
+//	fakeMyFuncFn.Returns(42, nil) // fakes a function returning (42, nil)
+//
+// If multiple R or error values are provided, the function will fail the
+// current test as invalid.
 func (fake *FakeResult[R]) Returns(v ...any) {
+	test.T().Helper()
+
 	resultSet := false
 	errSet := false
 	for _, r := range v {
 		switch r := r.(type) {
-		case R:
-			if resultSet {
-				panic(fmt.Errorf("%w: only one result value (R) may be specified", ErrInvalidOperation))
-			}
-			resultSet = true
-			fake.Result = r
+		case nil:
+			// nil is ignored; this allows for faking functions that return
+			// nilable results and errors in a satisfying and symmetrical way,
+			// e.g. fake.Returns(value, nil)
+
 		case error:
 			if errSet {
-				panic(fmt.Errorf("%w: only one error value may be specified", ErrInvalidOperation))
+				test.Error(ErrInvalidOperation, "only one error value may be specified")
 			}
 			errSet = true
 			fake.Err = r
+
+		case R:
+			if resultSet {
+				test.Error(ErrInvalidOperation, fmt.Sprintf("only one result value (%T) may be specified", *new(R)))
+			}
+			resultSet = true
+			fake.Result = r
+
 		default:
-			panic(fmt.Errorf("%w: %T: only values of type %T or error may be specified", ErrInvalidOperation, r, *new(R)))
+			test.Error(ErrInvalidOperation, fmt.Sprintf("only values of type %T or error (or nil) may be specified", *new(R)))
 		}
 	}
 }
