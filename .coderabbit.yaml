@@ -1,0 +1,4 @@
+reviews:
+  tools:
+    golangci-lint:
+      config_file: .coderabbit-golangci.yml

@@ -1,0 +1,52 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - err113              # makes it impossible to use errors.New() in tests
+    - exhaustruct         # makes partial struct initialization impossible
+    - funlen              # function length is subjective, not objective
+    - gochecknoglobals    # there are legitimate uses for global variables
+    - godot               # not all comments should end with a period
+    - inamedparam         # parameter names are not significant in interfaces though may be helpful (subjective)
+    - interfacebloat      # the acceptable number of methods in an interface is subjective
+    - lll                 # long lines (> col 120)
+    - nlreturn            # another whitespace nazi
+    - thelper             # makes scenario exec(testing.T) test cases impossible
+    - paralleltest        # parallel tests are not always appropriate
+    - varnamelen          # variable names must be at least 3 characters long
+    - wsl                 # absolute PoS whitespace nazi
+
+    # not supported when go.mod Go version is <1.22
+    - copyloopvar
+    - intrange
+
+    # exceptions specific to the needs of this project
+    - forbidigo           # Println is used to test stdout
+    - ireturn             # returning any is required when dealing with types of unknown value
+
+  settings:
+    depguard:
+      rules:
+        tests:
+          files:
+            - $test
+          list-mode: lax
+          allow: ["*"]
+
+    # disabled until I figure out a way to FAIL on a PR branch and only WARN on feature branches
+    # godox:
+    #   keywords:
+    #     - TODO
+
+    ireturn:
+      reject:
+        - empty      # should never return interface{}
+
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+
+    staticcheck:
+      checks:
+        - -QF1008    # disable "could remove embedded field <name> from selector"; sometimes it is useful (if unnecessary) to disambiguate
