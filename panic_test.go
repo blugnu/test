@@ -1,9 +1,10 @@
-package test
+package test_test
 
 import (
 	"runtime"
 	"testing"
 
+	. "github.com/blugnu/test"
 	"github.com/blugnu/test/matchers/panics"
 	"github.com/blugnu/test/opt"
 	"github.com/blugnu/test/test"

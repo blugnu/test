@@ -1,9 +1,10 @@
-package test
+package test_test
 
 import (
 	"fmt"
 	"testing"
 
+	. "github.com/blugnu/test"
 	"github.com/blugnu/test/matchers/emptiness"
 	"github.com/blugnu/test/matchers/matcher"
 	"github.com/blugnu/test/test"

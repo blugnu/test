@@ -1,8 +1,10 @@
-package test
+package test_test
 
 import (
 	"strings"
 	"testing"
+
+	. "github.com/blugnu/test"
 )
 
 func TestRunTestScenarios(t *testing.T) {

@@ -18,7 +18,7 @@ func ExpectType[T any](got any, opts ...any) (T, bool) {
 	gotType := reflect.TypeOf(got)
 	expectedType := reflect.TypeOf(z)
 
-	if fmt.Sprintf("%s", expectedType) == "%!s(<nil>)" { //nolint:gosimple // .String() on a nil is not a great idea!
+	if fmt.Sprintf("%s", expectedType) == "%!s(<nil>)" {
 		test.Invalid("ExpectType: cannot be used to test for interfaces")
 		return z, false
 	}
@@ -31,8 +31,16 @@ func ExpectType[T any](got any, opts ...any) (T, bool) {
 	}))
 
 	if gotType == expectedType {
-		return got.(T), true
+		got, ok := got.(T)
+		return got, ok
 	}
 
 	return z, false
+}
+
+func RequireType[T any](got any, opts ...any) T {
+	GetT().Helper()
+
+	z, _ := ExpectType[T](got, append(opts, opt.Required())...)
+	return z
 }

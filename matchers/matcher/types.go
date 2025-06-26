@@ -1,9 +1,9 @@
 package matcher
 
 type ForAny interface {
-	Match(any, ...any) bool
+	Match(got any, opts ...any) bool
 }
 
 type ForType[T any] interface {
-	Match(T, ...any) bool
+	Match(got T, opts ...any) bool
 }

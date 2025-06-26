@@ -1,4 +1,4 @@
-package slices
+package slices //nolint:dupl // incorrectly flagged as a duplicate of containsSlice.go; contiguous vs non-contiguous items are handled differently in each case
 
 import (
 	"fmt"
@@ -21,8 +21,9 @@ func (m ContainsItemsMatcher[T]) Match(got []T, opts ...any) bool {
 	cmp := reflect.DeepEqual
 	if fn, ok := opt.Get[func(T, T) bool](opts); ok {
 		cmp = func(a, b any) bool {
-			// this is a type-safe matcher; we can safely cast without checking
-			return fn(a.(T), b.(T))
+			at, _ := a.(T)
+			bt, _ := b.(T)
+			return fn(at, bt)
 		}
 	} else if fn, ok := opt.Get[func(any, any) bool](opts); ok {
 		cmp = fn

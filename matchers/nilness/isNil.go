@@ -18,7 +18,7 @@ func isNil(v any) (bool, bool) {
 		return true, Nilable
 	}
 
-	switch reflect.ValueOf(v).Kind() {
+	switch reflect.ValueOf(v).Kind() { //nolint:exhaustive // only concerned with nilable types
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
 		return reflect.ValueOf(v).IsNil(), Nilable
 	}

@@ -1,9 +1,13 @@
-package test
+package test //nolint:testpackage // tests private functions and types
 
 import (
 	"errors"
 	"testing"
 )
+
+func byref[T any](v T) *T {
+	return &v
+}
 
 func TestMockFnRecordCall(t *testing.T) {
 	With(t)

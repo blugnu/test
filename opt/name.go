@@ -6,11 +6,11 @@ import "fmt"
 // options.
 func Name(opts []any) string {
 	for _, opt := range opts {
-		switch v := opt.(type) {
-		case string:
-			return string(v)
+		if s, ok := opt.(string); ok {
+			return s
 		}
 	}
+
 	return ""
 }
 

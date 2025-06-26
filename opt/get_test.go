@@ -1,6 +1,10 @@
-package opt
+package opt_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/blugnu/test/opt"
+)
 
 func TestGet(t *testing.T) {
 	var (
@@ -9,7 +13,7 @@ func TestGet(t *testing.T) {
 	)
 
 	t.Run("Get[string] when options contain a string", func(t *testing.T) {
-		result, ok = Get[string]([]any{0, 1, "test", true})
+		result, ok = opt.Get[string]([]any{0, 1, "test", true})
 		if !ok {
 			t.Errorf("ok: expected true, got false")
 		}
@@ -19,7 +23,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("Get[string] when options does not contain a string", func(t *testing.T) {
-		result, ok = Get[string]([]any{0, 1, true})
+		result, ok = opt.Get[string]([]any{0, 1, true})
 		if ok {
 			t.Errorf("ok: expected false, got true")
 		}
@@ -31,7 +35,7 @@ func TestGet(t *testing.T) {
 	t.Run("Get[string] when options contain a value of custom string type", func(t *testing.T) {
 		type CustomStringType string
 
-		result, ok = Get[string]([]any{0, 1, CustomStringType("test"), true})
+		result, ok = opt.Get[string]([]any{0, 1, CustomStringType("test"), true})
 		if ok {
 			t.Errorf("ok: expected false, got true")
 		}

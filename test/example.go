@@ -43,7 +43,7 @@ type example struct {
 	exited bool
 }
 
-func (m example) Name() string {
+func (m *example) Name() string {
 	return "ExampleTestRunner"
 }
 
@@ -74,7 +74,7 @@ func (m *example) Fatalf(format string, args ...any) {
 	m.Fatal(fmt.Sprintf(format, args...))
 }
 
-func (m example) Run(name string, f func(t *testing.T)) bool {
+func (m *example) Run(name string, f func(t *testing.T)) bool {
 	if f == nil {
 		return true // NO-OP (successful) if no function is provided
 	}
@@ -93,7 +93,7 @@ func (m *example) FailNow()     { m.failed = m.failed || !m.exited; m.exited = t
 func (m *example) SkipNow()     { m.exited = true }
 func (m *example) Failed() bool { return m.failed }
 
-func (m *example) Cleanup(fn func())    { /* no-op */ }
-func (m example) Helper()               { /* no-op */ }
-func (m example) Parallel()             { /* no-op */ }
-func (m example) Setenv(string, string) { /* no-op */ }
+func (m *example) Cleanup(fn func())     { /* no-op */ }
+func (m *example) Helper()               { /* no-op */ }
+func (m *example) Parallel()             { /* no-op */ }
+func (m *example) Setenv(string, string) { /* no-op */ }

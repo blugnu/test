@@ -1,6 +1,10 @@
-package test
+package test_test
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/blugnu/test"
+)
 
 type resettableInt int
 

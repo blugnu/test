@@ -81,17 +81,21 @@ func (bm *EqualMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
 
 func (bm EqualMatcher[T]) reportInit(want, got []T) (int, []int, []string) {
 	diffs := bm.getDiffs(want, got)
-
 	diff := -1
-	out := make([]string, 0, 4)
-	out = append(out, "bytes not equal:")
+
+	const minLen = 1
+	const maxLen = 3
+
+	out := make([]string, minLen, maxLen)
+	out[0] = "bytes not equal:"
 	if len(want) != len(got) {
 		out = append(out, "  different lengths: expected "+strconv.Itoa(len(want))+", got "+strconv.Itoa(len(got)))
 
-		// if there is a different in length we will show the last
+		// if there is a difference in length we will show the last
 		// diff to highlight the overrun/underrun
 		diff = len(diffs) - 1
 	}
+
 	if (diff == -1 && len(diffs) > 0) || len(diffs) > 1 {
 		out = append(out, "  differences at: "+strings.Join(strings.Fields(fmt.Sprint(diffs)), ", "))
 
@@ -104,22 +108,25 @@ func (bm EqualMatcher[T]) reportInit(want, got []T) (int, []int, []string) {
 }
 
 func (bm EqualMatcher[T]) reportCalc(want, got []T, diff int, diffs []int) (int, int, int, string, string, string) {
-	fd := diffs[diff]
-	ss := max(0, min(fd-2, min(len(want)-2, len(got)-2)))
+	const ellipsis = "..."
+	const pad = 2
 
-	we := min(fd+3, len(want))
-	wsfx := "..."
+	fd := diffs[diff]
+	ss := max(0, min(fd, min(len(want), len(got)))-pad)
+
+	we := min(fd+len(ellipsis), len(want))
+	wsfx := ellipsis
 	if we == len(want) {
 		wsfx = ""
 	}
 
-	ge := min(fd+3, len(got))
-	gsfx := "..."
+	ge := min(fd+len(ellipsis), len(got))
+	gsfx := ellipsis
 	if ge == len(got) {
 		gsfx = ""
 	}
 
-	pfx := "..."
+	pfx := ellipsis
 	if ss == 0 {
 		pfx = ""
 	}
@@ -131,7 +138,7 @@ func (bm *EqualMatcher[T]) reportExpectedByte(i, ss int, want, got []T, expected
 		expectedBytes.WriteString(" ")
 		markers.WriteString(" ")
 	}
-	expectedBytes.WriteString(fmt.Sprintf("%02x", want[i]))
+	fmt.Fprintf(expectedBytes, "%02x", want[i])
 	switch {
 	case i < len(got):
 		if want[i] != got[i] {
@@ -156,7 +163,7 @@ func (bm *EqualMatcher[T]) reportGotByte(i, ss int, want, got []T, gotBytes, mar
 			markers.WriteString(" ")
 		}
 	}
-	gotBytes.WriteString(fmt.Sprintf("%02x", got[i]))
+	fmt.Fprintf(gotBytes, "%02x", got[i])
 	switch {
 	case i == len(want):
 		markers.WriteString("++")

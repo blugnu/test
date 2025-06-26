@@ -54,14 +54,19 @@ func appendToReport[K comparable, V any](result []string, p string, m map[K]V, o
 	return result
 }
 
+func as[T any](v any) T {
+	result, _ := v.(T)
+	return result
+}
+
 func containsMap[K comparable, V any](m, c map[K]V, opts ...any) bool {
 	if len(c) == 0 {
 		return len(m) == 0
 	}
 
-	cmp := compareFuncFor[K, V](opts...)
+	eq := compareFuncFor[K, V](opts...)
 	for k, v := range c {
-		if vGot, ok := m[k]; !ok || !cmp(v, vGot) {
+		if vGot, exists := m[k]; !(exists && eq(v, vGot)) {
 			return false
 		}
 	}
@@ -70,43 +75,41 @@ func containsMap[K comparable, V any](m, c map[K]V, opts ...any) bool {
 }
 
 func compareFuncFor[K comparable, V any](opts ...any) func(a, b any) bool {
-	type Equatable interface {
-		Equal(V) bool
-	}
+	type equatable interface{ Equal(V) bool }
 
-	// specifically nil; if still nil after checking for Equatable or a
-	// comparison function an appropriate comparison function will be used
-	// assigned based on the type of V, or reflect.DeepEqual otherwise
+	// check for Equatable or a comparison function in the options
+	// to use
 
 	var cmp func(a, b any) bool
 
 	v := *new(V)
-	if _, ok := any(v).(Equatable); ok {
+	if _, ok := any(v).(equatable); ok {
 		cmp = func(a, b any) bool {
-			return a.(Equatable).Equal(b.(V))
+			return as[equatable](a).Equal(as[V](b))
 		}
 	} else if fn, ok := opt.Get[func(V, V) bool](opts); ok {
 		cmp = func(a, b any) bool {
-			return fn(a.(V), b.(V))
+			return fn(as[V](a), as[V](b))
 		}
 	} else if fn, ok := opt.Get[func(any, any) bool](opts); ok {
 		cmp = fn
 	}
 
-	// FUTURE: options should also be applied when comparing values that are maps.
+	// FUTURE: options should also be applied when comparing *values* (V) that are also maps.
 	//
-	// This may not be straightforward as the values in the map cannot be assumed to be
+	// This may not be straightforward as the values in a map value cannot be assumed to be
 	// of the same type as the map being tested so must be treated as a map[comparable]any
 	// with functions equivalent to containsMap etc that operate on K:comparable, V:any
 
-	switch reflect.ValueOf(v).Kind() {
+	switch reflect.ValueOf(v).Kind() { //nolint:exhaustive // exhaustive is not needed here
 	case reflect.Slice, reflect.Array:
 		if cmp == nil {
 			cmp = func(a, b any) bool {
 				return slicesEqual(
 					reflect.ValueOf(a),
 					reflect.ValueOf(b),
-					opts...)
+					opts...,
+				)
 			}
 		}
 	case reflect.String:
@@ -119,12 +122,15 @@ func compareFuncFor[K comparable, V any](opts ...any) func(a, b any) bool {
 				eq = reflect.DeepEqual
 			}
 			cmp = func(a, b any) bool {
-				a = strings.ToLower(a.(string))
-				b = strings.ToLower(b.(string))
+				a = strings.ToLower(as[string](a))
+				b = strings.ToLower(as[string](b))
 				return eq(a, b)
 			}
 		}
 	}
+
+	// if still nil then no comparison function was identified or provided so
+	// fall-back on reflect.DeepEqual
 
 	if cmp == nil {
 		cmp = reflect.DeepEqual
@@ -151,8 +157,8 @@ func slicesEqual(a, b reflect.Value, opts ...any) bool {
 	cmp := reflect.DeepEqual
 	if a.Index(0).Kind() == reflect.String && opt.IsSet(opts, opt.CaseSensitive(false)) {
 		cmp = func(a, b any) bool {
-			a = strings.ToLower(a.(string))
-			b = strings.ToLower(b.(string))
+			a = strings.ToLower(as[string](a))
+			b = strings.ToLower(as[string](b))
 			return a == b
 		}
 	}

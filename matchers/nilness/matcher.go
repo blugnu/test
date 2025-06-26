@@ -66,7 +66,7 @@ func (m Matcher) OnTestFailure(subject any, opts ...any) string {
 		expect = "expected not nil"
 	}
 
-	switch got := any(subject).(type) {
+	switch got := subject.(type) {
 	case error:
 		return fmt.Sprintf("%s, got error: %v", expect, got)
 

@@ -4,7 +4,7 @@ import "testing"
 
 // Cleanup is an interface that allows for cleanup functions to be registered
 type Cleanup interface {
-	Cleanup(func())
+	Cleanup(fn func())
 }
 
 // Nil is a no-op implementation of the TestingT interface.  It is used to

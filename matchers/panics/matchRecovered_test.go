@@ -69,7 +69,9 @@ func TestPanic_DidOccur(t *testing.T) {
 		{Scenario: "custom comparison function",
 			Act: func() {
 				defer Expect(Panic("x")).DidOccur(func(expected, got any) bool {
-					return expected.(string) == strings.ToLower(got.(string))
+					exps, _ := expected.(string)
+					gots, _ := got.(string)
+					return exps == strings.ToLower(gots)
 				})
 
 				panic("X")

@@ -1,6 +1,10 @@
-package test
+package test_test
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/blugnu/test"
+)
 
 func TestContainsString(t *testing.T) {
 	With(t)

@@ -17,7 +17,9 @@ var stack = runtime.Stack
 //
 // If the stack trace does not match this format, it will panic with ErrUnexpectedStackFormat.
 func goid() uintptr {
-	buf := make([]byte, 64)
+	const maxFrames = 64
+
+	buf := make([]byte, maxFrames)
 	n := stack(buf, false)
 	if n <= 0 {
 		panic(ErrNoStack)

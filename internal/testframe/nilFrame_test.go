@@ -1,7 +1,9 @@
-package testframe
+package testframe_test
 
 import (
 	"testing"
+
+	"github.com/blugnu/test/internal/testframe"
 )
 
 type cleaner struct {
@@ -15,7 +17,7 @@ func (c *cleaner) Cleanup(func()) {
 func TestNilFrame(t *testing.T) {
 	t.Run("cleanup delegation", func(t *testing.T) {
 		c := &cleaner{}
-		sut := Nil{T: c}
+		sut := testframe.Nil{T: c}
 
 		sut.Cleanup(nil)
 
@@ -29,7 +31,7 @@ func TestNilFrame(t *testing.T) {
 		// usable with test.With().  Only the Cleanup implementation is
 		// significant; the remainder of the methods are no-ops and are tested
 		// only for coverage.
-		sut := Nil{T: &cleaner{}}
+		sut := testframe.Nil{T: &cleaner{}}
 
 		if sut.Name() != "NilFrame" {
 			t.Errorf("expected Name to return 'NilFrame', got '%s'", sut.Name())

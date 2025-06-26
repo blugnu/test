@@ -1,4 +1,4 @@
-package test
+package test //nolint: testpackage // tests rely on access to private fields
 
 import (
 	"fmt"
@@ -214,7 +214,7 @@ func Test_runInternal(t *testing.T) {
 		// the output to avoid false negatives in tests that expect an empty output for
 		// a passing test.
 
-		t := T().(*testing.T)
+		t := RequireType[*testing.T](T())
 
 		// ACT
 		stdout, stderr, outcome := runInternal(t, func(st *testing.T) {
@@ -250,5 +250,59 @@ func Test_testFilename(t *testing.T) {
 
 		// ASSERT
 		Expect(result).To(Equal("<unknown test file>"))
+	})
+}
+
+func Test_analyseReport(t *testing.T) {
+	With(t)
+
+	Run("empty report", func() {
+		// ACT
+		output, report, failed := analyseReport([]string{})
+
+		// ASSERT
+		Expect(output, "output").Should(BeEmptyOrNil())
+		Expect(report, "report").Should(BeEmptyOrNil())
+		Expect(failed, "failed").Should(BeEmptyOrNil())
+	})
+
+	Run("report with one test failure", func() {
+		// ACT
+		output, report, failed := analyseReport([]string{
+			"--- FAIL: TestSomething (0.0s)",
+			"    stdout output (if any)",
+			"    something_test.go:112:",
+			"        report line 1",
+			"        report line 2",
+		})
+
+		// ASSERT
+		Expect(output, "output").To(EqualSlice([]string{"    stdout output (if any)"}))
+		Expect(report, "report").To(EqualSlice([]string{
+			"    something_test.go:112:",
+			"        report line 1",
+			"        report line 2",
+		}))
+		Expect(failed, "failed").To(EqualSlice([]string{"TestSomething"}))
+	})
+
+	Run("misreported test location (simulates missing t.Helper)", func() {
+		// ACT
+		output, report, failed := analyseReport([]string{
+			"--- FAIL: TestSomething (0.0s)",
+			"    stdout output (if any)",
+			"    something.go:112: test failed", // should be something_test.go:112, i.e. missing _test suffix
+		})
+
+		// ASSERT
+		Expect(output, "output").Should(BeEmptyOrNil())
+		Expect(report, "report").To(EqualSlice([]string{
+			"WARNING: unable to parse test report (possibly missing a T().Helper() call?)",
+			"report:",
+			"| --- FAIL: TestSomething (0.0s)",
+			"|     stdout output (if any)",
+			"|     something.go:112: test failed",
+		}))
+		Expect(failed, "failed").Should(BeEmptyOrNil())
 	})
 }

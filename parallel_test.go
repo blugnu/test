@@ -1,10 +1,11 @@
-package test
+package test_test
 
 import (
 	"errors"
 	"testing"
 	"time"
 
+	. "github.com/blugnu/test"
 	"github.com/blugnu/test/internal/testframe"
 	"github.com/blugnu/test/test"
 )

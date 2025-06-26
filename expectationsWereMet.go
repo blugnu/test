@@ -60,5 +60,4 @@ func ExpectationsWereMet(m Mock, opts ...any) {
 	if err := m.ExpectationsWereMet(); err != nil {
 		Expect(err).IsNil(append(opts, opt.OnFailure(err.Error()))...)
 	}
-
 }

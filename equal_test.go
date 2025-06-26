@@ -1,8 +1,9 @@
-package test
+package test_test
 
 import (
 	"testing"
 
+	. "github.com/blugnu/test"
 	"github.com/blugnu/test/test"
 )
 

@@ -1,4 +1,4 @@
-package testframe
+package testframe //nolint: testpackage // tests rely on access to private functions
 
 import (
 	"errors"

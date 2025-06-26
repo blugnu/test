@@ -1,4 +1,4 @@
-package testframe
+package testframe //nolint: testpackage // tests rely on access to private functions
 
 import (
 	"errors"
@@ -76,7 +76,6 @@ func TestPeek(t *testing.T) {
 		if ok != false {
 			t.Errorf("expected false, got true")
 		}
-
 	})
 
 	// for these tests we need a valid item in the stack; each stack can

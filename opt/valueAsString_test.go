@@ -15,24 +15,24 @@ func TestValueAsString(t *testing.T) {
 		t.Errorf("Expected 'nil', got '%s'", result)
 	}
 
-	result = opt.ValueAsString("test")
-	if result != "\"test\"" {
-		t.Errorf("Expected '\"test\"', got '%s'", result)
+	result = opt.ValueAsString("test 1")
+	if result != "\"test 1\"" {
+		t.Errorf("Expected '\"test 1\"', got '%s'", result)
 	}
 
-	result = opt.ValueAsString("test", opt.QuotedStrings(true))
-	if result != "\"test\"" {
-		t.Errorf("Expected '\"test\"', got '%s'", result)
+	result = opt.ValueAsString("test 2", opt.QuotedStrings(true))
+	if result != "\"test 2\"" {
+		t.Errorf("Expected '\"test 2\"', got '%s'", result)
 	}
 
-	result = opt.ValueAsString("test", opt.QuotedStrings(false))
-	if result != "test" {
-		t.Errorf("Expected 'test', got '%s'", result)
+	result = opt.ValueAsString("test 3", opt.QuotedStrings(false))
+	if result != "test 3" {
+		t.Errorf("Expected 'test 3', got '%s'", result)
 	}
 
-	result = opt.ValueAsString("test", opt.UnquotedStrings())
-	if result != "test" {
-		t.Errorf("Expected 'test', got '%s'", result)
+	result = opt.ValueAsString("test 4", opt.UnquotedStrings())
+	if result != "test 4" {
+		t.Errorf("Expected 'test 4', got '%s'", result)
 	}
 
 	result = opt.ValueAsString(42, opt.QuotedStrings(false))

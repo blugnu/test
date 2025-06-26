@@ -52,6 +52,18 @@ func TestStringMatcher(t *testing.T) {
 				)
 			},
 		},
+		{Scenario: "ToNot(ContainString)/contains string (unquoted)",
+			Act: func() {
+				Expect("abcdef").ToNot(ContainString("cd"), opt.UnquotedStrings())
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					`expected: string not containing: c`,
+					`got     : abcdef`,
+					`            ^^`,
+				)
+			},
+		},
 
 		// Match tests
 		{Scenario: "To(Match)/matches",

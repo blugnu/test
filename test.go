@@ -116,6 +116,15 @@ func (r *R) Expect(exp ...any) {
 
 		testfile := testFilename()
 		if len(r.Report) > 0 {
+			// FUTURE: this only reports the first line of the report when it fails,
+			// which is not helpful in the case of a badly formatted report.
+			//
+			// This test should use a matcher that will report the entire report
+			// when it fails, so that the test author can see what went wrong.
+			//
+			// e.g. a SliceBeginsWith() matcher (rather than explicitly testing only
+			// the Report[0] item)
+
 			// if a report is expected we expect the first line of the report
 			// to contain the name of the test file that was executing at the time
 			Expect(r.Report[0]).To(ContainString(testfile),
@@ -135,12 +144,15 @@ func (r *R) Expect(exp ...any) {
 		expectFailedTests.Should(BeEmptyOrNil(), opts...)
 		Expect(r.Report, "test report").Should(BeEmptyOrNil(),
 			append(opts, opt.FailureReport(func(...any) []string {
-				report := make([]string, 2, len(r.Report)+2)
+				const preambleLen = 2
+
+				report := make([]string, preambleLen, len(r.Report)+preambleLen)
 				report[0] = "expected: <no report>"
 				report[1] = "got:"
 				for _, s := range r.Report {
 					report = append(report, "| "+s)
 				}
+
 				return report
 			}))...,
 		)
@@ -366,8 +378,11 @@ var isTestFile = func(s string) bool {
 // testFilename returns the name of the first test file (_test.go) that is found
 // in the call stack.
 func testFilename() string {
-	pcs := make([]uintptr, 64)
-	n := runtime.Callers(2, pcs)
+	const skipFrames = 2
+	const maxFrames = 64
+
+	pcs := make([]uintptr, maxFrames)
+	n := runtime.Callers(skipFrames, pcs)
 	pcs = pcs[:n]
 
 	frames := runtime.CallersFrames(pcs)
@@ -438,6 +453,17 @@ func analyseReport(stdout []string) ([]string, []string, []string) {
 		default:
 			output = append(output, s)
 		}
+	}
+
+	if len(failed) > 0 && len(report) == 0 {
+		// if we have a failed test there MUST be some failure report, otherwise we have
+		// been presented with a report that does not conform to the expected layout
+		//
+		// if that's the case, we will return the original stdout as the report,
+		// with a warning that the report does not conform to the expected layout
+		report = []string{"WARNING: unable to parse test report (possibly missing a T().Helper() call?)"}
+		report = slices.AppendToReport(report, stdout, "report:", opt.UnquotedStrings())
+		return nil, report, nil
 	}
 
 	ornil := func(s []string) []string {

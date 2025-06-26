@@ -7,19 +7,19 @@ import (
 )
 
 type TestingT interface {
-	Cleanup(func())
+	Cleanup(fn func())
 	Name() string
-	Run(string, func(t *testing.T)) bool
-	Error(...any)
-	Errorf(string, ...any)
+	Run(name string, fn func(t *testing.T)) bool
+	Error(args ...any)
+	Errorf(s string, args ...any)
 	Fail()
 	FailNow()
 	Failed() bool
-	Fatal(...any)
-	Fatalf(string, ...any)
+	Fatal(args ...any)
+	Fatalf(s string, args ...any)
 	Helper()
 	Parallel()
-	Setenv(string, string)
+	Setenv(name string, value string)
 	SkipNow()
 }
 
@@ -29,7 +29,7 @@ type TestingT interface {
 //
 // GetT is provided for use where calling the T() function directly is not
 // possible, e.g. due to a name collision with a generic type parameter.
-func GetT() (t TestingT) {
+func GetT() TestingT {
 	return T()
 }
 
@@ -39,7 +39,7 @@ func GetT() (t TestingT) {
 // The T is returned as a TestingT interface; this provides all of the
 // functionality of the *testing.T type, but allows for more flexibility
 // in the test package.
-func T() (t TestingT) {
+func T() TestingT {
 	return testframe.MustPeek[TestingT]()
 }
 

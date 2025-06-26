@@ -12,7 +12,7 @@ import (
 // test failure methods
 type runner interface {
 	Helper
-	Errorf(string, ...any)
+	Errorf(s string, args ...any)
 	FailNow()
 }
 

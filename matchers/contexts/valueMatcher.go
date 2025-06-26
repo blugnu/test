@@ -14,17 +14,15 @@ type ValueMatcher[K comparable, V any] struct {
 }
 
 func (vm *ValueMatcher[K, V]) Match(ctx context.Context, opts ...any) bool {
-	v := ctx.Value(vm.Key)
-	if v == nil {
-		return false
-	}
+	cv := ctx.Value(vm.Key)
 
-	if _, ok := v.(V); !ok {
+	v, ok := cv.(V)
+	if !ok || cv == nil {
 		return false
 	}
 
 	if cmp, ok := opt.Get[func(V, V) bool](opts); ok {
-		return cmp(v.(V), vm.Expected)
+		return cmp(v, vm.Expected)
 	}
 
 	return reflect.DeepEqual(v, vm.Expected)

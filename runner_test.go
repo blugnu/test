@@ -1,9 +1,11 @@
-package test
+package test_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
+
+	. "github.com/blugnu/test"
 )
 
 func TestRunner(t *testing.T) {

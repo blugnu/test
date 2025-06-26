@@ -6,7 +6,7 @@ import (
 	. "github.com/blugnu/test"
 )
 
-func TestGreaterThan(t *testing.T) {
+func TestGreaterThan(t *testing.T) { //nolint:dupl  // incorrectly flags this entire test as a duplicate of TestLessThan (it is not)
 	With(t)
 
 	RunTestScenarios([]TestScenario{
@@ -58,7 +58,7 @@ func TestGreaterThan(t *testing.T) {
 	})
 }
 
-func TestLessThan(t *testing.T) {
+func TestLessThan(t *testing.T) { //nolint:dupl  // incorrectly flags this entire test as a duplicate of TestGreaterThan (it is not)
 	With(t)
 
 	RunTestScenarios([]TestScenario{

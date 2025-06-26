@@ -41,7 +41,7 @@ import (
 //	Expect(err).IsNotNil()
 //
 // NOTE: this approach to testing for errors is not recommended since
-// the test will pass if any error occured which may not be the error
+// the test will pass if any error occurred which may not be the error
 // that was expected.  This may be acceptable in very simple cases but
 // it is usually better to test for a specific error using:
 //
@@ -77,7 +77,7 @@ func (e expectation[T]) DidOccur(opts ...any) {
 //	defer Expect(Panic()).DidNotOccur(opts...)
 //
 // The test will pass only if the function scope terminates without
-// a panic having occured.
+// a panic having occurred.
 //
 // # Testing for Errors
 //

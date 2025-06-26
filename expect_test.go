@@ -1,4 +1,4 @@
-package test
+package test //nolint: testpackage // tests private types and functions
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 
 type match[T any] struct{ result bool }
 
-func (m match[T]) Match(got T, _ ...any) bool { return m.result }
+func (m match[T]) Match(T, ...any) bool { return m.result }
 
 type matcherWithExpectedField[T comparable] struct {
 	match[T]
@@ -83,7 +83,7 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"test failed (expectation name)",
+					"expectation name: test failed",
 				)
 			},
 		},
@@ -112,7 +112,7 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 				Expect(any(nil), "name").err([]string{})
 			},
 			Assert: func(result *R) {
-				result.Expect("test failed (name)")
+				result.Expect("name: test failed")
 			},
 		},
 
@@ -167,7 +167,7 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 				Expect(any(nil)).err(42)
 			},
 			Assert: func(result *R) {
-				result.Expect("test failed with: 42")
+				result.Expect("test failed: 42")
 			},
 		},
 
@@ -343,7 +343,7 @@ func TestExpect_Is(t *testing.T) {
 		{
 			Scenario: "nil error nil vs error",
 			Act: func() {
-				var err error = errors.New("error")
+				err := errors.New("error")
 				Expect(err).Is(nil)
 			},
 			Assert: func(result *R) {

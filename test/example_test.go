@@ -80,7 +80,6 @@ func TestExample(t *testing.T) {
 		Expect(out).To(EqualSlice([]string{
 			"first error",
 		}))
-
 	})
 
 	Run("skipping before any error", func() {

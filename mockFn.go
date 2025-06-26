@@ -53,8 +53,8 @@ import (
 // implementation, which should record each call to the MockFn using RecordCall(), specifying
 // any arguments.
 //
-// If the method being mocked accepts multiple multiple arguments, they may be captured
-// using a struct type for the A type parameter, with fields for each of the arguments
+// If the method being mocked accepts multiple arguments, they may be captured using
+// a struct type for the A type parameter, with fields for each of the arguments
 // to be captured.
 //
 // Similarly, when mocking an interface method that returns multiple result values
@@ -157,18 +157,25 @@ func (mock *mockFnCall[A, R]) WillReturn(v ...any) {
 	errSet := false
 	for _, r := range v {
 		switch r := r.(type) {
-		case R:
-			if resultSet {
-				panic(fmt.Errorf("%w: only one result value may be configured", ErrInvalidOperation))
-			}
-			mock.result = r
-			resultSet = true
+		case nil:
+			// nil is ignored; this allows for faking functions that return
+			// nilable results and errors in a satisfying and symmetrical way,
+			// e.g. mock.WillReturn(value, nil)
+
 		case error:
 			if errSet {
 				panic(fmt.Errorf("%w: only one error value may be configured", ErrInvalidOperation))
 			}
 			mock.err = r
 			errSet = true
+
+		case R:
+			if resultSet {
+				panic(fmt.Errorf("%w: only one result value may be configured", ErrInvalidOperation))
+			}
+			mock.result = r
+			resultSet = true
+
 		default:
 			panic(fmt.Errorf("%w: %T: only values of type %T or error may be specified", ErrInvalidOperation, r, *new(R)))
 		}
@@ -233,7 +240,7 @@ func (mock *mockFnCall[A, R]) WithArgs(args A) *mockFnCall[A, R] {
 //		result, err := mock.intDiv.RecordCall(any)
 //		return result.Result, result.Remainder, err
 //	}
-func (mock *MockFn[A, R]) RecordCall(args ...A) (returns R, err error) {
+func (mock *MockFn[A, R]) RecordCall(args ...A) (R, error) {
 	if mock.responses != nil {
 		panic(fmt.Errorf("%w: mock function is configured for mapped results; use <fn>.ResultFor()", ErrInvalidOperation))
 	}
@@ -245,14 +252,15 @@ func (mock *MockFn[A, R]) RecordCall(args ...A) (returns R, err error) {
 
 	if mock.expected == nil {
 		actual.err = ErrUnexpectedCall
-		err = fmt.Errorf("%w: with args: %v", ErrUnexpectedCall, args)
+		err := fmt.Errorf("%w: with args: %v", ErrUnexpectedCall, args)
 		mock.actual = append(mock.actual, actual)
 		mock.errs = append(mock.errs, err)
-		return
+		return *new(R), err
 	}
 
-	err = mock.expected.err
-	returns = mock.expected.result
+	// initially assume we will return the expected error; this may change once
+	// we evaluate arguments against expectations
+	err := mock.expected.err
 
 	switch {
 	case mock.expected.args == nil:
@@ -269,6 +277,9 @@ func (mock *MockFn[A, R]) RecordCall(args ...A) (returns R, err error) {
 		mock.errs = append(mock.errs, err)
 	}
 
+	// save the expected result as we are about to nil expected
+	result := mock.expected.result
+
 	mock.actual = append(mock.actual, actual)
 	mock.idxExpected++
 	mock.expected = nil
@@ -279,7 +290,7 @@ func (mock *MockFn[A, R]) RecordCall(args ...A) (returns R, err error) {
 		mock.idxExpected = -1
 	}
 
-	return
+	return result, err
 }
 
 // ExpectedResults returns an error if any expectations were not met; otherwise nil.
@@ -390,8 +401,8 @@ func (mock *MockFn[A, R]) WhenCalledWith(args A) *FakeResult[R] {
 		panic(fmt.Errorf("%w: cannot combine mapped results with expected calls", ErrInvalidOperation))
 	}
 
-	switch {
-	case mock.responses == nil:
+	switch mock.responses {
+	case nil:
 		mock.responses = make(map[A]*FakeResult[R])
 	default:
 		if _, ok := mock.responses[args]; ok {

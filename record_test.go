@@ -1,6 +1,7 @@
-package test
+package test //nolint: testpackage // tests private types and functions
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,10 +15,10 @@ func TestRecord(t *testing.T) {
 
 	// ARRANGE
 	writeOutput := func() {
-		os.Stdout.WriteString("to stdout (1)\n")
-		os.Stdout.WriteString("to stdout (2)\n")
-		os.Stderr.WriteString("to stderr (1)\n")
-		os.Stderr.WriteString("to stderr (2)\n")
+		_, _ = os.Stdout.WriteString("to stdout (1)\n")
+		_, _ = os.Stdout.WriteString("to stdout (2)\n")
+		_, _ = os.Stderr.WriteString("to stderr (1)\n")
+		_, _ = os.Stderr.WriteString("to stderr (2)\n")
 		log.Println("to log")
 	}
 
@@ -37,17 +38,41 @@ func TestRecord(t *testing.T) {
 		"to log",
 	}), strings.Contains)
 
-	t.Run("when capture fails", func(t *testing.T) {
+	t.Run("when copy fails", func(t *testing.T) {
 		With(t)
 
 		// ARRANGE
-		cpyerr := fmt.Errorf("copy error")
-		sut := stdioCapture{copy: func(dst io.Writer, src io.Reader) (int64, error) {
-			return 0, cpyerr
-		},
+		cpyerr := errors.New("copy error")
+		sut := stdioCapture{
+			copy: func(dst io.Writer, src io.Reader) (int64, error) {
+				return 0, cpyerr
+			},
+			getLogOutput: getLogOutput,
 		}
 
-		defer Expect(Panic(ErrCapture)).DidOccur()
+		defer Expect(Panic(ErrRecordingFailed)).DidOccur()
+
+		// ACT
+		// This will panic because the copy function is mocked to return an error
+		stdout, stderr := record(sut, func() { writeOutput() })
+
+		// ASSERT
+		Expect(stdout, "stdout").Should(BeEmpty())
+		Expect(stderr, "stderr").Should(BeEmpty())
+	})
+
+	t.Run("when unable to get log output", func(t *testing.T) {
+		With(t)
+
+		// ARRANGE
+		sut := stdioCapture{
+			copy: io.Copy,
+			getLogOutput: func() (io.Writer, bool) {
+				return nil, false // simulate failure to get log output
+			},
+		}
+
+		defer Expect(Panic(ErrRecordingUnableToRedirectLogger)).DidOccur()
 
 		// ACT
 		// This will panic because the copy function is mocked to return an error

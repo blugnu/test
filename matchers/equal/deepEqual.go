@@ -14,12 +14,11 @@ type DeepMatcher[T any] struct {
 }
 
 func (m DeepMatcher[T]) valueAsString(v any, opts ...any) string {
-	if v == nil {
+	switch {
+	case v == nil:
 		return "nil"
-	}
 
-	switch reflect.TypeOf(v).Kind() {
-	case reflect.Struct:
+	case reflect.TypeOf(v).Kind() == reflect.Struct:
 		// FUTURE: improve the formatting of structs
 		// to be more readable...
 		//
@@ -39,6 +38,7 @@ func (m DeepMatcher[T]) valueAsString(v any, opts ...any) string {
 		//      age : 42
 		//    }
 		return fmt.Sprintf("%#v", v)
+
 	default:
 		return opt.ValueAsString(v, opts...)
 	}
@@ -77,7 +77,7 @@ func (m DeepMatcher[T]) OnTestFailure(got T, opts ...any) []string {
 
 	// otherwise, use a multi-line report
 	return []string{
-		fmt.Sprintf("expected: %s", ef),
-		fmt.Sprintf("got     : %s", gf),
+		"expected: " + ef,
+		"got     : " + gf,
 	}
 }

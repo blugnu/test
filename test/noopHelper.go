@@ -21,8 +21,9 @@ type noopHelper struct{}
 
 func (noopHelper) Helper() { /* NO-OP */ }
 
-// coverage is a function that exists solely to ensure that the noopHelper is
-// not optimized away by the compiler which impacts test coverage metrics
+// coverage is a function that exists _solely_ to ensure that the noopHelper
+// is not optimized away by the compiler as this would impact test coverage
+// metrics
 func coverage() {
 	noopHelper{}.Helper()
 }

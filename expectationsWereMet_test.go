@@ -1,8 +1,10 @@
-package test
+package test_test
 
 import (
 	"errors"
 	"testing"
+
+	. "github.com/blugnu/test"
 )
 
 type mock struct {

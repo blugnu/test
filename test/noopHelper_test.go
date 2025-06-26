@@ -1,4 +1,4 @@
-package test
+package test //nolint: testpackage // tests rely on access to private functions
 
 import "testing"
 

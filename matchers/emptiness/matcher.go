@@ -13,7 +13,7 @@ type Matcher struct {
 	// if true, nil is considered empty
 	TreatNilAsEmpty bool
 
-	// the follwoing fields are set during evaluation of the matcher and
+	// the following fields are set during evaluation of the matcher and
 	// used to generate an appropriate failure report
 
 	// hasLength is true if a length was determined for the subject
@@ -58,24 +58,24 @@ func (m *Matcher) Match(subject any, opts ...any) bool {
 	// if hasLength is set after any of these calls, then the value is supported
 	// and the emptiness result is available
 
-	if tryLengthMethods[int](m, subject); m.hasLength {
+	if tryMethods[int](m, subject); m.hasLength {
 		return m.isEmpty
 	}
 
-	if tryLengthMethods[uint](m, subject); m.hasLength {
+	if tryMethods[uint](m, subject); m.hasLength {
 		return m.isEmpty
 	}
 
-	if tryLengthMethods[int64](m, subject); m.hasLength {
+	if tryMethods[int64](m, subject); m.hasLength {
 		return m.isEmpty
 	}
 
-	tryLengthMethods[uint64](m, subject)
+	tryMethods[uint64](m, subject)
 
 	return m.isEmpty
 }
 
-func (m Matcher) OnTestFailure(subject any, opts ...any) []string {
+func (m *Matcher) OnTestFailure(subject any, opts ...any) []string {
 	if !m.hasLength && m.isNil && m._type == "" {
 		test.T().Helper()
 		test.Invalid(
@@ -113,14 +113,21 @@ func (m Matcher) OnTestFailure(subject any, opts ...any) []string {
 	}
 }
 
+// tryLen attempts to determine the length of the subject using the built-in
+// len() function
 func (m *Matcher) tryLen(v any) {
+	setResult := func(isNil, isEmpty bool, slen, typ string) {
+		m.isNil = isNil
+		m.isEmpty = isEmpty
+		m.hasLength = true
+		m.len = slen
+		m.method = "len"
+		m._type = typ
+	}
+
 	switch got := v.(type) {
 	case string:
-		m.hasLength = true
-		m.len = strconv.Itoa(len(got))
-		m.isEmpty = len(got) == 0
-		m.method = "len"
-		m._type = "string"
+		setResult(false, len(got) == 0, strconv.Itoa(len(got)), "string")
 		return
 
 	case nil:
@@ -135,17 +142,12 @@ func (m *Matcher) tryLen(v any) {
 	val := reflect.ValueOf(v)
 	kind := val.Kind()
 	if (kind == reflect.Slice || kind == reflect.Map || kind == reflect.Chan) && val.IsNil() {
-		m.isNil = !m.TreatNilAsEmpty
-		m._type = typ.Kind().String()
-		m.hasLength = m.TreatNilAsEmpty
-		m.len = "nil " + kind.String()
-		m.isEmpty = true
-		m.method = "len"
+		setResult(!m.TreatNilAsEmpty, true, "nil "+kind.String(), typ.Kind().String())
 		return
 	}
 
 	var n int
-	switch typ.Kind() {
+	switch typ.Kind() { //nolint: exhaustive // dealing only with types that support len()
 	case reflect.Array:
 		n = typ.Len()
 	case reflect.Chan, reflect.Map, reflect.Slice:
@@ -154,17 +156,15 @@ func (m *Matcher) tryLen(v any) {
 		return
 	}
 
-	m.hasLength = true
-	m.len = strconv.Itoa(n)
-	m.isEmpty = n == 0
-	m.method = "len"
-	m._type = typ.Kind().String()
+	setResult(false, n == 0, strconv.Itoa(n), typ.Kind().String())
 }
 
-func tryLengthMethods[T int | uint | int64 | uint64](m *Matcher, v any) {
+// tryMethods attempts to determine the length of the subject using
+// Count(), Len(), or Length() methods, if they are implemented
+func tryMethods[T int | uint | int64 | uint64](m *Matcher, v any) {
 	typ := fmt.Sprintf("%T", v)
 
-	hasLength := func(l T, method string) {
+	setResult := func(l T, method string) {
 		m.hasLength = true
 		m.len = fmt.Sprintf("%d", l)
 		m.isEmpty = l == 0
@@ -174,12 +174,12 @@ func tryLengthMethods[T int | uint | int64 | uint64](m *Matcher, v any) {
 
 	switch v := v.(type) {
 	case interface{ Count() T }:
-		hasLength(v.Count(), "Count")
+		setResult(v.Count(), "Count")
 
 	case interface{ Len() T }:
-		hasLength(v.Len(), "Len")
+		setResult(v.Len(), "Len")
 
 	case interface{ Length() T }:
-		hasLength(v.Length(), "Length")
+		setResult(v.Length(), "Length")
 	}
 }

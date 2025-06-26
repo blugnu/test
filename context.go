@@ -38,8 +38,8 @@ func HaveContextKey[K comparable](k K) *contexts.KeyMatcher[K] {
 //
 //	opt.QuotedStrings(bool)    // determines whether string keys or values are quoted
 //	                           // in the test failure report (quoted by default);
-//	                           // the option has has no effect for keys or values
-//	                           // that are not string type
+//	                           // the option has no effect for keys or values that
+//	                           // are not string type
 //
 //	opt.FailureReport(func)    // a function returning a custom failure report
 //	                           // in the event that the test fails

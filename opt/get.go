@@ -9,10 +9,10 @@ package opt
 // option type is returned with false.
 func Get[T any](opts []any) (T, bool) {
 	for _, opt := range opts {
-		switch v := opt.(type) {
-		case T:
+		if v, ok := opt.(T); ok {
 			return v, true
 		}
 	}
+
 	return *new(T), false
 }

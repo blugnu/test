@@ -10,14 +10,6 @@ import (
 	"github.com/blugnu/test/test"
 )
 
-// Matcher[T] is a generic interface that defines a method for
-// matching a value of type T. This is the interface that all
-// matchers must implement to be accepted by the To() and
-// ToNot() methods.
-type Matcher[T any] interface {
-	Match(T, ...any) bool
-}
-
 // Expect creates an expectation for the given value.  The value
 // may be of any type.
 //
@@ -32,6 +24,7 @@ func Expect[T any](value T, opts ...any) *expectation[T] {
 		subject:  value,
 		name:     opt.Name(opts),
 		testName: t.Name(),
+		required: opt.IsSet(opts, opt.IsRequired(true)),
 	}
 }
 
@@ -73,9 +66,9 @@ type expectation[T any] struct {
 	name     string
 	testName string
 
-	// required indicates whether the expectation is required to pass; if true
-	// and the expectation fails, the current test is failed immediated and no
-	// further expectations in the current test are evaluated
+	// required indicates whether the expectation is required to pass.
+	// If true and the expectation is not met, the test will fail immediately
+	// and no further expectations in the current test will be evaluated.
 	required bool
 }
 
@@ -95,47 +88,20 @@ type expectation[T any] struct {
 func (e *expectation[T]) err(msg any) {
 	e.t.Helper()
 
-	// the fail funcs will set Error by default...
-	fail := e.t.Error
-	failf := e.t.Errorf
-
-	// ..but if the expectation is marked as required, fail funcs will
-	// use Fatal instead
+	errorFn := e.t.Error
 	if e.required {
-		fail = e.t.Fatal
-		failf = e.t.Fatalf
+		errorFn = e.t.Fatal
 	}
 
-	handleEmpty := func() {
-		e.t.Helper()
-
-		if e.name != "" {
-			failf("test failed (%s)", e.name)
-			return
-		}
-		fail("test failed")
-	}
-
+	msg = e.errMsg(msg)
 	switch msg := msg.(type) {
-	case nil:
-		handleEmpty()
-
 	case string:
-		if len(msg) == 0 {
-			handleEmpty()
-			return
-		}
 		if e.name != "" {
 			msg = e.name + ": " + msg
 		}
-		fail(msg)
+		errorFn(msg)
 
 	case []string:
-		if len(msg) == 0 {
-			handleEmpty()
-			return
-		}
-
 		var rpt string
 		var indent string
 		if e.name != "" {
@@ -145,12 +111,69 @@ func (e *expectation[T]) err(msg any) {
 		for _, s := range msg {
 			rpt += "\n" + indent + s
 		}
-		// e.t.Error(rpt)
-		fail(rpt)
+		errorFn(rpt)
+
+		// errMsg returns a string or []string, so we can safely use a type
+		// switch here to handle both cases without a default case
+	}
+}
+
+func (e *expectation[T]) errMsg(msg any) any {
+	const failed = "test failed"
+
+	if msg == nil {
+		return failed
+	} else if s, ok := msg.(string); ok && len(s) == 0 {
+		return failed
+	} else if s, ok := msg.([]string); ok && len(s) == 0 {
+		return failed
+	}
+
+	switch msg := msg.(type) {
+	case string:
+		return msg
+
+	case []string:
+		return msg
 
 	default:
-		// e.t.Errorf("\ntest failed with: %v", msg)
-		failf("\ntest failed with: %v", msg)
+		return fmt.Sprintf("%s: %v", failed, msg)
+	}
+}
+
+// defaultFailureReport presents a default test failure report
+// for the expectation. It is used when a matcher does not provide
+// a specific failure report and no failure reporting option is
+// present.
+func (e *expectation[T]) defaultFailureReport(reporter any, matcher any, opts ...any) {
+	e.t.Helper()
+
+	exp := e.getExpected(matcher)
+
+	var ef, gf string
+	if f, ok := reporter.(interface{ FormatValue(any, ...any) string }); ok {
+		ef = f.FormatValue(exp, opts...)
+		gf = f.FormatValue(e.subject, opts...)
+	} else {
+		ef = fmt.Sprintf("%v", exp)
+		gf = fmt.Sprintf("%v", e.subject)
+	}
+
+	switch {
+	// no expected value, just report the got value
+	case exp == nil:
+		e.err("got " + gf)
+
+	// expected and got values are small, use a one line report
+	case len(ef) < 10 && len(gf) < 10:
+		e.err(fmt.Sprintf("expected %s, got %s", ef, gf))
+
+	// otherwise, use a multi-line report
+	default:
+		e.err([]string{
+			"expected: " + ef,
+			"got     : " + gf,
+		})
 	}
 }
 
@@ -168,51 +191,24 @@ func (e *expectation[T]) fail(matcher any, opts ...any) {
 		report = matcher
 	}
 
-	// expectation.required may be preset or may have been specified
-	// as an option
+	// expectation.required may be preset or may be specified as an option
 	e.required = e.required || opt.IsSet(opts, opt.IsRequired(true))
 
-	switch report := report.(type) {
+	switch reporter := report.(type) {
 	case interface{ OnTestFailure(...any) string }:
-		e.err([]string{report.OnTestFailure(opts...)})
+		e.err([]string{reporter.OnTestFailure(opts...)})
 	case interface{ OnTestFailure(...any) []string }:
-		e.err(report.OnTestFailure(opts...))
+		e.err(reporter.OnTestFailure(opts...))
 	case interface{ OnTestFailure(T, ...any) string }:
-		e.err([]string{report.OnTestFailure(e.subject, opts...)})
+		e.err([]string{reporter.OnTestFailure(e.subject, opts...)})
 	case interface{ OnTestFailure(T, ...any) []string }:
-		e.err(report.OnTestFailure(e.subject, opts...))
+		e.err(reporter.OnTestFailure(e.subject, opts...))
 	case interface{ OnTestFailure(any, ...any) string }:
-		e.err([]string{report.OnTestFailure(e.subject, opts...)})
+		e.err([]string{reporter.OnTestFailure(e.subject, opts...)})
 	case interface{ OnTestFailure(any, ...any) []string }:
-		e.err(report.OnTestFailure(e.subject, opts...))
+		e.err(reporter.OnTestFailure(e.subject, opts...))
 	default:
-		exp := e.getExpected(matcher)
-
-		var ef, gf string
-		if f, ok := report.(interface{ FormatValue(any, ...any) string }); ok {
-			ef = f.FormatValue(exp, opts...)
-			gf = f.FormatValue(e.subject, opts...)
-		} else {
-			ef = fmt.Sprintf("%v", exp)
-			gf = fmt.Sprintf("%v", e.subject)
-		}
-
-		if exp == nil {
-			e.err(fmt.Sprintf("got %s", gf))
-			return
-		}
-
-		// if the expected and got values are small, use a one line report
-		if len(ef) < 10 && len(gf) < 10 {
-			e.err(fmt.Sprintf("expected %s, got %s", ef, gf))
-			return
-		}
-
-		// otherwise, use a multi-line report
-		e.err([]string{
-			fmt.Sprintf("expected: %s", ef),
-			fmt.Sprintf("got     : %s", gf),
-		})
+		e.defaultFailureReport(reporter, matcher, opts...)
 	}
 }
 

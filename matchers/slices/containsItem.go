@@ -20,7 +20,9 @@ func (m ContainsItemMatcher[T]) Match(got []T, opts ...any) bool {
 	cmp := reflect.DeepEqual
 	if fn, ok := opt.Get[func(T, T) bool](opts); ok {
 		cmp = func(a, b any) bool {
-			return fn(a.(T), b.(T))
+			at, _ := a.(T)
+			bt, _ := b.(T)
+			return fn(at, bt)
 		}
 	} else if fn, ok := opt.Get[func(any, any) bool](opts); ok {
 		cmp = fn
@@ -33,8 +35,8 @@ func (m ContainsItemMatcher[T]) Match(got []T, opts ...any) bool {
 		opt.IsSet(opts, opt.CaseSensitive(false)) {
 		og := cmp
 		cmp = func(a, b any) bool {
-			a = strings.ToLower(a.(string))
-			b = strings.ToLower(b.(string))
+			a = strings.ToLower(fmt.Sprintf("%v", a))
+			b = strings.ToLower(fmt.Sprintf("%v", b))
 			return og(a, b)
 		}
 	}
@@ -43,7 +45,10 @@ func (m ContainsItemMatcher[T]) Match(got []T, opts ...any) bool {
 }
 
 func (m ContainsItemMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
-	result := make([]string, 1, 2+len(got))
+	const minlen = 1
+	var maxlen = 2 + len(got)
+
+	result := make([]string, minlen, maxlen)
 	switch opt.IsSet(opts, opt.ToNotMatch(true)) {
 	case true:
 		result[0] = fmt.Sprintf("expected: %T not containing: "+opt.ValueAsString(m.Expected, opts...), got)

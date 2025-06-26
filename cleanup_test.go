@@ -1,8 +1,10 @@
-package test
+package test_test
 
 import (
 	"fmt"
 	"testing"
+
+	. "github.com/blugnu/test"
 )
 
 func TestCleanup(t *testing.T) {

@@ -29,7 +29,7 @@ func (s slice[T]) containsItems(target []T, cmp func(any, any) bool) bool {
 	return len(cpy) == 0
 }
 
-// containsSlice returns true if the receiver contains at least one occurence
+// containsSlice returns true if the receiver contains at least one occurrence
 // of all elements in the target slice in the same order as the target slice.
 func (s slice[T]) containsSlice(target []T, cmp func(any, any) bool) bool {
 	ix := 0

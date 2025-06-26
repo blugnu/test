@@ -30,7 +30,9 @@ func (m EqualMatcher[T]) Match(got []T, opts ...any) bool {
 	cmp := reflect.DeepEqual
 	if fn, ok := opt.Get[func(T, T) bool](opts); ok {
 		cmp = func(a, b any) bool {
-			return fn(a.(T), b.(T))
+			at, _ := a.(T)
+			bt, _ := b.(T)
+			return fn(at, bt)
 		}
 	} else if fn, ok := opt.Get[func(any, any) bool](opts); ok {
 		cmp = fn

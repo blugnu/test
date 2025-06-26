@@ -1,8 +1,9 @@
-package test
+package test_test
 
 import (
 	"testing"
 
+	. "github.com/blugnu/test"
 	"github.com/blugnu/test/internal/testframe"
 	"github.com/blugnu/test/opt"
 	"github.com/blugnu/test/test"
@@ -23,7 +24,6 @@ func TestT(t *testing.T) {
 		t1 := T()
 		Expect(t1).IsNotNil()
 	})
-
 }
 
 func TestT_Name(t *testing.T) {
