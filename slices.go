@@ -63,15 +63,15 @@ func ContainSlice[T comparable](e []T) slices.ContainsSliceMatcher[T] {
 // EqualSlice compares the actual slice with an expected slice and fails
 // the test if they are not equal.
 //
-// By default, the order of elements in each slice is significant.  That is,
-// the nth each slice must be equal. If the order of elements is not
-// significant, use the ExactOrder option to specify that the order of elements
-// is not significant, e.g.:
+// By default, the order of elements in each slice is significant.  That
+// is, the nth each slice must be equal. If the order of elements is not
+// significant, use the ExactOrder option to specify that the order of
+// elements is not significant, e.g.:
 //
 //	got := []int{1, 2, 3}
 //	expected := []int{3, 2, 1}
-//	Expect(got).To(EqualSlice(expected)) // will fail
-//	Expect(got).To(EqualSlice(expected, ExactOrder(false))) // will pass
-func EqualSlice[T comparable](e []T, opts ...any) slices.EqualMatcher[T] {
+//	Expect(got).To(EqualSlice(expected))                         // will fail
+//	Expect(got).To(EqualSlice(expected), opt.ExactOrder(false))  // will pass
+func EqualSlice[T comparable](e []T) slices.EqualMatcher[T] {
 	return slices.EqualMatcher[T]{Expected: e}
 }
