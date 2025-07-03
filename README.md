@@ -949,18 +949,19 @@ func TestDoSomething(t *testing.T) {
 
 ------
 
-# Testing a Test
+# Testing a Test Helper
 
 If you write your own test helpers (or matchers), you should of course test them.
-A `Test()` function is provided to enable you to do just that.
+A `TestHelper()` function is provided to enable you to do just that.
 
-`Test()` accepts a function that will be used to exercise your test helper, isolated in
-a separate test runner.  This allows your test helper to fail without affecting the outcome
-of the test that is testing it.
+`TestHelper()` accepts a function that executes your test helper; it is performed
+using a separate test runner, independent of the current test.  This allows the
+helper being tested to fail without affecting the outcome of the test that is
+testing it.
 
-The `Test()` function returns a `test.R` value that contains information about the
-outcome of the test.  You could test the information in this `R` value directly, but
-the `R` type provides methods to make this easier.
+The `TestHelper()` function returns a `test.R` value that contains information about
+the outcome of the test.  You could test the information in this `R` value directly,
+but the `R` type provides methods to make this easier.
 
 ## Testing the Outcome
 
@@ -968,16 +969,16 @@ To test the outcome of a test, without considering any output, you can pass the 
 outcome as an argument to the `R.Expect()` method:
 
 ```go
-  result := Test(func() {
+  result := TestHelper(func() {
     /* your test code here */
   })
 
   result.Expect(TestPassed)
 ```
 
-## Testing Test Output
+## Testing Test Helper Output
 
-It is a good idea to test the output of your test helper or matcher when it fails. You
+It is recommended to test the output of your test helper or matcher when it fails. You
 can do this by passing the expected lines of test output as strings to the `R.Expect()`
 method:
 

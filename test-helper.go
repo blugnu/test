@@ -277,18 +277,23 @@ func (r *R) assertPanicked(expectedReport []string, opts ...any) {
 	)
 }
 
-// Test runs a function that exercises a test function returning an R that captures the
-// test result:
+// TestHelper runs a function that executes a function in an internal test runner,
+// independent of the current test, returning an R value that captures the
+// following:
 //
-// - the outcome (TestPassed, TestFailed, TestPanicked)
-// - names of any tests that failed
-// - any output
-// - any logs
-// - any value recovered from a panic
-func Test(f func()) R {
+//   - the test outcome (TestPassed, TestFailed, TestPanicked)
+//   - names of any tests that failed
+//   - stdout output
+//   - stderr output
+//   - any value recovered from a panic
+//
+// This function is intended to be used to test helper functions.  For example,
+// it is used extensively in the blugnu/test package itself, to test the
+// test framework.
+func TestHelper(f func()) R {
 	t, ok := T().(*testing.T)
 	if !ok {
-		panic("Test() must be called with a *testing.T test frame")
+		panic("TestHelper() must be called with a *testing.T test frame")
 	}
 
 	t.Helper()
@@ -330,7 +335,7 @@ func runInternalMatchAll(pat, match string) (bool, error) {
 // runInternal is a helper function that runs a specified test function as an
 // internal test.
 //
-// It is used by Test() to run a test function in a separate test runner in order to
+// It is used to run a test function in a separate test runner in order to
 // inspect the outcome of the test function without that affecting the state of the
 // current test.
 func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, TestOutcome) {

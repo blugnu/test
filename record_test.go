@@ -86,20 +86,20 @@ func TestRecord(t *testing.T) {
 	RunParallelScenarios(func(_ *string, _ int) {
 		defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
-		_ = Test(func() {})
+		_ = TestHelper(func() {})
 	}, []string{"not used"})
 
 	RunParallel("in a RunParallel test", func() {
 		defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
-		_ = Test(func() {})
+		_ = TestHelper(func() {})
 	})
 
 	Run("in a Parallel() test", func() {
 		defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
 		Parallel()
-		_ = Test(func() {})
+		_ = TestHelper(func() {})
 	})
 }
 

@@ -11,7 +11,7 @@ import (
 func TestOriginal(t *testing.T) {
 	With(t)
 
-	result := Test(func() {
+	result := TestHelper(func() {
 		Original((*int)(nil))
 	})
 

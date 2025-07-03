@@ -50,7 +50,7 @@ func TestParallel(t *testing.T) {
 	})
 
 	Run("multiple arguments, with test frame", func() {
-		result := Test(func() {
+		result := TestHelper(func() {
 			Parallel(t, t)
 		})
 		result.ExpectInvalid(
@@ -119,7 +119,7 @@ func TestParallelTests(t *testing.T) {
 	})
 
 	Run("calling Parallel() from a parallel test", func() {
-		result := Test(func() {
+		result := TestHelper(func() {
 			Parallel()
 			Parallel()
 		})
@@ -141,7 +141,7 @@ func TestParallelTests(t *testing.T) {
 	})
 
 	Run("calling RunParallel() from a parallel test", func() {
-		result := Test(func() {
+		result := TestHelper(func() {
 			Parallel()
 			RunParallel("already parallel", func() {})
 		})
@@ -151,7 +151,7 @@ func TestParallelTests(t *testing.T) {
 	})
 
 	Run("calling RunParallelScenarios() from a parallel test", func() {
-		result := Test(func() {
+		result := TestHelper(func() {
 			RunParallel("parallel", func() {
 				RunParallelScenarios(func(*int, int) {}, []int{})
 			})

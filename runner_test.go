@@ -105,7 +105,7 @@ func TestRunner_RunParallel(t *testing.T) {
 	})
 
 	Run("called from a parallel test", func() {
-		result := Test(func() {
+		result := TestHelper(func() {
 			RunParallel("parallel", func() {
 				r := Runner[int]{}
 				r.RunParallel(func(_ *int, _ int) {}, []int{})

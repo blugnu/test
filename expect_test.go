@@ -451,7 +451,7 @@ func TestExpect_ToNot(t *testing.T) {
 func TestRequire(t *testing.T) {
 	With(t)
 
-	result := Test(func() {
+	result := TestHelper(func() {
 		Require(true).To(Equal(false))
 		Expect("black").To(Equal("white"))
 	})

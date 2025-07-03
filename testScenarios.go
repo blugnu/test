@@ -29,7 +29,7 @@ func RunTestScenarios(scns []TestScenario) {
 			test.Invalid("test.RunTestScenarios: no Act function defined")
 		}
 
-		result := Test(tc.Act)
+		result := TestHelper(tc.Act)
 		if tc.Assert == nil {
 			result.Expect(TestPassed)
 			return

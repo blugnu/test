@@ -30,7 +30,7 @@ func TestTestOutcome(t *testing.T) {
 		})
 }
 
-func TestTest(t *testing.T) {
+func TestTestHelper(t *testing.T) {
 	With(t)
 
 	Run("Test call made from a non-Test function", func() {
@@ -41,18 +41,18 @@ func TestTest(t *testing.T) {
 		}()
 
 		test.Example()
-		_ = Test(func() {})
+		_ = TestHelper(func() {})
 	})
 
 	Run("test panics", func() {
-		result := Test(func() {
+		result := TestHelper(func() {
 			panic("whoops!")
 		})
 		result.Expect(TestPanicked, "whoops!")
 	})
 
 	Run("additional output to stdout", func() {
-		result := Test(func() {
+		result := TestHelper(func() {
 			fmt.Println("")
 			fmt.Println("some preamble output")
 			fmt.Println("")

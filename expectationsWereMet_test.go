@@ -28,7 +28,7 @@ func TestExpectationsWereMet(t *testing.T) {
 	mock := &mock{}
 
 	// ACT
-	result := Test(func() { ExpectationsWereMet(mock) })
+	result := TestHelper(func() { ExpectationsWereMet(mock) })
 
 	// ASSERT
 	Expect(mock.expectationsWereMet_wasCalled, "expectationsWereMet was called").Is(true)

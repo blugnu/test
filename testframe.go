@@ -49,7 +49,7 @@ func T() TestingT {
 // not nil it will be popped from the stack when the test has completed.
 //
 // This is used to set the current test frame for the test package, typically
-// called as the first line of a Test() function:
+// called as the first line of a Test...() function:
 //
 //	func TestSomething(t *testing.T) {
 //	    With(t)
