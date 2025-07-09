@@ -14,26 +14,27 @@ func TestContext(t *testing.T) {
 	type key string
 	ctx := context.WithValue(context.Background(), key("key"), "value")
 
-	Run("ContextKey", func() {
-		RunTestScenarios([]TestScenario{
-			{Scenario: "expected key present",
-				Act: func() {
-					Expect(ctx).To(HaveContextKey(key("key")))
+	Run(
+		Test("ContextKey", func() {
+			Run(HelperTests([]HelperScenario{
+				{Scenario: "expected key present",
+					Act: func() {
+						Expect(ctx).To(HaveContextKey(key("key")))
+					},
 				},
-			},
-			{Scenario: "expected key not present",
-				Act: func() {
-					Expect(ctx).To(HaveContextKey(key("other-key")))
+				{Scenario: "expected key not present",
+					Act: func() {
+						Expect(ctx).To(HaveContextKey(key("other-key")))
+					},
+					Assert: func(result *R) {
+						result.Expect(TestFailed, opt.IgnoreReport(true))
+					},
 				},
-				Assert: func(result *R) {
-					result.Expect(TestFailed, opt.IgnoreReport(true))
-				},
-			},
-		})
-	})
+			}...))
+		}))
 
-	Run("ContextValue", func() {
-		RunTestScenarios([]TestScenario{
+	Run(Test("ContextValue", func() {
+		Run(HelperTests([]HelperScenario{
 			{Scenario: "expected value present",
 				Act: func() {
 					Expect(ctx).To(HaveContextValue(key("key"), "value"))
@@ -55,6 +56,7 @@ func TestContext(t *testing.T) {
 					result.Expect(TestFailed, opt.IgnoreReport(true))
 				},
 			},
-		})
-	})
+		}...))
+	}),
+	)
 }

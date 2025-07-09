@@ -55,12 +55,15 @@ func (e expectation[T]) DidOccur(opts ...any) {
 		if !match.Match(v, opts...) {
 			e.fail(match, opts...)
 		}
+
 	case error:
 		if v != nil {
 			return
 		}
+
 	case nil:
 		e.err("expected error, got nil")
+
 	default:
 		test.Invalid("test.DidOccur: may only be used with Panic() or error values")
 	}

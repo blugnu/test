@@ -24,7 +24,7 @@ func TestEqualMatcher(t *testing.T) {
 		return s
 	}
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expected equal and was equal",
 			Act: func() { Expect(makeSlice(4)).To(EqualBytes(makeSlice(4))) },
 		},
@@ -191,5 +191,5 @@ func TestEqualMatcher(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }

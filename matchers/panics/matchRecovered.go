@@ -59,7 +59,7 @@ func (pm *MatchRecovered) Match(target Expected, opts ...any) bool {
 		return pm.got == nil
 
 	case pm.expected == nil:
-		return pm.got == nil
+		return pm.got != nil
 
 	default:
 		if err, expectedErr := pm.expected.(error); expectedErr {
@@ -84,24 +84,47 @@ func (pm *MatchRecovered) Match(target Expected, opts ...any) bool {
 
 // OnTestFailure returns a report of the failure for the matcher.
 func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
+	const nilRecovered = "nil (did not panic)"
+
 	switch {
-	case pm.got == nil:
-		// when got is nil, some expected panic has failed to occur
-		return []string{
-			fmt.Sprintf("expected panic: %T(%v)", pm.expected, opt.ValueAsString(pm.expected, opts...)),
-			"  recovered   : " + nilRecovered,
-		}
-	case pm.expected == nil || pm.expected == opt.NoPanicExpected(true):
-		// when expected is nil we are not expecting any panic to have occurred
+	case (pm.expected == opt.NoPanicExpected(true) || pm.expected == nil) && pm.got != nil:
+		// this is complicated by the special handling for Panic(nil):
+		//
+		// EITHER: we failed because we were not expecting a panic:
+		//   Panic(nil).DidOccur()
+		//
+		// OR: we were not expecting any panic
+		//   Panic().DidNotOccur()
+		//
+		// a subtle difference, but in either case, we must have failed
+		// because we got a panic that we did not expect
 		return []string{
 			"unexpected panic:",
 			fmt.Sprintf("  recovered: %T(%v)", pm.got, opt.ValueAsString(pm.got, opts...)),
 		}
+
+	case pm.expected == nil:
+		// we were expecting a non-specific panic, so if we failed it must be
+		// because we did not panic at all
+		return []string{
+			"expected panic: <any value recovered>",
+			"  recovered   : " + nilRecovered,
+		}
+
+	case pm.got == nil:
+		// we did not recover a value so must have failed because
+		// we were expecting to recover a specific value from a panic
+		return []string{
+			fmt.Sprintf("expected panic: %T(%v)", pm.expected, opt.ValueAsString(pm.expected, opts...)),
+			"  recovered   : " + nilRecovered,
+		}
+
 	case opt.IsSet(opts, opt.ToNotMatch(true)):
 		// when ToNotMatch is set, we must have recovered from an expected panic that NOT have occurred
 		return []string{
 			fmt.Sprintf("expected: panic with %T(%v): should not have occurred", pm.expected, opt.ValueAsString(pm.expected, opts...)),
 		}
+
 	default:
 		// otherwise we were expecting a specific value to be recovered from a panic but
 		// we got something else instead

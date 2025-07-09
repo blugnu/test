@@ -20,7 +20,7 @@ func TestNilPanic(t *testing.T) {
 func TestPanic(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "with no args",
 			Act: func() {
 				result := Panic()
@@ -48,7 +48,7 @@ func TestPanic(t *testing.T) {
 				result.ExpectInvalid("Panic: expected at most one argument, got 2")
 			},
 		},
-	})
+	}...))
 }
 
 func ExamplePanic() {

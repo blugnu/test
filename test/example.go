@@ -10,7 +10,7 @@ import (
 // Example is used to initialise a testframe for an Example function
 // (that is, a runnable example on pkg.go.dev)
 func Example() {
-	// NOTE: at time of writine, Example functions appear to be run in a single
+	// NOTE: at time of writing, Example functions appear to be run in a single
 	// goroutine, so we don't need to worry about concurrency issues here.
 	//
 	// However, since we always push a new example runner each time this function
@@ -83,7 +83,7 @@ func (m *example) Run(name string, f func(t *testing.T)) bool {
 	testframe.Push(st)
 	defer testframe.Pop()
 
-	f(nil)
+	f(nil) // run the function with a nil *testing.T
 
 	return st.Failed()
 }

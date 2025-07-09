@@ -11,7 +11,7 @@ import (
 func TestExpect_IsNil(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "nil",
 			Act: func() { var subject any; Expect(subject).IsNil() },
 		},
@@ -43,13 +43,13 @@ func TestExpect_IsNil(t *testing.T) {
 				result.Expect("custom failure report")
 			},
 		},
-	})
+	}...))
 }
 
 func TestExpect_IsNotNil(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "non-nil error",
 			Act: func() { Expect(errors.New("error")).IsNotNil() },
 		},
@@ -74,5 +74,5 @@ func TestExpect_IsNotNil(t *testing.T) {
 				result.Expect("custom failure report")
 			},
 		},
-	})
+	}...))
 }

@@ -23,95 +23,93 @@ func TestFakeResult(t *testing.T) {
 func TestFakeResult_Returns(t *testing.T) {
 	With(t)
 
-	RunTestScenarios(
-		[]TestScenario{
-			{Scenario: "returns value",
-				Act: func() {
-					// ARRANGE
-					sut := FakeResult[int]{}
+	Run(HelperTests([]HelperScenario{
+		{Scenario: "returns value",
+			Act: func() {
+				// ARRANGE
+				sut := FakeResult[int]{}
 
-					// ACT
-					sut.Returns(42)
+				// ACT
+				sut.Returns(42)
 
-					// ASSERT
-					Expect(sut).To(Equal(FakeResult[int]{Result: 42}))
-				},
-			},
-			{Scenario: "returns error",
-				Act: func() {
-					// ARRANGE
-					sut := FakeResult[int]{}
-					err := errors.New("fake error")
-
-					// ACT
-					sut.Returns(err)
-
-					// ASSERT
-					Expect(sut).To(Equal(FakeResult[int]{Err: err}))
-				},
-			},
-			{Scenario: "returns result and nil",
-				Act: func() {
-					// ARRANGE
-					sut := FakeResult[int]{}
-
-					// ACT
-					sut.Returns(42, nil)
-
-					// ASSERT
-					Expect(sut).To(Equal(FakeResult[int]{Result: 42}))
-				},
-			},
-			{Scenario: "returns result and error",
-				Act: func() {
-					// ARRANGE
-					sut := FakeResult[int]{}
-					err := errors.New("fake error")
-
-					// ACT
-					sut.Returns(42, err)
-
-					// ASSERT
-					Expect(sut).To(Equal(FakeResult[int]{Result: 42, Err: err}))
-				},
-			},
-			{Scenario: "multiple result values",
-				Act: func() {
-					// ARRANGE + ASSERT
-					sut := FakeResult[int]{}
-
-					// ACT
-					sut.Returns(1, 2)
-				},
-				Assert: func(result *R) {
-					result.ExpectInvalid(ErrInvalidOperation)
-				},
-			},
-			{Scenario: "multiple error values",
-				Act: func() {
-					// ARRANGE + ASSERT
-					sut := FakeResult[int]{}
-					err := errors.New("fake error")
-
-					// ACT
-					sut.Returns(err, err)
-				},
-				Assert: func(result *R) {
-					result.ExpectInvalid(ErrInvalidOperation)
-				},
-			},
-			{Scenario: "invalid type",
-				Act: func() {
-					// ARRANGE + ASSERT
-					sut := FakeResult[int]{}
-
-					// ACT
-					sut.Returns("invalid type")
-				},
-				Assert: func(result *R) {
-					result.ExpectInvalid(ErrInvalidOperation)
-				},
+				// ASSERT
+				Expect(sut).To(Equal(FakeResult[int]{Result: 42}))
 			},
 		},
-	)
+		{Scenario: "returns error",
+			Act: func() {
+				// ARRANGE
+				sut := FakeResult[int]{}
+				err := errors.New("fake error")
+
+				// ACT
+				sut.Returns(err)
+
+				// ASSERT
+				Expect(sut).To(Equal(FakeResult[int]{Err: err}))
+			},
+		},
+		{Scenario: "returns result and nil",
+			Act: func() {
+				// ARRANGE
+				sut := FakeResult[int]{}
+
+				// ACT
+				sut.Returns(42, nil)
+
+				// ASSERT
+				Expect(sut).To(Equal(FakeResult[int]{Result: 42}))
+			},
+		},
+		{Scenario: "returns result and error",
+			Act: func() {
+				// ARRANGE
+				sut := FakeResult[int]{}
+				err := errors.New("fake error")
+
+				// ACT
+				sut.Returns(42, err)
+
+				// ASSERT
+				Expect(sut).To(Equal(FakeResult[int]{Result: 42, Err: err}))
+			},
+		},
+		{Scenario: "multiple result values",
+			Act: func() {
+				// ARRANGE + ASSERT
+				sut := FakeResult[int]{}
+
+				// ACT
+				sut.Returns(1, 2)
+			},
+			Assert: func(result *R) {
+				result.ExpectInvalid(ErrInvalidOperation)
+			},
+		},
+		{Scenario: "multiple error values",
+			Act: func() {
+				// ARRANGE + ASSERT
+				sut := FakeResult[int]{}
+				err := errors.New("fake error")
+
+				// ACT
+				sut.Returns(err, err)
+			},
+			Assert: func(result *R) {
+				result.ExpectInvalid(ErrInvalidOperation)
+			},
+		},
+		{Scenario: "invalid type",
+			Act: func() {
+				// ARRANGE + ASSERT
+				sut := FakeResult[int]{}
+
+				// ACT
+				sut.Returns("invalid type")
+			},
+			Assert: func(result *R) {
+				result.ExpectInvalid(ErrInvalidOperation)
+			},
+		},
+	}...))
 }

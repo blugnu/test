@@ -10,10 +10,10 @@ import (
 func TestNilFrame(t *testing.T) {
 	With(t)
 
-	Run("with no test frame", func() {
+	Run(Test("with no test frame", func() {
 		defer Expect(Panic(test.ErrNoTestFrame)).DidOccur()
 		With(test.NilFrame())
 
 		test.NilFrame()
-	})
+	}))
 }

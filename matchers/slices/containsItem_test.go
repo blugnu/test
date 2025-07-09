@@ -10,7 +10,7 @@ import (
 func TestContainsItem(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// MARK: []string / To
 		{Scenario: "expected slice of string to contain an item that is present",
 			Act: func() {
@@ -149,5 +149,5 @@ func TestContainsItem(t *testing.T) {
 				})
 			},
 		},
-	})
+	}...))
 }

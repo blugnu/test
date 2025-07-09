@@ -14,26 +14,27 @@ func TestTestOutcome(t *testing.T) {
 		TestOutcome
 		result string
 	}
-	RunScenarios(
-		func(tc *testcase, _ int) {
+	Run(Testcases(
+		ForEach(func(tc testcase) {
 			// ACT
 			result := tc.String()
 
 			// ASSERT
 			Expect(result).To(Equal(tc.result))
-		},
-		[]testcase{
+		}),
+		Cases([]testcase{
 			{TestOutcome: TestPassed, result: "TestPassed"},
 			{TestOutcome: TestFailed, result: "TestFailed"},
 			{TestOutcome: TestPanicked, result: "TestPanicked"},
 			{TestOutcome: 99, result: "TestOutcome(99)"},
-		})
+		}),
+	))
 }
 
 func TestTestHelper(t *testing.T) {
 	With(t)
 
-	Run("Test call made from a non-Test function", func() {
+	Run(Test("Test call made from a non-Test function", func() {
 		defer func() {
 			if r := recover(); r == nil {
 				t.Errorf("Expected panic, but did not get one")
@@ -42,16 +43,16 @@ func TestTestHelper(t *testing.T) {
 
 		test.Example()
 		_ = TestHelper(func() {})
-	})
+	}))
 
-	Run("test panics", func() {
+	Run(Test("test panics", func() {
 		result := TestHelper(func() {
 			panic("whoops!")
 		})
 		result.Expect(TestPanicked, "whoops!")
-	})
+	}))
 
-	Run("additional output to stdout", func() {
+	Run(Test("additional output to stdout", func() {
 		result := TestHelper(func() {
 			fmt.Println("")
 			fmt.Println("some preamble output")
@@ -62,13 +63,13 @@ func TestTestHelper(t *testing.T) {
 
 		// the report consists only of test report output
 		result.Expect(TestFailed, "expected false, got true")
-	})
+	}))
 }
 
 func TestR_Expect(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "no arguments",
 			Act: func() {
 				sut := R{
@@ -186,13 +187,25 @@ func TestR_Expect(t *testing.T) {
 				)
 			},
 		},
-	})
+		{Scenario: "failed with no report",
+			Act: func() {
+				sut := R{
+					t:       T(),
+					Outcome: TestFailed,
+				}
+				sut.Expect(TestFailed, "some expected failure report")
+			},
+			Assert: func(result *R) {
+				result.ExpectWarning("test failed as expected, but no test report or failures were recorded")
+			},
+		},
+	}...))
 }
 
 func Test_runInternal(t *testing.T) {
 	With(t)
 
-	Run("runInternalMatchAll coverage", func() {
+	Run(Test("runInternalMatchAll coverage", func() {
 		// NOTE: This test is provided to provide coverage only.
 		//
 		// The runInternalMatchAll function is passed to the RunTests() function called
@@ -206,9 +219,9 @@ func Test_runInternal(t *testing.T) {
 
 		Expect(err).IsNil()
 		Expect(result).To(BeTrue())
-	})
+	}))
 
-	Run("cleans verbose output", func() {
+	Run(Test("cleans verbose output", func() {
 		// This test simulates the output of a successful (passing) test that is run
 		// with the -v flag.  We ensure that the RUN: and PASS: lines are removed from
 		// the output to avoid false negatives in tests that expect an empty output for
@@ -228,21 +241,21 @@ func Test_runInternal(t *testing.T) {
 		Expect(outcome).To(Equal(TestPassed))
 		Expect(stdout).Should(BeEmpty())
 		Expect(stderr).Should(BeNil())
-	})
+	}))
 }
 
 func Test_testFilename(t *testing.T) {
 	With(t)
 
-	Run("called from a test file", func() {
+	Run(Test("called from a test file", func() {
 		// ACT
 		result := testFilename()
 
 		// ASSERT
-		Expect(result).To(Equal("test_test.go"))
-	})
+		Expect(result).To(Equal("test-helper_test.go"))
+	}))
 
-	Run("called from a non-test file (simulated)", func() {
+	Run(Test("called from a non-test file (simulated)", func() {
 		defer Restore(Original(&isTestFile).ReplacedBy(func(s string) bool { return false }))
 
 		// ACT
@@ -250,13 +263,13 @@ func Test_testFilename(t *testing.T) {
 
 		// ASSERT
 		Expect(result).To(Equal("<unknown test file>"))
-	})
+	}))
 }
 
 func Test_analyseReport(t *testing.T) {
 	With(t)
 
-	Run("empty report", func() {
+	Run(Test("empty report", func() {
 		// ACT
 		output, report, failed := analyseReport([]string{})
 
@@ -264,9 +277,9 @@ func Test_analyseReport(t *testing.T) {
 		Expect(output, "output").Should(BeEmptyOrNil())
 		Expect(report, "report").Should(BeEmptyOrNil())
 		Expect(failed, "failed").Should(BeEmptyOrNil())
-	})
+	}))
 
-	Run("report with one test failure", func() {
+	Run(Test("report with one test failure", func() {
 		// ACT
 		output, report, failed := analyseReport([]string{
 			"--- FAIL: TestSomething (0.0s)",
@@ -284,9 +297,9 @@ func Test_analyseReport(t *testing.T) {
 			"        report line 2",
 		}))
 		Expect(failed, "failed").To(EqualSlice([]string{"TestSomething"}))
-	})
+	}))
 
-	Run("misreported test location (simulates missing t.Helper)", func() {
+	Run(Test("misreported test location (simulates missing t.Helper)", func() {
 		// ACT
 		output, report, failed := analyseReport([]string{
 			"--- FAIL: TestSomething (0.0s)",
@@ -297,12 +310,12 @@ func Test_analyseReport(t *testing.T) {
 		// ASSERT
 		Expect(output, "output").Should(BeEmptyOrNil())
 		Expect(report, "report").To(EqualSlice([]string{
-			"WARNING: unable to parse test report (possibly missing a T().Helper() call?)",
+			"WARNING: check test location (missing a T().Helper() call?)",
 			"report:",
 			"| --- FAIL: TestSomething (0.0s)",
 			"|     stdout output (if any)",
 			"|     something.go:112: test failed",
 		}))
 		Expect(failed, "failed").Should(BeEmptyOrNil())
-	})
+	}))
 }

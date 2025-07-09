@@ -22,25 +22,25 @@ func TestRecord(t *testing.T) {
 		log.Println("to log")
 	}
 
-	// ACT
-	stdout, stderr := Record(func() {
-		writeOutput()
-	})
+	Run(Test("successful recording", func() {
+		// ACT
+		stdout, stderr := Record(func() {
+			writeOutput()
+		})
 
-	// ASSERT
-	Expect(stdout).To(EqualSlice([]string{
-		"to stdout (1)",
-		"to stdout (2)",
-	}), strings.Contains)
-	Expect(stderr).To(ContainSlice([]string{
-		"to stderr (1)",
-		"to stderr (2)",
-		"to log",
-	}), strings.Contains)
+		// ASSERT
+		Expect(stdout).To(EqualSlice([]string{
+			"to stdout (1)",
+			"to stdout (2)",
+		}), strings.Contains)
+		Expect(stderr).To(ContainSlice([]string{
+			"to stderr (1)",
+			"to stderr (2)",
+			"to log",
+		}), strings.Contains)
+	}))
 
-	t.Run("when copy fails", func(t *testing.T) {
-		With(t)
-
+	Run(Test("when copy fails", func() {
 		// ARRANGE
 		cpyerr := errors.New("copy error")
 		sut := stdioCapture{
@@ -59,11 +59,9 @@ func TestRecord(t *testing.T) {
 		// ASSERT
 		Expect(stdout, "stdout").Should(BeEmpty())
 		Expect(stderr, "stderr").Should(BeEmpty())
-	})
+	}))
 
-	t.Run("when unable to get log output", func(t *testing.T) {
-		With(t)
-
+	Run(Test("when unable to get log output", func() {
 		// ARRANGE
 		sut := stdioCapture{
 			copy: io.Copy,
@@ -81,26 +79,13 @@ func TestRecord(t *testing.T) {
 		// ASSERT
 		Expect(stdout, "stdout").Should(BeEmpty())
 		Expect(stderr, "stderr").Should(BeEmpty())
-	})
+	}))
 
-	RunParallelScenarios(func(_ *string, _ int) {
+	Run(ParallelTest("when used in a parallel test", func() {
 		defer Expect(Panic(ErrInvalidOperation)).DidOccur()
 
-		_ = TestHelper(func() {})
-	}, []string{"not used"})
-
-	RunParallel("in a RunParallel test", func() {
-		defer Expect(Panic(ErrInvalidOperation)).DidOccur()
-
-		_ = TestHelper(func() {})
-	})
-
-	Run("in a Parallel() test", func() {
-		defer Expect(Panic(ErrInvalidOperation)).DidOccur()
-
-		Parallel()
-		_ = TestHelper(func() {})
-	})
+		_, _ = Record(func() {})
+	}))
 }
 
 func ExampleRecord() {

@@ -38,6 +38,9 @@ func ExpectType[T any](got any, opts ...any) (T, bool) {
 	return z, false
 }
 
+// RequireType tests that a value is of an expected type. If the test passes,
+// the value is returned as that type otherwise the test fails immediately
+// without evaluating any further expectations.
 func RequireType[T any](got any, opts ...any) T {
 	GetT().Helper()
 

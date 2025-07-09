@@ -17,7 +17,7 @@ func (v implementsEqual) Equal(other implementsEqual) bool {
 func TestEqualMap(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expecting equal maps, got equal",
 			Act: func() {
 				w := map[string]int{"a": 1, "b": 2}
@@ -121,5 +121,5 @@ func TestEqualMap(t *testing.T) {
 				Expect(g).To(EqualMap(w), func(a, b any) bool { return true })
 			},
 		},
-	})
+	}...))
 }

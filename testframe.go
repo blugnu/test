@@ -71,7 +71,7 @@ func T() TestingT {
 //	    // when using test package functions to run subtests you do not
 //	    // need to call With() again
 //
-//	    Run("subtest", func() {
+//	    Run(Test("subtest", func() {
 //	        // ... rest of the subtest code ...
 //	    })
 //

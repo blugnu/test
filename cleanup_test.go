@@ -10,22 +10,27 @@ import (
 func TestCleanup(t *testing.T) {
 	With(t)
 
-	Run("is a no-op when called with a nil func", func() {
-		Cleanup(nil)
-	})
+	Run(
+		Test("is a no-op when called with a nil func", func() {
+			// this is a coverage test for the nil func case; there is no
+			// way to verify anything other than that it (implicitly) does
+			// not panic
+			Cleanup(nil)
+		}))
 
-	Run("runs cleanup functions at the end of a test", func() {
+	Run(Test("runs cleanup functions at the end of a test", func() {
 		out, err := Record(func() {
-			Run("subtest 1", func() {
+			Run(Test("subtest 1", func() {
 				Cleanup(func() {
 					fmt.Println("cleanup 1")
 				})
-			})
-			Run("subtest 2", func() {
+			}))
+
+			Run(Test("subtest 2", func() {
 				Cleanup(func() {
 					fmt.Println("cleanup 2")
 				})
-			})
+			}))
 		})
 
 		Expect(err).IsNil()
@@ -33,5 +38,6 @@ func TestCleanup(t *testing.T) {
 			"cleanup 1",
 			"cleanup 2",
 		}))
-	})
+	}),
+	)
 }

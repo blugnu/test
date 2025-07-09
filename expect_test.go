@@ -68,7 +68,7 @@ func (m matcherImplementingTestFailureOptsReturningString[T]) OnTestFailure(_ ..
 func TestExpect_TestFailureReporting(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expectation fails with a nil report",
 			Act: func() {
 				Expect(any(nil)).err(nil)
@@ -287,13 +287,13 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func TestExpect_Is(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{
 			Scenario: "expecting nil and got nil",
 			Act:      func() { var a any; Expect(a).Is(nil) },
@@ -364,13 +364,13 @@ func TestExpect_Is(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func TestExpect_Should(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "no matcher",
 			Act: func() { Expect(42).Should(nil) },
 			Assert: func(result *R) {
@@ -388,13 +388,13 @@ func TestExpect_Should(t *testing.T) {
 				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of Should(); matcher report is not significant
 			},
 		},
-	})
+	}...))
 }
 
 func TestExpect_ShouldNot(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "no matcher",
 			Act: func() { Expect(true).ShouldNot(nil) },
 			Assert: func(result *R) {
@@ -412,13 +412,13 @@ func TestExpect_ShouldNot(t *testing.T) {
 				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(); matcher report is not significant
 			},
 		},
-	})
+	}...))
 }
 
 func TestExpect_To(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "no matcher",
 			Act: func() { Expect(42).To(nil) },
 			Assert: func(result *R) {
@@ -427,13 +427,13 @@ func TestExpect_To(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func TestExpect_ToNot(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "matcher fails, as expected",
 			Act: func() { Expect(true).ToNot(Equal(false)) },
 		},
@@ -445,7 +445,7 @@ func TestExpect_ToNot(t *testing.T) {
 				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(), not the output of the matcher used
 			},
 		},
-	})
+	}...))
 }
 
 func TestRequire(t *testing.T) {

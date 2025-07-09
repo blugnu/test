@@ -9,7 +9,7 @@ import (
 func TestEqual(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expected equal and was equal",
 			Act: func() { Expect(1).To(Equal(1)) },
 		},
@@ -70,5 +70,5 @@ func TestEqual(t *testing.T) {
 				Expect(1).To(Equal(2), func(a, b int) bool { return true })
 			},
 		},
-	})
+	}...))
 }

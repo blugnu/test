@@ -11,8 +11,8 @@ import (
 func TestSlices(t *testing.T) {
 	With(t)
 
-	Run("ContainItem", func() {
-		RunTestScenarios([]TestScenario{
+	Run(Test("ContainItem", func() {
+		Run(HelperTests([]HelperScenario{
 			{Scenario: "slice contains expected item",
 				Act: func() {
 					Expect([]string{"a", "b"}).To(ContainItem("a"))
@@ -36,11 +36,11 @@ func TestSlices(t *testing.T) {
 					Expect([]string{"a", "b"}).To(ContainItem("B"), opt.CaseSensitive(false))
 				},
 			},
-		})
-	})
+		}...))
+	}))
 
-	Run("ContainItems", func() {
-		RunTestScenarios([]TestScenario{
+	Run(Test("ContainItems", func() {
+		Run(HelperTests([]HelperScenario{
 			{Scenario: "slice contains expected items",
 				Act: func() {
 					Expect([]string{"a", "b", "c"}).To(ContainItems([]string{"a", "c"}))
@@ -66,11 +66,11 @@ func TestSlices(t *testing.T) {
 					Expect([]string{"a", "b"}).To(ContainItems([]string{"c", "d"}), func(a, b string) bool { return true })
 				},
 			},
-		})
-	})
+		}...))
+	}))
 
-	Run("ContainSlice", func() {
-		RunTestScenarios([]TestScenario{
+	Run(Test("ContainSlice", func() {
+		Run(HelperTests([]HelperScenario{
 			{Scenario: "slice contains expected slice",
 				Act: func() {
 					Expect([]string{"a", "b", "c"}).To(ContainSlice([]string{"a", "b"}))
@@ -97,11 +97,11 @@ func TestSlices(t *testing.T) {
 					Expect([]string{"a", "b"}).To(ContainSlice([]string{"c", "d"}), func(a, b string) bool { return true })
 				},
 			},
-		})
-	})
+		}...))
+	}))
 
-	Run("EqualSlice", func() {
-		RunTestScenarios([]TestScenario{
+	Run(Test("EqualSlice", func() {
+		Run(HelperTests([]HelperScenario{
 			{Scenario: "slice is equal to another slice",
 				Act: func() {
 					Expect([]string{"a", "b"}).To(EqualSlice([]string{"a", "b"}))
@@ -132,8 +132,8 @@ func TestSlices(t *testing.T) {
 					Expect([]string{"a", "b"}).To(EqualSlice([]string{"b", "a"}), opt.ExactOrder(false))
 				},
 			},
-		})
-	})
+		}...))
+	}))
 }
 
 func ExampleContainItem() {

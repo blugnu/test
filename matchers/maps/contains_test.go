@@ -10,7 +10,7 @@ import (
 func TestContainsMap(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "map contains expected map",
 			Act: func() {
 				m := map[string]int{"a": 1, "b": 2, "c": 3}
@@ -227,5 +227,5 @@ func TestContainsMap(t *testing.T) {
 				Expect(m).To(ContainMap(s))
 			},
 		},
-	})
+	}...))
 }

@@ -116,8 +116,8 @@ go get github.com/blugnu/test
 ### Writing a Test: With(t)
 
 The `With()` function is used to set up a test frame for the current test.  This
-function is typically called at the start of a test function, passing the `*testing.T` value
-from the test function as an argument:
+function is typically called at the start of a test function, passing the `*testing.T`
+value from the test function as an argument:
 
 ```go
   func TestDoSomething(t *testing.T) {
@@ -138,16 +138,16 @@ the test frame stack is managed for you:
   func TestDoSomething(t *testing.T) {
      With(t) // establishes the initial test frame
 
-     Run("subtest", func() {
+     Run(Test("subtest", func() {
         // no need to call With(t) here; it is managed automatically
         // ...
-     })
+     }))
   }
 ```
 
 If a new test frame is created outside of the `test` package, then the `With(t)` function
 must be called again to push that test frame onto the stack.  For example, if you choose to create
-a subtest using `testing.T.Run()` and want to use the `blugnu/test` functions in that subtest:
+a subtest using `*testing.T.Run()` and want to use the `blugnu/test` functions in that subtest:
 
 ```go
   func TestDoSomething(t *testing.T) {
@@ -155,7 +155,7 @@ a subtest using `testing.T.Run()` and want to use the `blugnu/test` functions in
 
      // using the testing.T.Run method...
      t.Run("subtest", func(t *testing.T) {
-        With(t) // so a new test frame must be established
+        With(t) // .. the new test frame must be established explicitly
         // ...
      })
   }
@@ -209,7 +209,8 @@ test whether a slice, map, channel or string is empty:
   Expect(got).Should(BeEmpty())
 ```
 
-> Further information on any-matchers is provided in the section on [Type-Safety: Any-Matchers](#type-safety-any-matchers)
+> Further information on any-matchers is provided in the section on
+> [Type-Safety: Any-Matchers](#type-safety-any-matchers)
 
 ### Type-Safety: Matcher Compatibility
 
@@ -318,6 +319,10 @@ is not possible.
 - [Testing Slices](#testing-slices)
 - [Testing Context](#testing-context)
 
+## 'Table-Driven' Tests
+
+- [Table-Driven Tests](#table-driven-tests)
+
 ## Advanced Usage
 
 In addition to performing common, basic tests, the `test` package also provides support for more advanced testing scenarios:
@@ -327,7 +332,7 @@ In addition to performing common, basic tests, the `test` package also provides 
 | [Mocking Functions](#mocking-functions) | mock functions for testing |
 | [Recording Console Output](#recording-console-output) | record output of a function that writes to `stdout` and/or `stderr` |
 | [Test for an Expected Type](#test-for-an-expected-type) | test that a value is of an expected type |
-| [Testing a Test](#testing-a-test) | test your own test helper functions |
+| [Testing Test Helpers](#testing-test-helpers) | test your own test helper functions |
 
 ------
 </br>
@@ -852,6 +857,139 @@ expected by the matcher must be cast to that type:
 ------
 </br>
 
+# Test Runners
+
+The `testing.T` type is the standard test runner in Go.  This type also
+provides a way to run subtests using the `test.Run()` function, which
+accepts a function that performs the test using a `testing.T` value to
+report the outcome of the test.
+
+The `test` package simplifies and extends this by providing the `Run()`
+function which accepts a test runner.
+
+Test runners are provided to:
+
+- run an individual, named subtest (directly equivalent to `t.Run()`
+  in the standard library)
+
+- run an individual, named subtest in parallel (equivalent to `t.Run()`
+  with a call to `t.Parallel()` in the subtest)
+
+- run a set of tests defined in a table-driven test, using the
+  `Testcases()` function
+
+- run a set of parallel tests defined in a table-driven test, using the
+  `ParallelCases()` function
+
+- run a set of Test Helper scenarios defined in a table-driven
+  test, using the `HelperTests()` function
+
+## Subtests
+
+To run a named sub-test:
+
+```go
+  Run(Test("sub-test name", func() {
+    // test code here
+  }))
+```
+
+To run a named sub-test in parallel:
+
+```go
+  Run(ParallelTest("sub-test name", func() {
+    // test code here
+  }))
+```
+
+## Table-Driven Tests
+
+Table-driven tests are a common pattern in Go, allowing multiple test cases to be
+defined in a single test function with a common test execution function iterating
+over a slice of test cases.
+
+The `test` package provides a way to define and run table-driven tests using the
+`Testcases[T]()` test runner.  This is a generic test runner that runs tests
+defined by a set of test cases of type `T`.
+
+The `Testcases[T])` runner requires a test executor to be provided using either
+`For()` or `ForEach()` functions:
+
+- the `For()` executor function accepts a test case name and a testcase, allowing
+  the test code to refer to the test case by name in the test output or to vary
+  the test behaviour based on the name, if required;
+
+- the `ForEach()` executor function accepts only a test case, without a name,
+  allowing a simpler declaration if the name is not required.
+
+Following the executor function, a variadic list of test cases is provided,
+using the following functions:
+
+- `Case(name string, tc T)` to define a single, named test case
+- `Cases(cases []T)` to define multiple test cases
+- `ParallelCase(name string, tc T)` to define a single, named test case
+  that runs in parallel
+- `ParallelCases(cases []T)` to define multiple test cases that run in
+  parallel
+
+### Debug and Skip Test Cases
+
+When debugging tests, it can be useful to skip some test cases or to
+run only a subset of test cases.
+
+When a test case is skipped, it will not be run and the test case is
+reported as skipped in the test output.
+
+When one or more test cases are, only the debug test cases are run
+by the runner.
+
+> :bulb: even if all test cases pass, the test runner will fail with
+> a warning when any test cases are skipped or debugged
+
+There are two ways to skip/debug test cases:
+
+- if the test case is added using the `Case()` function, simply change
+  this to `Skip()` or `Debug()`; this approach works without requiring
+  any changes to the test runner or test case type
+
+- add boolean fields to the test case type to indicate whether
+  the test case should be skipped or debugged; these must be named `skip/Skip`
+  or `debug/Debug` respectively;
+
+> bulb: the `Skip()` and `Debug()` functions override any `skip` or `debug`
+> fields when adding a test case
+
+<!-- markdownlint-disable MD013 -->
+```go
+  type TestCase struct {
+    // fields...
+    skip bool   // set true to skip this test case
+    debug bool  // set true to debug this test case
+  }
+
+  // skip a test case
+  Run(Testcases(
+     ForEach(func(tc TestCase) {
+        // test code here
+     }),
+     Skip("first case", TestCase{...debug: true}),  // this test case will be skipped; the `debug` field is overridden by the Skip() function
+     Case("second case", TestCase{...}),
+  ))
+
+  // debug a test case
+  Run(Testcases(
+     ForEach(func(tc TestCase) {
+        // test code here
+     }),
+     Debug("first case", TestCase{... skip: true}), // ONLY this test case will be run; the 'skip' field is overridden by the Debug() function
+     Case("second case", TestCase{...}),
+  ))
+```
+<!-- markdownlint-enable -->
+
+------
+</br>
+
 # Mocking Functions
 
 When testing functions that call other functions, it is often necessary to mock the functions
@@ -983,7 +1121,7 @@ can do this by passing the expected lines of test output as strings to the `R.Ex
 method:
 
 ```go
-  result := Test(func() {
+  result := TestHelper(func() {
     /* your test code here */
   })
 
@@ -1118,3 +1256,104 @@ For example, the following test will fail as an invalid test:
   }
   ExpectType[Counter](result) // INVALID TEST: cannot be used to test for interfaces
 ```
+
+------
+
+# Testing Test Helpers
+
+If you write your own test helper functions you should of course test them.  This
+is problematic when using `*testing.T` since when your test helper fails the test
+that is testing your helper will also fail.
+
+`blugnu/test` addresses this by providing a `TestHelper()` function that runs
+your test helper in a separate test runner, capturing the outcome and any report.
+This allows the test helper to fail without affecting the outcome of the test that
+is testing it, allowing that test to then assert the expected outcome.
+
+The `TestHelper()` function accepts a function that executes your test helper,
+and returns a `test.R` value that contains information about the outcome of the test.
+
+The `R` type provides methods to test the outcome of the test, primarily this will
+involve testing the helper (correctly) failed and produced an expected report. This
+is accomplished by calling the `R.Expect()` method with the expected test report;
+when an expected report is passed, the test is implicitly expected to fail, so the
+`R.Expect()` method will also test that the outcome is `TestFailed`:
+
+```go
+func TestMyTestHelper(t *testing.T) {
+  With(t)
+
+  result := TestHelper(func() {
+    MyTestHelper() // this is the test helper being tested
+  })
+
+  result.Expect(
+    "expected failure message", // the expected failure message
+  )
+}
+```
+
+To test that the test helper passed, you can call the `R.Expect()` method
+with the expected outcome:
+
+```go
+func TestMyTestHelper(t *testing.T) {
+  With(t)
+
+  result := TestHelper(func() {
+    MyTestHelper() // this is the test helper being tested
+  })
+
+  result.Expect(TestPassed) // the test helper is expected to pass
+}
+```
+
+## Testing a Test Helper with Scenarios
+
+A test runner is provided to test a test helper in a variety of scenarios.
+The runner defines a `HelperScenario` type for each scenario, which
+contains the following fields:
+
+- `Scenario`: a name for the scenario (scenario); each scenario is run in a subtest
+   using this name;
+- `Act`: a function that contains the test code for the scenario; this function has
+   the signature `func()`;
+- `Assert`: a function that tests the test outcome; this function has the signature
+  `func(*R)` where `R` is the result of the test scenario.
+- `Skip`: a boolean to indicate whether the scenario should be skipped; defaults to `false`
+- `Debug`: a boolean to indicate whether the scenario is a debug scenario; defaults to `false`
+
+> :bulb: If the `Debug` field is set to `true` on any scenario(s), the test runner
+> will run only those scenarios, and these will be run even if `Skip` is also true.
+
+For scenarios where the helper is expected to pass, the `Assert` function
+is optional; if the `Assert` function is nil, the test runner will assert
+that the test passed without any errors or failures.
+
+The `HelperTests()` test runner accepts a variadic list of `HelperScenario` values,
+where each scenario is a test case to be run against your test helper:
+
+```go
+func TestMyTestHelper(t *testing.T) {
+  With(t)
+  
+  Run(HelperTests([]test.HelperScenario{
+    {Scenario: "provided with an empty string",
+       Act: func() {
+         MyTestHelper("")
+       },
+       Assert: func(r *test.R) {
+         r.ExpectInvalid("input string cannot be empty")
+       },
+    },
+    {Scenario: "this is expected to pass",
+       Act: func() {
+         MyTestHelper("some input")
+       },
+    },
+  }...))
+}
+```
+
+> :bulb: In the example above, the scenarios are provided as a slice literal
+> using the `...` operator to expand the slice into a variadic argument list.

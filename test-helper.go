@@ -22,6 +22,13 @@ const (
 	TestPanicked
 )
 
+const (
+	cFailedTests = "failed tests"
+	cTestOutcome = "test outcome"
+	cTestReport  = "test report"
+	cRecovered   = "recovered"
+)
+
 func (to TestOutcome) String() string {
 	switch to {
 	case TestPassed:
@@ -97,13 +104,6 @@ func (r *R) Expect(exp ...any) {
 		opts = append(opts, opt.IsRequired(true))
 	}
 
-	// setup an expectation for the failed tests; exactly what is expected
-	// depends on the test outcome (it may not be tested at all).
-	//
-	// Instantiating the expectation here avoids having to do it in each case
-	// that it is used.
-	expectFailedTests := Expect(r.FailedTests, "failed tests")
-
 	r.assertOutcome(expectedOutcome, opts...)
 
 	switch {
@@ -111,8 +111,12 @@ func (r *R) Expect(exp ...any) {
 		r.assertPanicked(expectedReport, opts...)
 
 	case len(expectedReport) > 0:
+		if len(r.FailedTests) == 0 {
+			test.Warning("test failed as expected, but no test report or failures were recorded")
+		}
+
 		// first we check that the test we are running was identified as failed
-		expectFailedTests.To(ContainItem(r.t.Name()), opts...)
+		Expect(r.FailedTests, cFailedTests).To(ContainItem(r.t.Name()), opts...)
 
 		testfile := testFilename()
 		if len(r.Report) > 0 {
@@ -138,24 +142,10 @@ func (r *R) Expect(exp ...any) {
 		)
 
 	case expectedOutcome == TestFailed && opt.IsSet(opts, opt.IgnoreReport(true)):
-		expectFailedTests.To(ContainItem(r.t.Name()), opts...)
+		Expect(r.FailedTests, cFailedTests).To(ContainItem(r.t.Name()), opts...)
 
 	default:
-		expectFailedTests.Should(BeEmptyOrNil(), opts...)
-		Expect(r.Report, "test report").Should(BeEmptyOrNil(),
-			append(opts, opt.FailureReport(func(...any) []string {
-				const preambleLen = 2
-
-				report := make([]string, preambleLen, len(r.Report)+preambleLen)
-				report[0] = "expected: <no report>"
-				report[1] = "got:"
-				for _, s := range r.Report {
-					report = append(report, "| "+s)
-				}
-
-				return report
-			}))...,
-		)
+		r.assertWhenTestPassed(opts...)
 	}
 }
 
@@ -187,6 +177,13 @@ func (r *R) Expect(exp ...any) {
 func (r *R) ExpectInvalid(report ...any) {
 	r.t.Helper()
 	r.Expect(append([]any{"<== INVALID TEST"}, report...)...)
+}
+
+// ExpectWarning verifies that the test result (R) contains a warning; that is,
+// the test.Warning() function was called during evaluation of the test.
+func (r *R) ExpectWarning(msg string) {
+	r.t.Helper()
+	r.Expect("<== WARNING: " + msg)
 }
 
 // analyseArgs processes the expected arguments passed to Expect().
@@ -227,7 +224,7 @@ func (r *R) analyseArgs(exp ...any) (TestOutcome, []string, []any) {
 func (r *R) assertOutcome(expected TestOutcome, opts ...any) {
 	T().Helper()
 
-	Expect(r.Outcome, "test outcome").To(Equal(expected),
+	Expect(r.Outcome, cTestOutcome).To(Equal(expected),
 		append(opts, opt.FailureReport(func(...any) []string {
 			report := []string{
 				fmt.Sprintf("expected: %s", expected),
@@ -265,15 +262,43 @@ func (r *R) assertPanicked(expectedReport []string, opts ...any) {
 		test.Invalid(fmt.Sprintf("R.Expect: only 1 string may be specified to match a recovered value from an expected panic (got %d)", len(expectedReport)))
 	}
 
-	Expect(r.Recovered, "recovered").IsNotNil(opts...)
+	Expect(r.Recovered, cRecovered).IsNotNil(opts...)
 
 	if len(expectedReport) == 0 {
 		return
 	}
 
 	s := fmt.Sprintf("%v", r.Recovered)
-	Expect(s, "recovered").To(ContainString(expectedReport[0]),
+	Expect(s, cRecovered).To(ContainString(expectedReport[0]),
 		append(opts, strings.Contains, opt.UnquotedStrings())...,
+	)
+}
+
+// assertWhenTestPassed checks that there were no failed tests and no report
+func (r *R) assertWhenTestPassed(opts ...any) {
+	T().Helper()
+
+	// in this case, we want the failure report to provide details of
+	// any unexpectedly failed tests and an unexpected report, so we
+	// remove any IsRequired option to ensure that both expectations
+	// are evaluated
+	opts = opt.Unset(opts, opt.IsRequired(true))
+
+	Expect(r.FailedTests, cFailedTests).Should(BeEmptyOrNil(), opts...)
+
+	Expect(r.Report, cTestReport).Should(BeEmptyOrNil(),
+		append(opts, opt.FailureReport(func(...any) []string {
+			const preambleLen = 2
+
+			report := make([]string, preambleLen, len(r.Report)+preambleLen)
+			report[0] = "expected: <no report>"
+			report[1] = "got:"
+			for _, s := range r.Report {
+				report = append(report, "| "+s)
+			}
+
+			return report
+		}))...,
 	)
 }
 
@@ -411,9 +436,11 @@ func testFilename() string {
 //
 // If any slice is empty, nil is returned instead of an empty slice.
 func analyseReport(stdout []string) ([]string, []string, []string) {
+	T().Helper()
+
 	failed := []string{}
 	namePattern := regexp.MustCompile(`--- FAIL: (.*) \((\d+\.\d+)s\)$`)
-	locnPattern := regexp.MustCompile(`(.*)_test\.go:[0-9]+:`)
+	locnPattern := regexp.MustCompile(`[\s]*(.*)_test\.go:[0-9]+:`)
 
 	// FUTURE: properly support multiple test failures in a report.
 	//
@@ -437,6 +464,7 @@ func analyseReport(stdout []string) ([]string, []string, []string) {
 	//     <test filename>:<line no>:
 	//         report line 1
 	//     ...
+
 	output := make([]string, 0, len(stdout))
 	report := make([]string, 0, len(stdout))
 	inReport := false
@@ -447,8 +475,8 @@ func analyseReport(stdout []string) ([]string, []string, []string) {
 		}
 
 		if match := locnPattern.FindStringSubmatch(s); len(match) > 0 {
-			// if we find a location line, we assume that the next lines are part of
-			// the report for the test that failed.
+			// if we find a location line we assume that this and following lines
+			// are part of the report for the test that failed.
 			inReport = true
 		}
 
@@ -466,7 +494,7 @@ func analyseReport(stdout []string) ([]string, []string, []string) {
 		//
 		// if that's the case, we will return the original stdout as the report,
 		// with a warning that the report does not conform to the expected layout
-		report = []string{"WARNING: unable to parse test report (possibly missing a T().Helper() call?)"}
+		report = []string{"WARNING: check test location (missing a T().Helper() call?)"}
 		report = slices.AppendToReport(report, stdout, "report:", opt.UnquotedStrings())
 		return nil, report, nil
 	}

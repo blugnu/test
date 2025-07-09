@@ -139,9 +139,9 @@ func TestMockFnRecordCall(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -229,9 +229,9 @@ func TestMockFnExpectationsWereMet(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -287,9 +287,9 @@ func TestMockFnExpectCall(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -361,9 +361,9 @@ func TestMockFnResultFor(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -413,9 +413,9 @@ func TestMockFnWhenCalledWith(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -498,9 +498,9 @@ func TestMockFnCallWillReturn(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -538,8 +538,8 @@ func TestMockFnCallWithArgs(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }

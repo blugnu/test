@@ -1,7 +1,6 @@
 package test_test
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -13,67 +12,47 @@ import (
 func TestIsParallel(t *testing.T) {
 	With(t)
 
-	Run("not parallel", func() {
+	Run(Test("not parallel", func() {
 		Expect(IsParallel()).To(BeFalse())
-		Parallel()
+		T().Parallel()
 		Expect(IsParallel()).To(BeTrue())
-	})
+	}))
 
-	Run("parallel", func() {
-		Parallel()
+	Run(Test("parallel", func() {
+		T().Parallel()
 		Expect(IsParallel()).To(BeTrue())
-	})
+	}))
 
-	Run("example runner is always non-parallel", func() {
+	Run(Test("example runner is always non-parallel", func() {
 		test.Example()
 		defer testframe.Pop()
 
-		Parallel()
+		T().Parallel()
 		Expect(IsParallel()).To(BeFalse())
-	})
+	}))
 }
 
 func TestParallel(t *testing.T) {
 	With(t)
 
-	t.Run("with single argument", func(st *testing.T) {
-		With(st)
+	Run(Test("with single argument", func() {
 		Expect(IsParallel(), "before").To(BeFalse())
-		Parallel(st)
+
+		Parallel(T())
+
 		Expect(IsParallel(), "after").To(BeTrue())
-	})
+	}))
 
-	Run("with no arguments", func() {
-		Expect(IsParallel()).To(BeFalse())
-		Parallel()
-		Expect(IsParallel()).To(BeTrue())
-	})
-
-	Run("multiple arguments, with test frame", func() {
+	Run(Test("with nil", func() {
 		result := TestHelper(func() {
-			Parallel(t, t)
+			Expect(IsParallel(), "before").To(BeFalse())
+
+			Parallel(nil)
+
+			test.Warning("should not have been reached")
 		})
-		result.ExpectInvalid(
-			"ERROR: invalid argument",
-			"Parallel() must be called with 0 or 1 test runner arguments",
-		)
-	})
-}
-
-func TestParallel_MultipleArgumentsNoTestFrame(t *testing.T) {
-	defer func() {
-		r := recover()
-		err, ok := r.(error)
-		if !ok {
-			t.Errorf("expected panic with error, got: %v", r)
-			return
-		}
-		if !errors.Is(err, ErrInvalidArgument) {
-			t.Errorf("\nexpected panic with ErrInvalidArgument\ngot: %v", r)
-		}
-	}()
-
-	Parallel(t, t)
+		result.ExpectInvalid("Parallel() cannot be called with nil")
+	}))
 }
 
 func TestParallelTests(t *testing.T) {
@@ -93,71 +72,112 @@ func TestParallelTests(t *testing.T) {
 		}
 	)
 
-	Run("in series", func() {
-		elapsed := RunWithTimer(func() {
-			RunScenarios(
-				func(tc *testcase, _ int) {
-					(*tc)()
-					Expect(true, "tests evaluate ok in non-parallel tests").To(BeTrue())
-				},
-				testcases)
+	Run(Test("in series", func() {
+		// this test establishes that running the testcases in series
+		// takes longer than running them in parallel
+		elapsed := StopWatch(func() {
+			Run(Testcases(
+				ForEach(func(tc testcase) {
+					(tc)()
+				}),
+				Cases(testcases),
+			))
 		})
 		Expect(elapsed).ToNot(BeLessThan(30 * time.Millisecond))
-	})
+	}))
 
-	Run("using Parallel()", func() {
-		elapsed := RunWithTimer(func() {
-			RunScenarios(
-				func(tc *testcase, _ int) {
-					Parallel()
-					(*tc)()
-					Expect(true, "tests evaluate ok in parallel tests").To(BeTrue())
-				},
-				testcases)
+	Run(Test("in parallel using individual ParallelTest() calls", func() {
+		elapsed := StopWatch(func() {
+			Run(ParallelTest("test-1", sleepFor10ms))
+			Run(ParallelTest("test-2", sleepFor10ms))
+			Run(ParallelTest("test-3", sleepFor10ms))
 		})
 		Expect(elapsed).ToNot(BeGreaterThan(15 * time.Millisecond))
-	})
+	}))
 
-	Run("calling Parallel() from a parallel test", func() {
-		result := TestHelper(func() {
-			Parallel()
-			Parallel()
+	Run(Test("in parallel using ParallelCases()", func() {
+		elapsed := StopWatch(func() {
+			Run(ParallelCases(
+				ForEach(func(tc testcase) {
+					(tc)()
+				}),
+				Cases(testcases),
+			))
 		})
-		result.ExpectInvalid(
-			"Parallel() must not be called from a parallel test",
-		)
-	})
+		Expect(elapsed).ToNot(BeGreaterThan(15 * time.Millisecond))
+	}))
 
-	Run("using RunParallelScenarios()", func() {
-		elapsed := RunWithTimer(func() {
-			RunParallelScenarios(
-				func(tc *testcase, _ int) {
-					(*tc)()
-					Expect(true, "tests evaluate ok in parallel tests").To(BeTrue())
-				},
-				testcases)
+	Run(Test("in parallel using Testcases(ParallelCase())", func() {
+		elapsed := StopWatch(func() {
+			Run(Testcases(
+				ForEach(func(tc testcase) {
+					(tc)()
+				}),
+				ParallelCase("test-1", sleepFor10ms),
+				ParallelCase("test-2", sleepFor10ms),
+				ParallelCase("test-3", sleepFor10ms),
+			))
 		})
-		Expect(elapsed).To(BeLessThan(12 * time.Millisecond))
-	})
+		Expect(elapsed).ToNot(BeGreaterThan(15 * time.Millisecond))
+	}))
 
-	Run("calling RunParallel() from a parallel test", func() {
-		result := TestHelper(func() {
-			Parallel()
-			RunParallel("already parallel", func() {})
-		})
-		result.ExpectInvalid(
-			"RunParallel() must not be called from a parallel test",
-		)
-	})
+	Run(Test("invalid use", func() {
+		// note: we cannot use ParallelTest() to run tests that run
+		// TestHelper() as this would require recording in parallel
+		// which is not supported.
+		//
+		// We must run these tests in series, running parallel tests
+		// within each test in series.
 
-	Run("calling RunParallelScenarios() from a parallel test", func() {
-		result := TestHelper(func() {
-			RunParallel("parallel", func() {
-				RunParallelScenarios(func(*int, int) {}, []int{})
+		Run(Test("Parallel() in a parallel test", func() {
+			result := TestHelper(func() {
+				Parallel(T()) // now this test is parallel
+
+				// so this is now invalid
+				Parallel(T())
 			})
-		})
-		result.ExpectInvalid(
-			"RunParallelScenarios() must not be called from a parallel test",
-		)
-	})
+			result.ExpectInvalid(
+				"Parallel() cannot be called from a parallel test",
+			)
+		}))
+
+		Run(Test("ParallelTest() in a parallel test", func() {
+			result := TestHelper(func() {
+				Parallel(T()) // now this test is parallel
+
+				// so this is now invalid
+				Run(ParallelTest("parallel test", func() {}))
+			})
+			result.ExpectInvalid(
+				"ParallelTest() cannot be run from a parallel test",
+			)
+		}))
+
+		Run(Test("ParallelTest().Run() in a parallel test", func() {
+			// create a parallel test runner, but don't run it
+			para := ParallelTest("parallel test", func() {})
+
+			result := TestHelper(func() {
+				Parallel(T()) // now this test is parallel
+
+				// so attempting to run the parallel test now is now invalid
+				Run(para)
+			})
+			result.ExpectInvalid(
+				"ParallelTest() cannot be run from a parallel test",
+			)
+		}))
+
+		Run(Test("ParallelCases() in a parallel test", func() {
+			result := TestHelper(func() {
+				Parallel(T()) // now this test is parallel
+
+				// so this is now invalid
+				Run(ParallelCases(ForEach(func(struct{}) {}), Case("anon", struct{}{})))
+			})
+			result.ExpectInvalid(
+				"ParallelCases() cannot be run from a parallel test",
+			)
+		}))
+	}))
 }

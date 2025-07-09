@@ -9,7 +9,7 @@ import (
 func TestDeepEqual(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "DeepEqual(struct)/equal",
 			Act: func() {
 				type foo struct {
@@ -95,5 +95,5 @@ func TestDeepEqual(t *testing.T) {
 				})
 			},
 		},
-	})
+	}...))
 }

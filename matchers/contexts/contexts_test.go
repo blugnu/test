@@ -15,8 +15,8 @@ func TestContext(t *testing.T) {
 	ctxBg := context.Background()
 	ctxWithKey := context.WithValue(ctxBg, key(1), "value-1")
 
-	Run("KeyMatcher", func() {
-		RunTestScenarios([]TestScenario{
+	Run(Test("KeyMatcher", func() {
+		Run(HelperTests([]HelperScenario{
 			{Scenario: "expect key to be present that is present",
 				Act: func() { Expect(ctxWithKey).To(HaveContextKey(key(1))) },
 			},
@@ -38,11 +38,11 @@ func TestContext(t *testing.T) {
 					)
 				},
 			},
-		})
-	})
+		}...))
+	}))
 
-	Run("ValueMatcher", func() {
-		RunTestScenarios([]TestScenario{
+	Run(Test("ValueMatcher", func() {
+		Run(HelperTests([]HelperScenario{
 			{Scenario: "expect key to have value that is present and has that value",
 				Act: func() {
 					Expect(ctxWithKey).To(HaveContextValue(key(1), "value-1"))
@@ -96,6 +96,6 @@ func TestContext(t *testing.T) {
 					})
 				},
 			},
-		})
-	})
+		}...))
+	}))
 }

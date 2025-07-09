@@ -22,11 +22,11 @@ func TestRestore(t *testing.T) {
 	With(t)
 
 	i := 42
-	Run("replaced in subtest", func() {
+	Run(Test("replaced in subtest", func() {
 		defer Restore(Original(&i).ReplacedBy(12))
 
 		Expect(i).To(Equal(12))
-	})
+	}))
 
 	Expect(i).To(Equal(42))
 }

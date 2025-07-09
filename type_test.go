@@ -13,7 +13,7 @@ import (
 func TestExpectType(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expecting int got int",
 			Act: func() {
 				result, ok := ExpectType[int](1)
@@ -58,7 +58,7 @@ func TestExpectType(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func ExampleExpectType() {

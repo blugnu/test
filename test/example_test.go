@@ -34,7 +34,7 @@ func TestExample(t *testing.T) {
 		return t, out, log
 	}
 
-	Run("no-ops coverage", func() {
+	Run(Test("no-ops coverage", func() {
 		_, out, log := runExample(func(sut TestingT) {
 			sut.Cleanup(nil)
 			sut.Helper()
@@ -45,16 +45,16 @@ func TestExample(t *testing.T) {
 
 		Expect(out).IsNil()
 		Expect(log).IsNil()
-	})
+	}))
 
-	Run("name", func() {
+	Run(Test("name", func() {
 		t, out, log := runExample(func(sut TestingT) {})
 		Expect(out).IsNil()
 		Expect(log).IsNil()
 		Expect(t.Name()).To(Equal("ExampleTestRunner"))
-	})
+	}))
 
-	Run("running a subtest", func() {
+	Run(Test("running a subtest", func() {
 		_, out, log := runExample(func(sut TestingT) {
 			sut.Run("subtest", func(t *testing.T) {
 				fmt.Println("sub test ran OK")
@@ -64,9 +64,9 @@ func TestExample(t *testing.T) {
 			"sub test ran OK",
 		}))
 		Expect(log).IsNil()
-	})
+	}))
 
-	Run("skipping after an error", func() {
+	Run(Test("skipping after an error", func() {
 		t, out, err := runExample(func(sut TestingT) {
 			await(func() {
 				sut.Error("first error")
@@ -80,9 +80,9 @@ func TestExample(t *testing.T) {
 		Expect(out).To(EqualSlice([]string{
 			"first error",
 		}))
-	})
+	}))
 
-	Run("skipping before any error", func() {
+	Run(Test("skipping before any error", func() {
 		t, out, err := runExample(func(sut TestingT) {
 			await(func() {
 				sut.SkipNow()
@@ -93,9 +93,9 @@ func TestExample(t *testing.T) {
 		Expect(err).IsNil()
 		Expect(out).Should(BeEmptyOrNil())
 		Expect(t.Failed()).To(BeFalse())
-	})
+	}))
 
-	Run("failing", func() {
+	Run(Test("failing", func() {
 		t, out, err := runExample(func(sut TestingT) {
 			await(func() {
 				sut.Fail()
@@ -105,9 +105,9 @@ func TestExample(t *testing.T) {
 		Expect(err).IsNil()
 		Expect(out).Should(BeEmptyOrNil())
 		Expect(t.Failed()).To(BeTrue())
-	})
+	}))
 
-	Run("non-fatal errors", func() {
+	Run(Test("non-fatal errors", func() {
 		_, out, err := runExample(func(sut TestingT) {
 			await(func() {
 				sut.Error("error")
@@ -120,9 +120,9 @@ func TestExample(t *testing.T) {
 			"error",
 			"errorf formatted",
 		}))
-	})
+	}))
 
-	Run("fatal error", func() {
+	Run(Test("fatal error", func() {
 		_, out, err := runExample(func(sut TestingT) {
 			await(func() {
 				sut.Fatal("fatal error")
@@ -134,9 +134,9 @@ func TestExample(t *testing.T) {
 		Expect(out).To(EqualSlice([]string{
 			"fatal error",
 		}))
-	})
+	}))
 
-	Run("fatalf error", func() {
+	Run(Test("fatalf error", func() {
 		_, out, err := runExample(func(sut TestingT) {
 			await(func() {
 				sut.Fatalf("fatal error %s", "formatted")
@@ -148,5 +148,5 @@ func TestExample(t *testing.T) {
 		Expect(out).To(EqualSlice([]string{
 			"fatal error formatted",
 		}))
-	})
+	}))
 }

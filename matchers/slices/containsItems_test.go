@@ -9,7 +9,7 @@ import (
 func TestContainsItems(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// MARK: []string / To
 		{Scenario: "expected to contain items that are present",
 			Act: func() {
@@ -73,5 +73,5 @@ func TestContainsItems(t *testing.T) {
 				})
 			},
 		},
-	})
+	}...))
 }

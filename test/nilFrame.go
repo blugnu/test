@@ -34,7 +34,7 @@ import "github.com/blugnu/test/internal/testframe"
 //	func TestSomething(t *testing.T) {
 //	   test.With(t)
 //
-//	   Run("some subtest", func() {
+//	   Run(Test("some subtest", func() {
 //	      defer Expect(Panic(test.ErrNoTestFrame)).DidOccur()
 //
 //	      test.With(test.NilFrame())
@@ -44,6 +44,10 @@ import "github.com/blugnu/test/internal/testframe"
 //	      T()
 //	   })
 //	}
+//
+// Pushing a NilFrame also interferes with t.Helper() frame tracking, so be
+// aware that test warnings about incorrect test locations and missing
+// t.Helper() calls may be misleading when using a nil frame in a test.
 func NilFrame() testframe.Nil {
 	if tf, ok := T().(testframe.Cleanup); ok {
 		return testframe.Nil{T: tf}

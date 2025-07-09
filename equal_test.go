@@ -10,20 +10,20 @@ import (
 func TestEqual(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expected equal and was equal",
 			Act: func() { Expect(1).To(Equal(1)) },
 		},
 		{Scenario: "expected to not be equal and was not equal",
 			Act: func() { Expect(1).ToNot(Equal(2)) },
 		},
-	})
+	}...))
 }
 
 func TestDeepEqual(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expected deep equal and was deep equal",
 			Act: func() {
 				Expect([]byte{1}).To(DeepEqual([]byte{1}))
@@ -34,7 +34,7 @@ func TestDeepEqual(t *testing.T) {
 				Expect([]byte{1}).ToNot(DeepEqual([]byte{2}))
 			},
 		},
-	})
+	}...))
 }
 
 func ExampleEqual() {
