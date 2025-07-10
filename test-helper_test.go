@@ -121,6 +121,7 @@ func TestR_Expect(t *testing.T) {
 					t:         T(),
 					Outcome:   TestPanicked,
 					Recovered: "recovered",
+					Stack:     []byte("panic(\n  runtime.panic.go\nstack trace\n  with_call_sites.go:123:456"),
 				}
 				sut.Expect(TestPassed)
 			},
@@ -129,8 +130,12 @@ func TestR_Expect(t *testing.T) {
 					"test outcome:",
 					"  expected: TestPassed",
 					"  got     : TestPanicked",
+					"",
 					"recovered:",
 					"  string(recovered)",
+					"",
+					"stack:",
+					"  stack trace",
 				)
 			},
 		},

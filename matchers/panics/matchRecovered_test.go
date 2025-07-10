@@ -44,6 +44,10 @@ func TestPanic_DidOccur(t *testing.T) {
 					"unexpected panic:",
 					"  expected : *errors.errorString(panic with error)",
 					"  recovered: *errors.errorString(panic with different error)",
+					// we cannot predict the goroutine number or stack trace so we include
+					// the expected pre-amble of the stack trace appended to the report
+					"",
+					"stack:",
 				)
 			},
 		},

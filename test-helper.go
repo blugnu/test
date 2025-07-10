@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/internal/testframe"
+	"github.com/blugnu/test/matchers/panics"
 	"github.com/blugnu/test/matchers/slices"
 	"github.com/blugnu/test/opt"
 	"github.com/blugnu/test/test"
@@ -59,6 +60,10 @@ type R struct {
 
 	// names of any tests that failed
 	FailedTests []string
+
+	// Stack is the stack trace captured when recovering from a panicked test
+	// or nil if the test did not panic
+	Stack []byte
 
 	checked bool
 	t       TestingT
@@ -233,9 +238,19 @@ func (r *R) assertOutcome(expected TestOutcome, opts ...any) {
 
 			switch {
 			case r.Outcome == TestPanicked:
-				return append(report, fmt.Sprintf("recovered:\n  %[1]T(%[1]v)", r.Recovered))
+				report = append(report, "")
+				report = append(report, "recovered:")
+				report = append(report, fmt.Sprintf("  %[1]T(%[1]v)", r.Recovered))
+				if trace := panics.StackTrace(r.Stack, opts...); trace != nil {
+					report = append(report, "")
+					report = append(report, "stack:")
+					report = append(report, trace...)
+				}
+				return report
+
 			case len(r.Report) > 0:
 				return slices.AppendToReport(report, r.Report, "with report:", opt.QuotedStrings(false))
+
 			default:
 				return report
 			}
@@ -323,12 +338,23 @@ func TestHelper(f func()) R {
 
 	t.Helper()
 
-	var recovered any
+	var (
+		recovered any
+		stack     []byte
+	)
 	stdout, stderr, outcome := runInternal(t, func(internal *testing.T) {
 		testframe.Push(internal)
 		defer func() {
 			recovered = recover()
 			testframe.Pop()
+
+			if recovered != nil {
+				const bufsize = 65536
+
+				buf := make([]byte, bufsize)
+				n := runtime.Stack(buf, false)
+				stack = buf[0 : n-1]
+			}
 		}()
 		f()
 	})
@@ -345,6 +371,7 @@ func TestHelper(f func()) R {
 		Recovered:   recovered,
 		Log:         stderr,
 		Report:      report,
+		Stack:       stack,
 		Outcome:     outcome,
 	}
 }

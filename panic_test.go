@@ -54,7 +54,9 @@ func TestPanic(t *testing.T) {
 func ExamplePanic() {
 	test.Example()
 
-	defer Expect(Panic("some string")).DidOccur()
+	// a stack trace is included by default, but is disabled for this
+	// example to avoid breaking the example output
+	defer Expect(Panic("some string")).DidOccur(opt.NoStackTrace())
 
 	panic("some other string")
 

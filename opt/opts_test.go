@@ -27,6 +27,16 @@ func TestRequired(t *testing.T) {
 	}
 }
 
+func TestNoStackTrace(t *testing.T) {
+	With(t)
+
+	result := opt.NoStackTrace()
+
+	if value, ok := ExpectType[opt.StackTrace](result); ok {
+		Expect(value).To(Equal(opt.StackTrace(false)))
+	}
+}
+
 func TestUnquotedStrings(t *testing.T) {
 	With(t)
 

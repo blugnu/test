@@ -427,6 +427,18 @@ func TestMockFnCallWillReturn(t *testing.T) {
 		scenario string
 		exec     func()
 	}{
+		{scenario: "returns nil",
+			exec: func() {
+				// ARRANGE
+				sut := mockFnCall[int, int]{}
+
+				// ACT
+				sut.WillReturn(nil)
+
+				// ASSERT
+				Expect(sut).To(Equal(mockFnCall[int, int]{result: 0}))
+			},
+		},
 		{scenario: "returns value",
 			exec: func() {
 				// ARRANGE

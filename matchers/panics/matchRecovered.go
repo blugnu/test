@@ -39,7 +39,13 @@ import (
 // unpacks the R values from the two Matchers and assigns them to the
 // unexported got and expected fields of the receiver.
 type MatchRecovered struct {
-	R        any
+	// R is the value recovered from a panic, or nil if no panic occurred
+	R any
+
+	// Stack captures the stack trace at the point of panic or nil if
+	// no panic occurred
+	Stack []byte
+
 	got      any
 	expected any
 }
@@ -84,6 +90,15 @@ func (pm *MatchRecovered) Match(target Expected, opts ...any) bool {
 
 // OnTestFailure returns a report of the failure for the matcher.
 func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
+	withStack := func(report []string) []string {
+		if trace := StackTrace(pm.Stack, opts...); trace != nil {
+			report = append(report, "")
+			report = append(report, "stack:")
+			report = append(report, trace...)
+		}
+		return report
+	}
+
 	const nilRecovered = "nil (did not panic)"
 
 	switch {
@@ -98,10 +113,10 @@ func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 		//
 		// a subtle difference, but in either case, we must have failed
 		// because we got a panic that we did not expect
-		return []string{
+		return withStack([]string{
 			"unexpected panic:",
 			fmt.Sprintf("  recovered: %T(%v)", pm.got, opt.ValueAsString(pm.got, opts...)),
-		}
+		})
 
 	case pm.expected == nil:
 		// we were expecting a non-specific panic, so if we failed it must be
@@ -120,7 +135,8 @@ func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 		}
 
 	case opt.IsSet(opts, opt.ToNotMatch(true)):
-		// when ToNotMatch is set, we must have recovered from an expected panic that NOT have occurred
+		// when ToNotMatch is set, we must have recovered from an expected panic
+		// that should NOT have occurred
 		return []string{
 			fmt.Sprintf("expected: panic with %T(%v): should not have occurred", pm.expected, opt.ValueAsString(pm.expected, opts...)),
 		}
@@ -128,10 +144,10 @@ func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 	default:
 		// otherwise we were expecting a specific value to be recovered from a panic but
 		// we got something else instead
-		return []string{
+		return withStack([]string{
 			"unexpected panic:",
 			fmt.Sprintf("  expected : %T(%v)", pm.expected, opt.ValueAsString(pm.expected, opts...)),
 			fmt.Sprintf("  recovered: %T(%v)", pm.got, opt.ValueAsString(pm.got, opts...)),
-		}
+		})
 	}
 }
