@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/blugnu/test/matchers/emptiness"
+	"github.com/blugnu/test/matchers/length"
 )
 
 // BeEmpty returns a matcher that checks if the value is empty.
@@ -72,4 +73,25 @@ func BeEmpty() *emptiness.Matcher {
 //	                            // the same type as the subject.
 func BeEmptyOrNil() *emptiness.Matcher {
 	return &emptiness.Matcher{TreatNilAsEmpty: true}
+}
+
+// HaveLen returns a matcher that checks if the value has len() equal to n.
+//
+// The returned matcher is an `AnyMatcher` that may only be used with values
+// of a type that is compatible with the built-in len() function.  That is:
+//
+// - string
+// - slice
+// - array
+// - channel
+// - map
+//
+// A nil value of any of these types is considered to have a length of 0.
+//
+// If the value is of any other type, the test fails as an invalid test,
+// with a message similar to:
+//
+//	length.Matcher: requires a value that is a string, slice, channel, or map: got <type>
+func HaveLen(n int) *length.Matcher {
+	return &length.Matcher{Length: n}
 }
