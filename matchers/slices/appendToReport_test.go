@@ -15,11 +15,11 @@ func TestAppendToReport(t *testing.T) {
 		Scenario string
 		Exec     func()
 	}
-	RunScenarios(
-		func(tc *testcase, _ int) {
+	Run(Testcases(
+		ForEach(func(tc testcase) {
 			tc.Exec()
-		},
-		[]testcase{
+		}),
+		Cases([]testcase{
 			{Scenario: "nil slice",
 				Exec: func() {
 					result := slices.AppendToReport([]string{}, []string(nil), "prefix:")
@@ -59,6 +59,6 @@ func TestAppendToReport(t *testing.T) {
 					Expect(result).To(EqualSlice([]string{"prefix: <not a slice>"}))
 				},
 			},
-		},
-	)
+		}),
+	))
 }

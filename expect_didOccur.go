@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/blugnu/test/matchers/panics"
 	"github.com/blugnu/test/opt"
@@ -52,15 +53,26 @@ func (e expectation[T]) DidOccur(opts ...any) {
 	switch v := any(e.subject).(type) {
 	case panics.Expected:
 		match := &panics.MatchRecovered{R: recover()}
+
+		if match.R != nil {
+			const bufsize = 65536
+			stk := make([]byte, bufsize)
+			n := runtime.Stack(stk, false)
+			match.Stack = stk[:n-1]
+		}
+
 		if !match.Match(v, opts...) {
 			e.fail(match, opts...)
 		}
+
 	case error:
 		if v != nil {
 			return
 		}
+
 	case nil:
 		e.err("expected error, got nil")
+
 	default:
 		test.Invalid("test.DidOccur: may only be used with Panic() or error values")
 	}
@@ -94,7 +106,7 @@ func (e expectation[T]) DidNotOccur(opts ...any) {
 
 	switch expected := any(e.subject).(type) {
 	case panics.Expected:
-		// for a "DidNotOccur" test, things are more complicated.
+		// for a "DidNotOccur" test, things are more complicated:
 
 		// first let's grab any recoverable value and create a
 		// matcher which we'll use later...

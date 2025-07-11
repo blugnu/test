@@ -11,7 +11,7 @@ import (
 func TestExpect_DidOccur(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// panics
 		{Scenario: "panic was expected and occurred",
 			Act: func() {
@@ -53,13 +53,13 @@ func TestExpect_DidOccur(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func TestExpect_DidNotOccur(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// panics
 		{Scenario: "panic(), no panic occurs",
 			Act: func() {
@@ -132,5 +132,5 @@ func TestExpect_DidNotOccur(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }

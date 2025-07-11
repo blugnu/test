@@ -48,6 +48,13 @@ type PrefixInlineWithFirstItem bool
 // typically by using the opt.UnquotedStrings() convenience function.
 type QuotedStrings bool
 
+// StackTrace may be used to indicate that a stack trace should be included
+// in the test report when a test fails.  Where a stack trace is supported
+// it is generally included by default, so this option may be used to
+// disable it by including opt.StackTrace(false) or opt.NoStackTrace() in
+// the options.
+type StackTrace bool
+
 // ToNotMatch is set internall when a matcher is invoked in a ToNot() or
 // ShouldNot() test.
 //
@@ -56,17 +63,22 @@ type QuotedStrings bool
 // matching, if appropriate; it usually isn't).
 type ToNotMatch bool
 
-// AnyOrder is a convenience function that returns ExactOrder(false).
+// AnyOrder is a convenience function that returns ExactOrder(false)
 func AnyOrder() ExactOrder {
 	return ExactOrder(false)
 }
 
-// Required is a convenience function that returns IsRequired(true).
+// NoStackTrace is a convenience function that returns StackTrace(false)
+func NoStackTrace() StackTrace {
+	return StackTrace(false)
+}
+
+// Required is a convenience function that returns IsRequired(true)
 func Required() IsRequired {
 	return IsRequired(true)
 }
 
-// UnquotedStrings is a convenience function that returns QuotedStrings(false).
+// UnquotedStrings is a convenience function that returns QuotedStrings(false)
 func UnquotedStrings() QuotedStrings {
 	return QuotedStrings(false)
 }

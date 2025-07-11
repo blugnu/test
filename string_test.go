@@ -9,7 +9,7 @@ import (
 func TestContainsString(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// ContainString tests
 		{Scenario: "expecting substring to exist in string",
 			Act: func() { Expect("abc").To(ContainString("a")) },
@@ -36,13 +36,13 @@ func TestContainsString(t *testing.T) {
 				Expect("abc").ToNot(ContainString("d"))
 			},
 		},
-	})
+	}...))
 }
 
 func TestMatchRegEx(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 
 		// Match tests
 		{Scenario: "expecting to match a regex and does",
@@ -89,5 +89,5 @@ func TestMatchRegEx(t *testing.T) {
 		{Scenario: "expecting to not match a regex and does not",
 			Act: func() { Expect("email: <not present>").ToNot(MatchRegEx("[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+[a-z]{2,3}")) },
 		},
-	})
+	}...))
 }

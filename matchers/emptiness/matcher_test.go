@@ -21,7 +21,7 @@ func (e implementsLength[T]) Length() T { return e.n }
 func TestBeEmpty(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "empty string",
 			Act: func() { Expect("").Should(BeEmpty()) },
 		},
@@ -160,13 +160,13 @@ func TestBeEmpty(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func TestBeEmptyOrNil(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "empty string",
 			Act: func() { Expect("").Should(BeEmptyOrNil()) },
 		},
@@ -287,5 +287,5 @@ func TestBeEmptyOrNil(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }

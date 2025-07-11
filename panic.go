@@ -62,6 +62,7 @@ func Panic(r ...any) panics.Expected {
 
 	T().Helper()
 	test.Invalid(fmt.Sprintf("Panic: expected at most one argument, got %d", len(r)))
+
 	return panics.Expected{}
 }
 

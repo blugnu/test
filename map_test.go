@@ -26,7 +26,9 @@ func TestValuesOfMap(t *testing.T) {
 		"ford":   42,
 		"arthur": 23,
 	}
+
 	result := ValuesOfMap(sut)
+
 	Expect(result).To(EqualSlice([]int{23, 42}), opt.AnyOrder())
 }
 
@@ -42,7 +44,7 @@ func TestContainMap(t *testing.T) {
 		"ford":   42,
 	}))
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "with nil map",
 			Act: func() {
 				var nilmap map[string]int
@@ -66,7 +68,7 @@ func TestContainMap(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func TestContainMapEntry(t *testing.T) {

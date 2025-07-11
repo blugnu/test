@@ -5,15 +5,13 @@ import (
 	"testing"
 
 	. "github.com/blugnu/test"
-	"github.com/blugnu/test/matchers/emptiness"
-	"github.com/blugnu/test/matchers/matcher"
 	"github.com/blugnu/test/test"
 )
 
 func TestExpectType(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expecting int got int",
 			Act: func() {
 				result, ok := ExpectType[int](1)
@@ -50,7 +48,7 @@ func TestExpectType(t *testing.T) {
 		},
 		{Scenario: "expecting interface implementation",
 			Act: func() {
-				ExpectType[matcher.ForAny](emptiness.Matcher{})
+				ExpectType[TestingT](nil) // the value is not relevant to this test
 			},
 			Assert: func(result *R) {
 				result.ExpectInvalid(
@@ -58,7 +56,7 @@ func TestExpectType(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func ExampleExpectType() {

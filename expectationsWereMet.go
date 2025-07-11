@@ -1,6 +1,9 @@
 package test
 
-import "github.com/blugnu/test/opt"
+import (
+	"github.com/blugnu/test/matchers/mocks"
+	"github.com/blugnu/test/opt"
+)
 
 // Mock is an interface describing the methods required to be supported by a
 // mock that can be tested using ExpectationsWereMet().
@@ -60,4 +63,10 @@ func ExpectationsWereMet(m Mock, opts ...any) {
 	if err := m.ExpectationsWereMet(); err != nil {
 		Expect(err).IsNil(append(opts, opt.OnFailure(err.Error()))...)
 	}
+}
+
+// MeetExpectations is a matcher that checks whether the expectations of a mock
+// were met.  It is used in conjunction with the Expect() function to assert
+func MeetExpectations() *mocks.Matcher {
+	return &mocks.Matcher{}
 }

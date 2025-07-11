@@ -10,6 +10,46 @@ import (
 	"github.com/blugnu/test/test"
 )
 
+// AnyMatcher is the interface implemented by matchers that can test
+// any type of value.  It is used to apply matchers to expectations
+// that are not type-specific.
+//
+// It is preferable to use the Matcher[T] interface for type-safe
+// expectations; AnyMatcher is provided for situations where the
+// compatible types for a matcher cannot be enforced at compile-time.
+//
+// When implementing an AnyMatcher, it is important to ensure that
+// the matcher fails a test if it is not used correctly, i.e. if the
+// matcher is not compatible with the type of the value being tested.
+//
+// An AnyMatcher must be used with the Expect().Should() matching
+// function; they may also be used with Expect(got).To() where the got
+// value is of type `any`, though this is not recommended.
+type AnyMatcher interface {
+	Match(got any, opts ...any) bool
+}
+
+// Matcher[T] is the interface implemented by matchers that can test
+// a value of type T.  It is used to apply matchers to expectations
+// that are type-specific and type-safe.
+//
+// Note that not all type-safe matchers implement a generic interface;
+// a matcher that implements Match(got X, opts ...any) bool, where X is
+// a formal, literal type (i.e. not generic) is also a type-safe matcher.
+//
+// Matcher[T] describes the general form of a type-safe matcher.
+//
+// Generic matchers are able to leverage the type system to ensure
+// that the matcher is used correctly with a variety of types, i.e. where
+// the type of the Expect() value satisfies the constraints of the matcher
+// type, T.  The equals.Matcher[T comparable] uses this approach, for
+// example, to ensure that the value being tested is comparable
+// with the expected value (since the matcher uses the == operator for
+// equality testing).
+type Matcher[T any] interface {
+	Match(got T, opts ...any) bool
+}
+
 // Expect creates an expectation for the given value.  The value
 // may be of any type.
 //
@@ -104,10 +144,12 @@ func (e *expectation[T]) err(msg any) {
 	case []string:
 		var rpt string
 		var indent string
+
 		if e.name != "" {
 			rpt = "\n" + e.name + ":"
 			indent = "  "
 		}
+
 		for _, s := range msg {
 			rpt += "\n" + indent + s
 		}

@@ -11,7 +11,7 @@ import (
 func TestInvalid(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "no test frame",
 			Act: func() {
 				defer Expect(Panic("INVALID TEST")).DidOccur()
@@ -47,7 +47,7 @@ func TestInvalid(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
 
 func TestError(t *testing.T) {
@@ -55,7 +55,7 @@ func TestError(t *testing.T) {
 
 	errTest := errors.New("test error")
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "no test frame",
 			Act: func() {
 				defer Expect(Panic(errTest)).DidOccur() // FUTURE: DidOccur(WithString("with message")) if possible?
@@ -95,7 +95,27 @@ func TestError(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
+}
+
+func TestWarning(t *testing.T) {
+	With(t)
+
+	Run(HelperTests([]HelperScenario{
+		{Scenario: "no test frame",
+			Act: func() {
+				defer Expect(Panic("WARNING: something you should know")).DidOccur() // FUTURE: DidOccur(WithString("with message")) if possible?
+				With(test.NilFrame())
+				test.Warning("something you should know")
+			},
+		},
+		{Scenario: "with test frame",
+			Act: func() { test.Warning("something you should know") },
+			Assert: func(result *R) {
+				result.ExpectWarning("something you should know")
+			},
+		},
+	}...))
 }
 
 func ExampleError() {

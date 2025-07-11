@@ -9,7 +9,7 @@ import (
 func TestGreaterThan(t *testing.T) { //nolint:dupl  // incorrectly flags this entire test as a duplicate of TestLessThan (it is not)
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expected greater than and was greater than",
 			Act: func() {
 				Expect(2).To(BeGreaterThan(1))
@@ -55,13 +55,13 @@ func TestGreaterThan(t *testing.T) { //nolint:dupl  // incorrectly flags this en
 				})
 			},
 		},
-	})
+	}...))
 }
 
 func TestLessThan(t *testing.T) { //nolint:dupl  // incorrectly flags this entire test as a duplicate of TestGreaterThan (it is not)
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "expected less than and was less than",
 			Act: func() {
 				Expect(1).To(BeLessThan(2))
@@ -107,5 +107,5 @@ func TestLessThan(t *testing.T) { //nolint:dupl  // incorrectly flags this entir
 				})
 			},
 		},
-	})
+	}...))
 }

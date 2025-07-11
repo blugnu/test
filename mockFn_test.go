@@ -139,9 +139,9 @@ func TestMockFnRecordCall(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -229,9 +229,9 @@ func TestMockFnExpectationsWereMet(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -287,9 +287,9 @@ func TestMockFnExpectCall(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -361,9 +361,9 @@ func TestMockFnResultFor(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -413,9 +413,9 @@ func TestMockFnWhenCalledWith(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -427,6 +427,18 @@ func TestMockFnCallWillReturn(t *testing.T) {
 		scenario string
 		exec     func()
 	}{
+		{scenario: "returns nil",
+			exec: func() {
+				// ARRANGE
+				sut := mockFnCall[int, int]{}
+
+				// ACT
+				sut.WillReturn(nil)
+
+				// ASSERT
+				Expect(sut).To(Equal(mockFnCall[int, int]{result: 0}))
+			},
+		},
 		{scenario: "returns value",
 			exec: func() {
 				// ARRANGE
@@ -498,9 +510,9 @@ func TestMockFnCallWillReturn(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }
 
@@ -538,8 +550,8 @@ func TestMockFnCallWithArgs(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		Run(tc.scenario, func() {
+		Run(Test(tc.scenario, func() {
 			tc.exec()
-		})
+		}))
 	}
 }

@@ -15,7 +15,7 @@ func byref[T any](v T) *T {
 func TestShould_BeNil(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "nil is nil",
 			Act: func() { var nilAny any; Expect(nilAny).Should(BeNil()) },
 		},
@@ -109,13 +109,13 @@ func TestShould_BeNil(t *testing.T) {
 				result.Expect("custom failure report")
 			},
 		},
-	})
+	}...))
 }
 
 func TestShouldNot_BeNil(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "nil is not nil",
 			Act: func() { Expect((any)(nil)).ShouldNot(BeNil()) },
 			Assert: func(result *R) {
@@ -131,5 +131,5 @@ func TestShouldNot_BeNil(t *testing.T) {
 		{Scenario: "error is not nil",
 			Act: func() { Expect(errors.New("some error message")).ShouldNot(BeNil()) },
 		},
-	})
+	}...))
 }

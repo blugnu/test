@@ -20,7 +20,7 @@ func TestNilPanic(t *testing.T) {
 func TestPanic(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "with no args",
 			Act: func() {
 				result := Panic()
@@ -48,13 +48,15 @@ func TestPanic(t *testing.T) {
 				result.ExpectInvalid("Panic: expected at most one argument, got 2")
 			},
 		},
-	})
+	}...))
 }
 
 func ExamplePanic() {
 	test.Example()
 
-	defer Expect(Panic("some string")).DidOccur()
+	// a stack trace is included by default, but is disabled for this
+	// example to avoid breaking the example output
+	defer Expect(Panic("some string")).DidOccur(opt.NoStackTrace())
 
 	panic("some other string")
 

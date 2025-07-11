@@ -9,7 +9,7 @@ import (
 func TestBooleans(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// MARK: BeFalse
 		{Scenario: "BeFalse when false",
 			Act: func() { Expect(false).To(BeFalse()) },
@@ -54,5 +54,5 @@ func TestBooleans(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }

@@ -11,34 +11,36 @@ import (
 func TestSliceOfBytes(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
-		{Scenario: "when got and expected are equal",
-			Act: func() { Expect([]byte{1, 2, 3}).To(EqualBytes([]byte{1, 2, 3})) },
-		},
-		{Scenario: "expected not equal and was not equal",
-			Act: func() { Expect([]byte{1, 2, 3}).ToNot(EqualBytes([]byte{3, 2, 1})) },
-		},
-		{Scenario: "equal slices of custom byte type",
-			Act: func() {
-				type MyByte byte
-				Expect([]MyByte{1, 2, 3}).To(EqualBytes([]MyByte{1, 2, 3}))
+	Run(
+		HelperTests([]HelperScenario{
+			{Scenario: "when got and expected are equal",
+				Act: func() { Expect([]byte{1, 2, 3}).To(EqualBytes([]byte{1, 2, 3})) },
 			},
-		},
+			{Scenario: "expected not equal and was not equal",
+				Act: func() { Expect([]byte{1, 2, 3}).ToNot(EqualBytes([]byte{3, 2, 1})) },
+			},
+			{Scenario: "equal slices of custom byte type",
+				Act: func() {
+					type MyByte byte
+					Expect([]MyByte{1, 2, 3}).To(EqualBytes([]MyByte{1, 2, 3}))
+				},
+			},
 
-		// supported options
-		{Scenario: "custom failure report",
-			Act: func() {
-				Expect([]byte{1}).To(EqualBytes([]byte{2}), opt.FailureReport(func(...any) []string {
-					return []string{"custom failure report"}
-				}))
+			// supported options
+			{Scenario: "custom failure report",
+				Act: func() {
+					Expect([]byte{1}).To(EqualBytes([]byte{2}), opt.FailureReport(func(...any) []string {
+						return []string{"custom failure report"}
+					}))
+				},
+				Assert: func(result *R) {
+					result.Expect(
+						"custom failure report",
+					)
+				},
 			},
-			Assert: func(result *R) {
-				result.Expect(
-					"custom failure report",
-				)
-			},
-		},
-	})
+		}...),
+	)
 }
 
 func ExampleEqualBytes() {

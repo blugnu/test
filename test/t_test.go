@@ -10,12 +10,12 @@ import (
 func TestT(t *testing.T) {
 	With(t)
 
-	Run("valid testframe", func() {
+	Run(Test("valid testframe", func() {
 		t1 := test.T()
 		Expect(t1).IsNotNil()
-	})
+	}))
 
-	Run("no testframe", func() {
+	Run(Test("no testframe", func() {
 		defer Expect(Panic()).DidNotOccur()
 
 		With(test.NilFrame())
@@ -27,5 +27,5 @@ func TestT(t *testing.T) {
 
 		// coverage for the noopHelper
 		t.Helper()
-	})
+	}))
 }

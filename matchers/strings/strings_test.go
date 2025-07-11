@@ -10,7 +10,7 @@ import (
 func TestStringMatcher(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// ContainString tests
 		{Scenario: "ContainString",
 			Act: func() { Expect("abc").To(ContainString("a")) },
@@ -130,5 +130,5 @@ func TestStringMatcher(t *testing.T) {
 				Expect(string(got)).To(MatchRegEx("a"))
 			},
 		},
-	})
+	}...))
 }

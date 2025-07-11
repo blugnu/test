@@ -79,3 +79,29 @@ func Error(err error, msg ...string) {
 		panic(fmt.Errorf("INVALID TEST\n%w", err))
 	}
 }
+
+// Warning is used to report a warning in a test.  This should be used to
+// indicate a condition that is not an error, but may indicate a problem or
+// unexpected behavior in the test.
+//
+// If a valid test frame is available, it will report the warning using the
+// Errorf, otherwise it will panic with the warning message.
+//
+// The warning message will be prefixed with "WARNING: " to indicate that it is
+// a warning and not an error.  This is useful for indicating that the test
+// is not invalid, but there is something noteworthy that should be considered
+// by the developer.
+func Warning(msg string) {
+	msg = "WARNING: " + msg
+
+	// if we can obtain a TestRunner from the current test frame then we will
+	// use it to report the test as invalid, otherwise we must panic, to avoid
+	// a test yielding a false positive result
+	t, ok := testframe.Peek[runner]()
+	if !ok {
+		panic(msg)
+	}
+
+	t.Helper()
+	t.Errorf("<== " + msg)
+}

@@ -10,7 +10,7 @@ import (
 func TestEqualsSlice(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		// MARK: []string / To
 		{Scenario: "expected equal slices to be equal",
 			Act: func() {
@@ -86,5 +86,5 @@ func TestEqualsSlice(t *testing.T) {
 				})
 			},
 		},
-	})
+	}...))
 }

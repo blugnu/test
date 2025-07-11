@@ -11,7 +11,7 @@ import (
 func TestPanic_DidOccur(t *testing.T) {
 	With(t)
 
-	RunTestScenarios([]TestScenario{
+	Run(HelperTests([]HelperScenario{
 		{Scenario: "did not panic when panic was expected",
 			Act: func() {
 				err := errors.New("panic with error")
@@ -44,6 +44,10 @@ func TestPanic_DidOccur(t *testing.T) {
 					"unexpected panic:",
 					"  expected : *errors.errorString(panic with error)",
 					"  recovered: *errors.errorString(panic with different error)",
+					// we cannot predict the goroutine number or stack trace so we include
+					// the expected pre-amble of the stack trace appended to the report
+					"",
+					"stack:",
 				)
 			},
 		},
@@ -88,6 +92,42 @@ func TestPanic_DidOccur(t *testing.T) {
 					"unexpected panic:",
 					"  expected : int(1)",
 					"  recovered: string(\"1\")",
+				)
+			},
+		},
+
+		// Panic() tests
+		{Scenario: "Panic().DidOccur(), panicked",
+			Act: func() {
+				defer Expect(Panic()).DidOccur()
+				panic("foo")
+			},
+		},
+		{Scenario: "Panic().DidOccur(), did not panic",
+			Act: func() {
+				defer Expect(Panic()).DidOccur()
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"expected panic: <any value recovered>",
+					"  recovered   : nil (did not panic)",
+				)
+			},
+		},
+		{Scenario: "Panic().DidNotOccur(), did not panic",
+			Act: func() {
+				defer Expect(Panic()).DidNotOccur()
+			},
+		},
+		{Scenario: "Panic().DidNotOccur(), panicked",
+			Act: func() {
+				defer Expect(Panic()).DidNotOccur()
+				panic("foo")
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"unexpected panic:",
+					"  recovered: string(\"foo\")",
 				)
 			},
 		},
@@ -206,5 +246,5 @@ func TestPanic_DidOccur(t *testing.T) {
 				)
 			},
 		},
-	})
+	}...))
 }
