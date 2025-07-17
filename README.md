@@ -61,18 +61,21 @@ func TestDoSomething(t *testing.T) {
 - **Clean**: No more constantly referencing a `*testing.T`;
 - **Concise**: Provides a fluent API that is concise and easy to read, reducing boilerplate code;
 - **Type-Safe**: Uses Go's type system to ensure that valid tests are performed, reducing runtime
-errors and false positives (or negatives);
+                 errors and false positives (or negatives);
 - **Compatible**: Compatible with the standard library `testing` package;
 - **Matchers**: Provides a rich set of matchers for common assertions, making it easy to express
-expectations;
-- **Extensible**: Supports custom matchers, enabling functionality to be extended as needed;
+                expectations;
+- **Runners**: Provides a rich set of runners for common testing needs, including table-driven
+               tests, testing helpers, flaky tests, and more;
+- **Extensible**: Supports custom matchers and runners, enabling functionality to be extended as
+                  needed;
 - **Panic Testing**: Provides a way to test for expected panics, ensuring that code behaves
-correctly under error conditions;
+                     correctly under error conditions;
 - **Mocking Utilities**: Provides types to assist with implementing mock functions and replacing
-  dependencies in tests, allowing for isolated testing of components;
+                         dependencies in tests, allowing for isolated testing of components;
 - **Console Recording**: Supports recording console output (`stdout` and `stderr`), to facilitate
-testing of log messages and other output;
-- **Meta-Testing**: Provides methods for testing a test (used by the package to test itself).
+                         testing of log messages and other output;
+- **Meta-Testing**: Provides a test for testing a test (used by the package to test itself).
 
 ## :construction_worker: &nbsp; Under Construction
 
@@ -319,9 +322,11 @@ is not possible.
 - [Testing Slices](#testing-slices)
 - [Testing Context](#testing-context)
 
-## 'Table-Driven' Tests
+## [Test Runners](#test-runner-functions)
 
+- [Subtests](#subtests)
 - [Table-Driven Tests](#table-driven-tests)
+- [Flaky Tests](#flaky-tests)
 
 ## Advanced Usage
 
@@ -857,7 +862,7 @@ expected by the matcher must be cast to that type:
 ------
 </br>
 
-# Test Runners
+# Test Runner Functions
 
 The `testing.T` type is the standard test runner in Go.  This type also
 provides a way to run subtests using the `test.Run()` function, which
@@ -865,24 +870,28 @@ accepts a function that performs the test using a `testing.T` value to
 report the outcome of the test.
 
 The `test` package simplifies and extends this by providing the `Run()`
-function which accepts a test runner.
+function which accepts a _test runner_.
 
 Test runners are provided to:
 
 - run an individual, named subtest (directly equivalent to `t.Run()`
-  in the standard library)
+  in the standard library) using the `Test()` runner
 
 - run an individual, named subtest in parallel (equivalent to `t.Run()`
-  with a call to `t.Parallel()` in the subtest)
+  with a call to `t.Parallel()` in the subtest) using the `ParallelTest()`
+  runner
 
-- run a set of tests defined in a table-driven test, using the
-  `Testcases()` function
+- run a suite of tests defined in a table-driven test, using the
+  `Testcases()` runner
 
-- run a set of parallel tests defined in a table-driven test, using the
-  `ParallelCases()` function
+- run a suite of parallel tests defined in a table-driven test, using the
+  `ParallelCases()` runner
 
-- run a set of Test Helper scenarios defined in a table-driven
-  test, using the `HelperTests()` function
+- run a suite of Test Helper scenarios defined in a table-driven
+  test, using the `HelperTests()` runner
+
+- run a flaky test repeatedly until (hopefully) it passes, using the
+  `FlakyTest()` runner
 
 ## Subtests
 
@@ -986,6 +995,23 @@ There are two ways to skip/debug test cases:
   ))
 ```
 <!-- markdownlint-enable -->
+
+## Flaky Tests
+
+Flaky tests are tests that may fail intermittently, often due to timing issues
+or other non-deterministic factors.  The `test` package provides a way to run
+flaky tests using the `FlakyTest()` runner.
+
+The `FlakyTest()` runner accepts a test function and options to configure the
+retry attempts.  If the test fails, the runner will repeat the test up to a
+maximum number of attempts and/or until a maximum elapsed time has passed
+(whichever occurs first).
+
+If the test passes before the maximum number of attempts or elapsed time is reached,
+the test passes; any failed attempts are ignored.
+
+If the test fails on all attempts, the test fails, and the outcome of each attempt
+is reported in the test output.
 
 ------
 </br>
