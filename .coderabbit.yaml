@@ -1,4 +1,8 @@
 reviews:
+  profile: assertive
+  request_changes_workflow: true
   tools:
     golangci-lint:
       config_file: .coderabbit-golangci.yml
+    yamllint:
+      enabled: false
