@@ -10,7 +10,7 @@ import (
 
 type Matcher struct{}
 
-// IsNil checks that the value of the expectation is nil.  If the
+// Match checks that the value of the expectation is nil.  If the
 // value is not nil, the test fails.  If the value is nil, the test
 // passes.
 //
