@@ -129,6 +129,7 @@ func (tcr Runner[T]) Run() {
 		tcr.TestingT.Run(name, func(t *testing.T) {
 			t.Helper()
 			testframe.Push(t)
+			t.Cleanup(func() { testframe.Pop() })
 
 			if tc.skip {
 				nSkipped++
