@@ -25,8 +25,8 @@ func (tr testRunner) Run() {
 	}
 
 	t.Run(tr.name, func(t *testing.T) {
-		With(t)
 		t.Helper()
+		With(t)
 
 		if tr.parallel {
 			t.Parallel()

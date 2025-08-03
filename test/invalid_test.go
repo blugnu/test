@@ -104,7 +104,7 @@ func TestWarning(t *testing.T) {
 	Run(HelperTests([]HelperScenario{
 		{Scenario: "no test frame",
 			Act: func() {
-				defer Expect(Panic("WARNING: something you should know")).DidOccur() // FUTURE: DidOccur(WithString("with message")) if possible?
+				defer Expect(Panic("WARNING: something you should know")).DidOccur()
 				With(test.NilFrame())
 				test.Warning("something you should know")
 			},

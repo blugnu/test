@@ -16,7 +16,7 @@ func await(f func()) {
 	wg.Wait()
 }
 
-// these tests must use standard library testing.T to avoid an import cycle :(
+// these tests must use standard library testing.T to avoid an import cycle
 func Test_goid(t *testing.T) {
 	t.Run("returns the id of the calling goroutine", func(t *testing.T) {
 		id := goid()

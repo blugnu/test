@@ -22,8 +22,11 @@ func getLogOutput() (io.Writer, bool) {
 	// need to retrieve the original output (we cannot just assume
 	// it is the current value of os.Stderr).
 	v := reflect.ValueOf(log.Default()).Elem().FieldByName("out")
-	w, ok := reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr())).Elem().Interface().(io.Writer) //nolint:gosec // the only way to get the out Writer on the default logger
 
+	//nolint:gosec // the only way to get the out Writer on the default logger
+	newv := reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr()))
+
+	w, ok := newv.Elem().Interface().(io.Writer)
 	return w, ok
 }
 

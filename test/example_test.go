@@ -56,7 +56,7 @@ func TestExample(t *testing.T) {
 
 	Run(Test("running a subtest", func() {
 		_, out, log := runExample(func(sut TestingT) {
-			sut.Run("subtest", func(t *testing.T) {
+			sut.Run("subtest", func(_ *testing.T) {
 				fmt.Println("sub test ran OK")
 			})
 		})

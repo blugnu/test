@@ -342,8 +342,10 @@ func TestHelper(f func()) R {
 		recovered any
 		stack     []byte
 	)
-	stdout, stderr, outcome := runInternal(t, func(internal *testing.T) {
-		testframe.Push(internal)
+	stdout, stderr, outcome := runInternal(t, func(t *testing.T) {
+		t.Helper()
+		testframe.Push(t)
+
 		defer func() {
 			recovered = recover()
 			testframe.Pop()
@@ -356,6 +358,7 @@ func TestHelper(f func()) R {
 				stack = buf[0 : n-1]
 			}
 		}()
+
 		f()
 	})
 

@@ -60,12 +60,12 @@ func TestWith(t *testing.T) {
 		test.Warning("this should not be reached")
 	}))
 
-	T().Run("in a testing.T subtest", func(st *testing.T) {
-		With(st)
+	T().Run("in a testing.T subtest", func(t *testing.T) { //nolint:thelper // this is not a helper, but a sub-test
+		With(t)
 
-		t := T()
-		Expect(t).ShouldNot(BeNil())
-		Expect(t.Name()).To(Equal("TestWith/in_a_testing.T_subtest"))
+		tf := T()
+		Expect(tf).ShouldNot(BeNil())
+		Expect(tf.Name()).To(Equal("TestWith/in_a_testing.T_subtest"))
 	})
 
 	// verify that the testframe stack is consistent

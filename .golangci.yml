@@ -3,21 +3,20 @@ linters:
   default: all
   disable:
     - err113                     # makes it impossible to use errors.New() in tests
-    - embeddedstructfieldcheck   # often acceptable (subjective)
+    - embeddedstructfieldcheck   # subjective; can be useful to disambiguate
     - exhaustruct                # makes partial struct initialization impossible
-    - funlen                     # function length is subjective, not objective
-    - gochecknoglobals           # there are legitimate uses for global variables
-    - godot                      # not all comments should end with a period
-    - inamedparam                # parameter names are not significant in interfaces though may be helpful (subjective)
-    - interfacebloat             # the acceptable number of methods in an interface is subjective
-    - lll                        # long lines (> col 120)
-    - nlreturn                   # another whitespace nazi
-    - noinlineerr                # inline error checks are often more readable
-    - thelper                    # makes scenario exec(testing.T) test cases impossible
+    - funlen                     # subjective; prefer complexity metrics
+    - gochecknoglobals           # subjective; there are legitimate uses for package variables
+    - godot                      # not all comments need end with a period
+    - inamedparam                # subjective; parameter names are not significant in interfaces though may be helpful
+    - interfacebloat             # subjective
+    - lll                        # long lines (> col 120) are (occasionally) acceptable/required
+    - nlreturn                   # subjective
+    - noinlineerr                # subjective; inline error checks sometimes help readability
     - paralleltest               # parallel tests are not always appropriate
-    - varnamelen                 # variable names must be at least 3 characters long
-    - wsl                        # absolute PoS whitespace nazi
-    - wsl_v5                     # resurgent PoS whitespace nazi
+    - varnamelen                 # excessively opinionated, subjective
+    - wsl                        # unreasonably opinionated and buggy
+    - wsl_v5                     # unreasonably opinionated and buggy
 
     # not supported when go.mod Go version is <1.22
     - copyloopvar
@@ -26,6 +25,7 @@ linters:
     # exceptions specific to the needs of this project
     - forbidigo           # Println is used to test stdout
     - ireturn             # returning any is required when dealing with types of unknown value
+    - thelper                    # makes scenario exec(testing.T) test cases impossible
 
   settings:
     depguard:
@@ -41,10 +41,6 @@ linters:
     #   keywords:
     #     - TODO
 
-    ireturn:
-      reject:
-        - empty      # should never return interface{}
-
     revive:
       rules:
         - name: package-comments
@@ -52,4 +48,4 @@ linters:
 
     staticcheck:
       checks:
-        - -QF1008    # disable "could remove embedded field <name> from selector"; sometimes it is useful (if unnecessary) to disambiguate
+        - -QF1008    # "could remove embedded field <name> from selector"; sometimes it is useful (if unnecessary) to disambiguate

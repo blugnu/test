@@ -127,8 +127,8 @@ func (tcr Runner[T]) Run() {
 	for _, tc := range runnable {
 		name := tc.name
 		tcr.TestingT.Run(name, func(t *testing.T) {
-			testframe.Push(t)
 			t.Helper()
+			testframe.Push(t)
 
 			if tc.skip {
 				nSkipped++

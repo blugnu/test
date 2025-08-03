@@ -235,7 +235,7 @@ func Test_runInternal(t *testing.T) {
 		t := RequireType[*testing.T](T())
 
 		// ACT
-		stdout, stderr, outcome := runInternal(t, func(st *testing.T) {
+		stdout, stderr, outcome := runInternal(t, func(_ *testing.T) {
 			fmt.Println("=== RUN: this output should be removed")
 			fmt.Println("=== PAUSE: this output should be removed")
 			fmt.Println("=== CONT: this output should be removed")

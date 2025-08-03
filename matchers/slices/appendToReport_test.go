@@ -45,7 +45,12 @@ func TestAppendToReport(t *testing.T) {
 			},
 			{Scenario: "non-empty slice (opt.PrefixInlineWithFirstItem)",
 				Exec: func() {
-					result := slices.AppendToReport([]string{}, []string{"a", "b", "c"}, "prefix:", opt.PrefixInlineWithFirstItem(true))
+					result := slices.AppendToReport(
+						[]string{},
+						[]string{"a", "b", "c"},
+						"prefix:",
+						opt.PrefixInlineWithFirstItem(true),
+					)
 					Expect(result).To(EqualSlice([]string{
 						"prefix: | \"a\"",
 						"        | \"b\"",

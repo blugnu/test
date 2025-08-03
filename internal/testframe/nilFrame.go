@@ -2,7 +2,7 @@ package testframe
 
 import "testing"
 
-// Cleanup is an interface that allows for cleanup functions to be registered
+// Cleanup is an interface that allows for cleanup functions to be registered.
 type Cleanup interface {
 	Cleanup(fn func())
 }
