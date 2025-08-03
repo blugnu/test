@@ -12,21 +12,28 @@ import (
 	sliceValue "github.com/blugnu/test/matchers/slices"
 )
 
-func appendToReport[K comparable, V any](result []string, p string, m map[K]V, opts ...any) []string {
+func AppendToReport[K comparable, V any](result []string, p string, m map[K]V, opts ...any) []string {
 	if len(m) == 0 {
 		return append(result, p+" <empty map>")
 	}
 
-	v := *new(V)
-	vkind := reflect.TypeOf(v).Kind()
-	vSlice := vkind == reflect.Slice || vkind == reflect.Array
+	var (
+		v               V
+		vt              = reflect.TypeOf(v)
+		valuesAreSlices bool
+	)
+
+	if vt != nil {
+		vkind := vt.Kind()
+		valuesAreSlices = vkind == reflect.Slice || vkind == reflect.Array
+	}
 
 	// for stable ordering of the map, we first render keys and values as strings
 	// into a new map, then sort the keys and append the rendered map in key order
 	vfn := func(v any) any {
 		return opt.ValueAsString(v, opts...)
 	}
-	if vSlice {
+	if valuesAreSlices {
 		vfn = func(v any) any { return v }
 	}
 
@@ -41,7 +48,7 @@ func appendToReport[K comparable, V any](result []string, p string, m map[K]V, o
 
 	result = append(result, p)
 
-	if vSlice {
+	if valuesAreSlices {
 		for _, k := range keys {
 			result = sliceValue.AppendToReport(result, orderedMap[k], k+" =>", append(opts, opt.PrefixInlineWithFirstItem(true))...)
 		}

@@ -25,15 +25,15 @@ func (m EqualMatcher[K, V]) OnTestFailure(got map[K]V, opts ...any) []string {
 		result = append(result, "unexpected: <empty map>")
 
 	case len(m.Expected) == 0:
-		result = appendToReport(result, "expected:", m.Expected, opts...)
-		result = appendToReport(result, "got:", got, opts...)
+		result = AppendToReport(result, "expected:", m.Expected, opts...)
+		result = AppendToReport(result, "got:", got, opts...)
 
 	case inv:
-		result = appendToReport(result, "expected: map not equal to:", m.Expected, opts...)
+		result = AppendToReport(result, "expected: map not equal to:", m.Expected, opts...)
 
 	default:
-		result = appendToReport(result, "expected map:", m.Expected, opts...)
-		result = appendToReport(result, "got:", got, opts...)
+		result = AppendToReport(result, "expected map:", m.Expected, opts...)
+		result = AppendToReport(result, "got:", got, opts...)
 	}
 	return result
 }

@@ -22,11 +22,11 @@ func (m ContainsMatcher[K, V]) OnTestFailure(got map[K]V, opts ...any) []string 
 	inv := opt.IsSet(opts, opt.ToNotMatch(true))
 	switch {
 	case inv:
-		result = appendToReport(result, "expected: map not containing:", m.Expected, opts...)
+		result = AppendToReport(result, "expected: map not containing:", m.Expected, opts...)
 
 	default:
-		result = appendToReport(result, "expected: map containing:", m.Expected, opts...)
-		result = appendToReport(result, "got:", got, opts...)
+		result = AppendToReport(result, "expected: map containing:", m.Expected, opts...)
+		result = AppendToReport(result, "got:", got, opts...)
 	}
 	return result
 }
