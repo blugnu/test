@@ -7,28 +7,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"reflect"
 	"strings"
-	"unsafe"
 )
-
-func getLogOutput() (io.Writer, bool) {
-	// The standard logger is initialised with os.Stderr before
-	// the capture is setup. This means that the standard logger
-	// will not write to the captured stderr.
-	// We need to replace the standard logger's output with the
-	// captured stderr, which we can do using log.SetOutput().
-	// But we also need to restore it afterwards so we
-	// need to retrieve the original output (we cannot just assume
-	// it is the current value of os.Stderr).
-	v := reflect.ValueOf(log.Default()).Elem().FieldByName("out")
-
-	//nolint:gosec // the only way to get the out Writer on the default logger
-	newv := reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr()))
-
-	w, ok := newv.Elem().Interface().(io.Writer)
-	return w, ok
-}
 
 // record is the internal function that captures the output of stdout and stderr
 // using a specified stdioCapture struct. This enables a mock implementation
@@ -53,8 +33,7 @@ func Record(fn func()) ([]string, []string) {
 	}
 
 	recorder := stdioCapture{
-		copy:         io.Copy,
-		getLogOutput: getLogOutput,
+		copy: io.Copy,
 	}
 
 	return record(recorder, fn)
@@ -63,8 +42,7 @@ func Record(fn func()) ([]string, []string) {
 // stdioCapture is a struct that captures the output of stdout and stderr
 // using a specified copy function.
 type stdioCapture struct {
-	copy         func(dst io.Writer, src io.Reader) (written int64, err error)
-	getLogOutput func() (io.Writer, bool)
+	copy func(dst io.Writer, src io.Reader) (written int64, err error)
 }
 
 // redirect sets up the redirect of a *os.File (such as os.Stdout or os.Stderr).
@@ -126,13 +104,11 @@ func (sc stdioCapture) execute(fn func()) ([]string, []string, error) {
 	// address of the output field and then use unsafe to obtain
 	// the value.
 
-	lo, ok := sc.getLogOutput()
-	if !ok {
-		return nil, nil, ErrRecordingUnableToRedirectLogger
-	}
+	// redirect os.Stderr, ensuring that the original writer is restored
+	lo := log.Default().Writer()
 	defer func() { log.SetOutput(lo) }()
 
-	log.SetOutput(os.Stderr) // os.Stderr is redirected at this point
+	log.SetOutput(os.Stderr)
 
 	// call the function that may write to stdout, stderr and log
 	fn()

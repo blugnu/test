@@ -47,30 +47,9 @@ func TestRecord(t *testing.T) {
 			copy: func(dst io.Writer, src io.Reader) (int64, error) {
 				return 0, cpyerr
 			},
-			getLogOutput: getLogOutput,
 		}
 
 		defer Expect(Panic(ErrRecordingFailed)).DidOccur()
-
-		// ACT
-		// This will panic because the copy function is mocked to return an error
-		stdout, stderr := record(sut, func() { writeOutput() })
-
-		// ASSERT
-		Expect(stdout, "stdout").Should(BeEmpty())
-		Expect(stderr, "stderr").Should(BeEmpty())
-	}))
-
-	Run(Test("when unable to get log output", func() {
-		// ARRANGE
-		sut := stdioCapture{
-			copy: io.Copy,
-			getLogOutput: func() (io.Writer, bool) {
-				return nil, false // simulate failure to get log output
-			},
-		}
-
-		defer Expect(Panic(ErrRecordingUnableToRedirectLogger)).DidOccur()
 
 		// ACT
 		// This will panic because the copy function is mocked to return an error
