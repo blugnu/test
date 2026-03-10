@@ -103,8 +103,7 @@ func (tcr *Runner[T]) AddCase(name string, tc T, flags ...Flags) {
 
 // Run runs the test cases in the runner. Each test case is run as a subtest
 // in the current test frame. The test case name is used to identify the test
-// case in the test output, and any Before/After scaffolding functions are
-// called with the test case data.
+// case in the test output.
 func (tcr Runner[T]) Run() {
 	t := tcr.TestingT
 	t.Helper()

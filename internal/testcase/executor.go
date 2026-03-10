@@ -1,8 +1,7 @@
 package testcase
 
 import (
-	"fmt"
-
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
 )
 
@@ -21,7 +20,7 @@ func NewExecutor[T any](fn any) Executor[T] {
 
 	default:
 		GetT().Helper()
-		test.Warning(fmt.Sprintf("%T is not a valid test function", fn))
+		test.Warning(report.TypeName(fn) + " is not a valid test function")
 		return Executor[T]{}
 	}
 }
