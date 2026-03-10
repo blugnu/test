@@ -1,31 +1,68 @@
 package opt
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// Name returns the first of any string values in the specified
-// options.
-func Name(opts []any) string {
+// Name may be used to specify the name of the subject under test.
+type Name string
+
+// String returns the name as a string.
+func (s Name) String() string {
+	return string(s)
+}
+
+// GetName returns the first Name in opts.  A string is considered equivalent
+// to a Name.  If no Name or string is found, it returns an empty string
+// and false.
+func GetName(opts []any) (Name, bool) {
 	for _, opt := range opts {
-		if s, ok := opt.(string); ok {
-			return s
+		switch opt := opt.(type) {
+		case Name:
+			return opt, true
+		case string:
+			return Name(opt), true
 		}
 	}
 
-	return ""
+	return "", false
 }
 
-// Namef returns a string formed by formatting the specified string
+// Namef returns a Name formed by formatting the specified string
 // with the specified arguments.
 //
-// This is identical to fmt.Sprintf() and is provided to make the
-// intent of the code slightly shorter and (more importantly) clearer
-// when naming a test expectation:
+// This is a convenience function equivalent to:
 //
-//	Expect(got, opt.Namef("result of case %d", i)).To(Equal("expected result"))
+//	opt.Name(fmt.Sprintf(s, args...))
+func Namef(s string, args ...any) Name {
+	return Name(fmt.Sprintf(s, args...))
+}
+
+// WithName returns opts with the specified name added if it is not
+// empty and opts does not already contain a Name.
 //
-// vs
+// If name is empty, opts is returned unmodified.
+func WithName(opts []any, name string) []any {
+	if name == "" {
+		return opts
+	}
+
+	if _, ok := GetName(opts); !ok {
+		return append(opts, Name(name))
+	}
+
+	return opts
+}
+
+// WithNamef returns opts with a Name added, formed by formatting
+// the specified arguments, if the resulting Name is not empty and opts
+// does not already contain a Name.
 //
-//	Expect(got, fmt.Sprintf("result of case %d", i)).To(Equal("expected result"))
-func Namef(s string, args ...any) string {
-	return fmt.Sprintf(s, args...)
+// If format is empty, args are ignored and opts is returned unmodified.
+func WithNamef(opts []any, format string, args ...any) []any {
+	if format == "" {
+		return opts
+	}
+
+	return WithName(opts, fmt.Sprintf(format, args...))
 }
