@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/blugnu/test/internal/testframe"
+	"github.com/blugnu/test/opt"
 )
 
 type TestingT interface {
@@ -24,6 +25,14 @@ type TestingT interface {
 }
 
 // MARK: T()
+
+// getT
+func getT(opts []any) TestingT {
+	if t, ok := opt.Get[TestingT](opts); ok {
+		return t
+	}
+	return T()
+}
 
 // GetT retrieves the *testing.T for the calling test frame, by calling T().
 //
@@ -98,9 +107,5 @@ func With(t TestingT) {
 		panic(testframe.ErrNoTestFrame)
 	}
 
-	testframe.Push(t)
-
-	t.Cleanup(func() {
-		testframe.Pop()
-	})
+	testframe.PushWithCleanup(t)
 }

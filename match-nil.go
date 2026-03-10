@@ -1,6 +1,8 @@
 package test
 
-import "github.com/blugnu/test/matchers/nilness"
+import (
+	"github.com/blugnu/test/matchers/nilness"
+)
 
 // IsNil checks that the value of the expectation is nil.  If the
 // value is not nil, the test fails.  If the value is nil, the test

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	. "github.com/blugnu/test"
+	"github.com/blugnu/test/test"
 )
 
 func TestFlaky(t *testing.T) {
@@ -16,19 +17,19 @@ func TestFlaky(t *testing.T) {
 		}))
 	})
 	result.Expect(
-		"Flaky test failed after 3 attempts",
+		"Flaky test failed after 3 attempts in ", // time is variable so cannot be precisely checked
 		"",
 		"attempt 1:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 		"",
 		"attempt 2:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 		"",
 		"attempt 3:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 	)
 
 	result = TestHelper(func() {
@@ -41,12 +42,12 @@ func TestFlaky(t *testing.T) {
 		"Flaky test failed after 2 attempts in 1.0",
 		"",
 		"attempt 1:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 		"",
 		"attempt 2:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 	)
 
 	result = TestHelper(func() {
@@ -58,7 +59,7 @@ func TestFlaky(t *testing.T) {
 			}
 		}))
 	})
-	result.Expect(TestPassed)
+	result.Expect(test.Passed)
 
 	result = TestHelper(func() {
 		Run(FlakyTest("configured max attempts", func() {
@@ -69,8 +70,8 @@ func TestFlaky(t *testing.T) {
 		"Flaky test failed after 1 attempt",
 		"",
 		"attempt 1:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 	)
 
 	result = TestHelper(func() {
@@ -83,8 +84,8 @@ func TestFlaky(t *testing.T) {
 		"Flaky test failed after 1 attempt in 2", // precise time is not guaranteed but should be at least 2(00ms)
 		"",
 		"attempt 1:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 	)
 
 	result = TestHelper(func() {
@@ -96,7 +97,7 @@ func TestFlaky(t *testing.T) {
 		"Flaky test failed after 1 attempt",
 		"",
 		"attempt 1:",
-		"  run-flaky_test.go",
-		"    expected true, got false",
+		"runnable-flaky_test.go",
+		"  expected true",
 	)
 }

@@ -56,7 +56,7 @@ func ContainItems[T any](items []T) slices.ContainsItemsMatcher[T] {
 //
 //	func(T, T) bool
 //	func(any, any) bool
-func ContainSlice[T comparable](e []T) slices.ContainsSliceMatcher[T] {
+func ContainSlice[T any](e []T) slices.ContainsSliceMatcher[T] {
 	return slices.ContainsSliceMatcher[T]{Expected: e}
 }
 
@@ -72,6 +72,6 @@ func ContainSlice[T comparable](e []T) slices.ContainsSliceMatcher[T] {
 //	expected := []int{3, 2, 1}
 //	Expect(got).To(EqualSlice(expected))                         // will fail
 //	Expect(got).To(EqualSlice(expected), opt.ExactOrder(false))  // will pass
-func EqualSlice[T comparable](e []T) slices.EqualMatcher[T] {
+func EqualSlice[T any](e []T) slices.EqualMatcher[T] {
 	return slices.EqualMatcher[T]{Expected: e}
 }

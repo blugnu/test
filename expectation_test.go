@@ -290,6 +290,128 @@ func TestExpect_TestFailureReporting(t *testing.T) {
 	}...))
 }
 
+func TestExpect_DidOccur(t *testing.T) {
+	With(t)
+
+	Run(HelperTests([]HelperScenario{
+		// panics
+		{Scenario: "panic was expected and occurred",
+			Act: func() {
+				defer Expect(Panic(ErrInvalidArgument)).DidOccur()
+				panic(ErrInvalidArgument)
+			},
+		},
+		{Scenario: "panic was expected and did not occur",
+			Act: func() {
+				defer Expect(Panic(ErrInvalidArgument)).DidOccur()
+			},
+			Assert: func(result *R) {
+				result.Expect(test.Failed, opt.IgnoreReport(true))
+			},
+		},
+
+		// errors
+		{Scenario: "error was expected and occurred",
+			Act: func() { Expect(errors.New("error")).DidOccur() },
+		},
+		{Scenario: "error was expected and did not occur",
+			Act: func() {
+				var err error
+				Expect(err).DidOccur()
+			},
+			Assert: func(result *R) {
+				result.Expect("expected error, got nil")
+			},
+		},
+
+		// unsupported types
+		{Scenario: "not an error or panic",
+			Act: func() {
+				Expect(42).DidOccur()
+			},
+			Assert: func(result *R) {
+				result.ExpectInvalid(
+					"test.DidOccur: may only be used with Panic() or error values",
+				)
+			},
+		},
+	}...))
+}
+
+func TestExpect_DidNotOccur(t *testing.T) {
+	With(t)
+
+	Run(HelperTests([]HelperScenario{
+		// panics
+		{Scenario: "panic(), no panic occurs",
+			Act: func() {
+				defer Expect(Panic(ErrInvalidArgument)).DidNotOccur()
+			},
+		},
+		{Scenario: "panic(nil)",
+			Act: func() {
+				defer Expect(Panic(nil)).DidNotOccur()
+			},
+			Assert: func(result *R) {
+				result.ExpectInvalid(
+					"DidNotOccur: may not be used with Panic(nil); did you mean NilPanic()?",
+				)
+			},
+		},
+		{Scenario: "panic was expected to not occur",
+			Act: func() {
+				defer Expect(Panic(ErrInvalidArgument)).DidNotOccur()
+				panic(ErrInvalidArgument)
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: panic with \"invalid argument\" [*errors.errorString] should not have occurred",
+				)
+			},
+		},
+		{Scenario: "panic was not expected and occurred",
+			Act: func() {
+				defer Expect(Panic(ErrInvalidArgument)).DidNotOccur()
+				panic(ErrInvalidOperation)
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					`unexpected panic:`,
+					`  recovered: "invalid operation" [*errors.errorString]`,
+				)
+			},
+		},
+
+		// errors
+		{Scenario: "error was not expected and did not occur",
+			Act: func() { var err error = nil; Expect(err).DidNotOccur() },
+		},
+		{Scenario: "error was not expected and occurred",
+			Act: func() {
+				Expect(errors.New("error")).DidNotOccur()
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					`expected: <no error>`,
+					`got     : "error" [*errors.errorString]`,
+				)
+			},
+		},
+
+		// unsupported types
+		{Scenario: "not an error or panic",
+			Act: func() {
+				Expect(42).DidNotOccur()
+			},
+			Assert: func(result *R) {
+				result.ExpectInvalid(
+					"test.DidNotOccur: may only be used with Panic() or error values",
+				)
+			},
+		},
+	}...))
+}
+
 func TestExpect_Is(t *testing.T) {
 	With(t)
 
@@ -335,8 +457,8 @@ func TestExpect_Is(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected error: sentinel-b",
-					"got           : sentinel-a",
+					"expected error: \"sentinel-b\" [*errors.errorString]",
+					"got           : \"sentinel-a\"",
 				)
 			},
 		},
@@ -364,6 +486,93 @@ func TestExpect_Is(t *testing.T) {
 				)
 			},
 		},
+
+		{Scenario: "failed test halts immediately when using Require",
+			Act: func() {
+				var a *int
+				Require(a, "intptr").Is(byref(1))
+				Fail("this will not be reached")
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"intptr:",
+					"expected 1 [*int], got nil",
+				)
+			},
+		},
+	}...))
+}
+
+func TestExpect_IsNot(t *testing.T) {
+	With(t)
+
+	Run(HelperTests([]HelperScenario{
+		{
+			Scenario: "expecting not nil and got nil",
+			Act:      func() { var a any; Expect(a).IsNot(nil) },
+			Assert: func(result *R) {
+				result.Expect("expected not nil")
+			},
+		},
+		{
+			Scenario: "expecting not nil and got not nil",
+			Act:      func() { var a any = 1; Expect(a).IsNot(nil) },
+		},
+		{
+			Scenario: "expecting not nil when got is of not nilable type",
+			Act:      func() { var a any = 1; Expect(a).IsNot(nil) },
+		},
+		{
+			Scenario: "expected and got are unequal ints",
+			Act:      func() { var a int; Expect(a).IsNot(1) },
+		},
+		{
+			Scenario: "expecting not nil error and got nil",
+			Act:      func() { var err error; Expect(err).IsNot(nil) },
+			Assert: func(result *R) {
+				result.Expect("expected not nil")
+			},
+		},
+		{
+			Scenario: "sentinel is not sentinel",
+			Act: func() {
+				sent := errors.New("sentinel")
+				Expect(sent).IsNot(sent)
+			},
+			Assert: func(result *R) {
+				result.Expect(
+					"expected error that is not: sentinel",
+				)
+			},
+		},
+		{
+			Scenario: "sentinel is not other sentinel",
+			Act: func() {
+				senta := errors.New("sentinel-a")
+				sentb := errors.New("sentinel-b")
+				Expect(senta).IsNot(sentb)
+			},
+		},
+		{
+			Scenario: "non-nil error is not nil",
+			Act: func() {
+				err := errors.New("error")
+				Expect(err).IsNot(nil)
+			},
+		},
+		{
+			Scenario: "struct is not equal struct",
+			Act:      func() { Expect(struct{ a int }{a: 1}).IsNot(struct{ a int }{a: 1}) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected to not equal: struct { a int }{a:1}",
+				)
+			},
+		},
+		{
+			Scenario: "struct is not unequal struct",
+			Act:      func() { Expect(struct{ a int }{a: 1}).IsNot(struct{ a int }{a: 2}) },
+		},
 	}...))
 }
 
@@ -374,7 +583,7 @@ func TestExpect_Should(t *testing.T) {
 		{Scenario: "no matcher",
 			Act: func() { Expect(42).Should(nil) },
 			Assert: func(result *R) {
-				result.ExpectInvalid("test.Should: a matcher must be specified")
+				result.ExpectInvalid("Should: a matcher must be specified")
 			},
 		},
 		{Scenario: "matcher passes",
@@ -385,7 +594,7 @@ func TestExpect_Should(t *testing.T) {
 				Expect([]int{1}).Should(BeEmpty())
 			},
 			Assert: func(result *R) {
-				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of Should(); matcher report is not significant
+				result.Expect(test.Failed, opt.IgnoreReport(true)) // testing the behaviour of Should(); matcher report is not significant
 			},
 		},
 	}...))
@@ -398,7 +607,7 @@ func TestExpect_ShouldNot(t *testing.T) {
 		{Scenario: "no matcher",
 			Act: func() { Expect(true).ShouldNot(nil) },
 			Assert: func(result *R) {
-				result.ExpectInvalid("test.ShouldNot: a matcher must be specified")
+				result.ExpectInvalid("ShouldNot: a matcher must be specified")
 			},
 		},
 		{Scenario: "matcher fails",
@@ -409,7 +618,7 @@ func TestExpect_ShouldNot(t *testing.T) {
 				Expect([]int{}).ShouldNot(BeEmpty())
 			},
 			Assert: func(result *R) {
-				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(); matcher report is not significant
+				result.Expect(test.Failed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(); matcher report is not significant
 			},
 		},
 	}...))
@@ -423,7 +632,7 @@ func TestExpect_To(t *testing.T) {
 			Act: func() { Expect(42).To(nil) },
 			Assert: func(result *R) {
 				result.ExpectInvalid(
-					"test.To: a matcher must be specified",
+					"To: a matcher must be specified",
 				)
 			},
 		},
@@ -434,6 +643,14 @@ func TestExpect_ToNot(t *testing.T) {
 	With(t)
 
 	Run(HelperTests([]HelperScenario{
+		{Scenario: "no matcher",
+			Act: func() { Expect(42).ToNot(nil) },
+			Assert: func(result *R) {
+				result.ExpectInvalid(
+					"ToNot: a matcher must be specified",
+				)
+			},
+		},
 		{Scenario: "matcher fails, as expected",
 			Act: func() { Expect(true).ToNot(Equal(false)) },
 		},
@@ -442,7 +659,7 @@ func TestExpect_ToNot(t *testing.T) {
 				Expect(true).ToNot(Equal(true))
 			},
 			Assert: func(result *R) {
-				result.Expect(TestFailed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(), not the output of the matcher used
+				result.Expect(test.Failed, opt.IgnoreReport(true)) // testing the behaviour of ToNot(), not the output of the matcher used
 			},
 		},
 	}...))
@@ -458,6 +675,10 @@ func TestRequire(t *testing.T) {
 
 	result.Expect("expected false, got true")
 }
+
+// ============================================================================
+// MARK: examples
+// ============================================================================
 
 func ExampleRequire() {
 	test.Example()

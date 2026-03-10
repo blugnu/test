@@ -293,7 +293,7 @@ func (mock *MockFn[A, R]) RecordCall(args ...A) (R, error) {
 	return result, err
 }
 
-// ExpectedResults returns an error if any expectations were not met; otherwise nil.
+// ExpectationsWereMet returns an error if any expectations were not met; otherwise nil.
 //
 // This method is typically called at the end of a test to ensure that all expected
 // calls were made.

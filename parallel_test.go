@@ -137,7 +137,7 @@ func TestParallelTests(t *testing.T) {
 				Parallel(T())
 			})
 			result.ExpectInvalid(
-				"Parallel() cannot be called from a parallel test",
+				"Parallel() must not be called from a parallel test",
 			)
 		}))
 
