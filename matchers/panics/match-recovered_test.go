@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/blugnu/test"
+	"github.com/blugnu/test/test"
 )
 
 func TestPanic_DidOccur(t *testing.T) {
@@ -19,8 +20,8 @@ func TestPanic_DidOccur(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected panic: *errors.errorString(panic with error)",
-					"  recovered   : nil (did not panic)",
+					`expected panic: "panic with error" [*errors.errorString]`,
+					`  recovered   : nil (did not panic)`,
 				)
 			},
 		},
@@ -29,7 +30,7 @@ func TestPanic_DidOccur(t *testing.T) {
 				panic("panics with string")
 			},
 			Assert: func(result *R) {
-				result.Expect(TestPanicked, "panics with string")
+				result.Expect(test.Panicked, "panics with string")
 			},
 		},
 		{Scenario: "panicked with unexpected error",
@@ -42,8 +43,8 @@ func TestPanic_DidOccur(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"unexpected panic:",
-					"  expected : *errors.errorString(panic with error)",
-					"  recovered: *errors.errorString(panic with different error)",
+					`  expected : "panic with error" [*errors.errorString]`,
+					`  recovered: "panic with different error" [*errors.errorString]`,
 					// we cannot predict the goroutine number or stack trace so we include
 					// the expected pre-amble of the stack trace appended to the report
 					"",
@@ -59,8 +60,8 @@ func TestPanic_DidOccur(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"unexpected panic:",
-					"  expected : int(1)",
-					"  recovered: int(2)",
+					"  expected : 1",
+					"  recovered: 2",
 				)
 			},
 		},
@@ -90,8 +91,8 @@ func TestPanic_DidOccur(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"unexpected panic:",
-					"  expected : int(1)",
-					"  recovered: string(\"1\")",
+					"  expected : 1",
+					"  recovered: \"1\"",
 				)
 			},
 		},
@@ -127,7 +128,7 @@ func TestPanic_DidOccur(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"unexpected panic:",
-					"  recovered: string(\"foo\")",
+					"  recovered: \"foo\"",
 				)
 			},
 		},
@@ -141,7 +142,7 @@ func TestPanic_DidOccur(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"unexpected panic:",
-					"  recovered: string(\"foo\")",
+					"  recovered: \"foo\"",
 				)
 			},
 		},
@@ -196,8 +197,8 @@ func TestPanic_DidOccur(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected panic: *runtime.PanicNilError",
-					"  recovered   : nil (did not panic)",
+					`expected panic: "panic called with nil argument" [*runtime.PanicNilError]`,
+					`  recovered   : nil (did not panic)`,
 				)
 			},
 		},
@@ -217,7 +218,7 @@ func TestPanic_DidOccur(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"unexpected panic:",
-					`  recovered: string("panics with string")`,
+					`  recovered: "panics with string"`,
 				)
 			},
 		},
@@ -229,7 +230,7 @@ func TestPanic_DidOccur(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: panic with string("x"): should not have occurred`,
+					`expected: panic with "x" should not have occurred`,
 				)
 			},
 		},
@@ -242,7 +243,7 @@ func TestPanic_DidOccur(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"unexpected panic:",
-					`  recovered: string("x")`,
+					`  recovered: "x"`,
 				)
 			},
 		},

@@ -50,7 +50,7 @@ func TestShould_BeNil(t *testing.T) {
 		{Scenario: "non-nil slice",
 			Act: func() { Expect([]int{1}).Should(BeNil()) },
 			Assert: func(result *R) {
-				result.Expect("expected nil, got []int{1}")
+				result.Expect("expected nil, got []int (len,cap=1) [1]")
 			},
 		},
 		{Scenario: "nil interface",
@@ -59,22 +59,22 @@ func TestShould_BeNil(t *testing.T) {
 		{Scenario: "non-nil interface",
 			Act: func() { var x any = byref("any"); Expect(x).Should(BeNil()) },
 			Assert: func(result *R) {
-				result.Expect(`expected nil, got &("any")`)
+				result.Expect(`expected nil, got "any" [*string]`)
 			},
 		},
 		{Scenario: "*string nil",
 			Act: func() { var ptr *string; Expect(ptr).Should(BeNil()) },
 		},
 		{Scenario: "*string non-nil",
-			Act: func() { Expect(byref("string")).Should(BeNil()) },
+			Act: func() { Expect(byref("some string")).Should(BeNil()) },
 			Assert: func(result *R) {
-				result.Expect("expected nil, got &(\"string\")")
+				result.Expect("expected nil, got \"some string\" [*string]")
 			},
 		},
 		{Scenario: "*string non-nil with unquoted strings",
-			Act: func() { Expect(byref("string")).IsNil(opt.UnquotedStrings()) },
+			Act: func() { Expect(byref("some string")).IsNil(opt.UnquotedStrings) },
 			Assert: func(result *R) {
-				result.Expect("expected nil, got &(string)")
+				result.Expect("expected nil, got some string [*string]")
 			},
 		},
 		{Scenario: "string not-nil",
@@ -86,22 +86,16 @@ func TestShould_BeNil(t *testing.T) {
 			},
 		},
 
-		{Scenario: "*string not-nil",
-			Act: func() { ptr := byref("non-empty string"); Expect(ptr).Should(BeNil()) },
-			Assert: func(result *R) {
-				result.Expect("expected nil, got &(\"non-empty string\")")
-			},
-		},
 		{Scenario: "*struct not-nil",
 			Act: func() { ptr := byref(struct{ a int }{a: 1}); Expect(ptr).Should(BeNil()) },
 			Assert: func(result *R) {
-				result.Expect("expected nil, got &(struct { a int }{a:1})")
+				result.Expect("expected nil, got {a:1} [*struct{a int}]")
 			},
 		},
 
 		{Scenario: "with custom failure report",
 			Act: func() {
-				Expect(byref(42)).IsNil(opt.FailureReport(func(a ...any) []string {
+				Expect(byref(42)).IsNil(opt.FailReporter(func(a ...any) []string {
 					return []string{"custom failure report"}
 				}))
 			},
@@ -119,7 +113,7 @@ func TestShouldNot_BeNil(t *testing.T) {
 		{Scenario: "nil is not nil",
 			Act: func() { Expect((any)(nil)).ShouldNot(BeNil()) },
 			Assert: func(result *R) {
-				result.Expect("expected not nil, got nil")
+				result.Expect("expected not nil")
 			},
 		},
 		{Scenario: "int is not nil",

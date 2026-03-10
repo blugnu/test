@@ -2,8 +2,17 @@ package slices
 
 type slice[T any] []T
 
-func (s slice[T]) appendToTestReport(r []string, p string, opts ...any) []string {
-	return AppendToReport(r, s, p, opts...)
+// containsAny returns true if the receiver contains at least one of the
+// elements in the target slice.
+func (s slice[T]) containsAny(target []T, cmp func(any, any) bool) bool {
+	for _, target := range target {
+		for _, item := range s {
+			if cmp(item, target) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // containsItems returns true if the receiver contains all of the elements
@@ -12,11 +21,15 @@ func (s slice[T]) appendToTestReport(r []string, p string, opts ...any) []string
 // matches if the receiver contains at least as many duplicates of any
 // duplicated elements in the target slice.
 func (s slice[T]) containsItems(target []T, cmp func(any, any) bool) bool {
-	// make a copy of the target slice
+	// make a copy of the target slice; items will be removed from the copy
+	// as they are found in the receiver to ensure that any duplicates are
+	// handled correctly
 	cpy := make([]T, len(target))
 	copy(cpy, target)
 
-	// check if the receiver contains all elements in the target slice
+	// remove items from cpy as they are found in the receiver; if there
+	// are any items left in cpy at the end then the receiver does not
+	// contain all of the items in target
 	for _, item := range s {
 		for i, target := range cpy {
 			if cmp(item, target) {

@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 // MatchRecovered is a struct that implements the Matcher[Expected]
@@ -115,7 +116,7 @@ func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 		// because we got a panic that we did not expect
 		return withStack([]string{
 			"unexpected panic:",
-			fmt.Sprintf("  recovered: %T(%v)", pm.got, opt.ValueAsString(pm.got, opts...)),
+			"  recovered: " + report.Value(pm.got, opts...),
 		})
 
 	case pm.expected == nil:
@@ -130,7 +131,7 @@ func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 		// we did not recover a value so must have failed because
 		// we were expecting to recover a specific value from a panic
 		return []string{
-			fmt.Sprintf("expected panic: %T(%v)", pm.expected, opt.ValueAsString(pm.expected, opts...)),
+			"expected panic: " + report.Value(pm.expected, opts...),
 			"  recovered   : " + nilRecovered,
 		}
 
@@ -138,7 +139,7 @@ func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 		// when ToNotMatch is set, we must have recovered from an expected panic
 		// that should NOT have occurred
 		return []string{
-			fmt.Sprintf("expected: panic with %T(%v): should not have occurred", pm.expected, opt.ValueAsString(pm.expected, opts...)),
+			fmt.Sprintf("expected: panic with %s should not have occurred", report.Value(pm.expected, opts...)),
 		}
 
 	default:
@@ -146,8 +147,8 @@ func (pm *MatchRecovered) OnTestFailure(opts ...any) []string {
 		// we got something else instead
 		return withStack([]string{
 			"unexpected panic:",
-			fmt.Sprintf("  expected : %T(%v)", pm.expected, opt.ValueAsString(pm.expected, opts...)),
-			fmt.Sprintf("  recovered: %T(%v)", pm.got, opt.ValueAsString(pm.got, opts...)),
+			"  expected : " + report.Value(pm.expected, opts...),
+			"  recovered: " + report.Value(pm.got, opts...),
 		})
 	}
 }

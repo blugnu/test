@@ -23,8 +23,7 @@ func TestContainsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string containing slice:`,
-					`| "a"`,
+					`expected []string containing slice: [ "a"`,
 					`got: <empty slice>`,
 				)
 			},
@@ -36,11 +35,9 @@ func TestContainsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string containing slice:`,
-					`| "c"`,
-					`got:`,
-					`| "a"`,
-					`| "b"`,
+					`expected []string containing slice: [ "c"`,
+					`got: [ "a"`,
+					`     [ "b"`,
 				)
 			},
 		},
@@ -60,12 +57,10 @@ func TestContainsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []int containing slice:`,
-					`| 3`,
-					`| 4`,
-					`got:`,
-					`| 1`,
-					`| 2`,
+					`expected []int containing slice: [ 3`,
+					`                                 [ 4`,
+					`got: [ 1`,
+					`     [ 2`,
 				)
 			},
 		},
@@ -76,13 +71,11 @@ func TestContainsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []int containing slice:`,
-					`| 1`,
-					`| 2`,
-					`| 3`,
-					`got:`,
-					`| 1`,
-					`| 2`,
+					`expected []int containing slice: [ 1`,
+					`                                 [ 2`,
+					`                                 [ 3`,
+					`got: [ 1`,
+					`     [ 2`,
 				)
 			},
 		},
@@ -99,11 +92,9 @@ func TestContainsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []int not containing slice:`,
-					`| 1`,
-					`got:`,
-					`| 1`,
-					`| 2`,
+					`expected []int not containing slice: [ 1`,
+					`got: [ 1`,
+					`     [ 2`,
 				)
 			},
 		},

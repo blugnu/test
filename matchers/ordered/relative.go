@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
 )
 
@@ -66,8 +67,8 @@ func (m RelativeMatcher[T]) OnTestFailure(got T, opts ...any) []string {
 		cond = "not " + cond
 	}
 
-	return []string{
-		"expected: " + cond + " " + opt.ValueAsString(m.Expected, opts...),
-		"got     : " + opt.ValueAsString(got, opts...),
-	}
+	return report.ExpectedGot(
+		cond+" "+report.Value(m.Expected, opts...),
+		report.Value(got, opts...),
+	)
 }

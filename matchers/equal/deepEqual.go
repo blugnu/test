@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 // MARK: DeepEqualMatcher
@@ -40,7 +41,7 @@ func (m DeepMatcher[T]) valueAsString(v any, opts ...any) string {
 		return fmt.Sprintf("%#v", v)
 
 	default:
-		return opt.ValueAsString(v, opts...)
+		return report.Value(v, opts...)
 	}
 }
 
@@ -76,8 +77,5 @@ func (m DeepMatcher[T]) OnTestFailure(got T, opts ...any) []string {
 	}
 
 	// otherwise, use a multi-line report
-	return []string{
-		"expected: " + ef,
-		"got     : " + gf,
-	}
+	return report.ExpectedGot(ef, gf)
 }

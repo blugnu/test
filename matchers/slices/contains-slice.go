@@ -1,10 +1,10 @@
-package slices //nolint:dupl // incorrectly flagged as a duplicate of containsItems.go; contiguous vs non-contiguous items are handled differently in each case
+package slices
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 // ContainsSliceMatcher is a matcher for []T that will match the []T
@@ -32,7 +32,7 @@ func (m ContainsSliceMatcher[T]) Match(got []T, opts ...any) bool {
 	return slice[T](got).containsSlice(m.Expected, cmp)
 }
 
-// TestFailure returns a report of the failure for the matcher.
+// OnTestFailure returns a report of the failure for the matcher.
 func (m ContainsSliceMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
 	result := make([]string, 0, 2+len(got)+len(m.Expected))
 	cond := "containing slice"
@@ -40,6 +40,6 @@ func (m ContainsSliceMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
 		cond = "not containing slice"
 	}
 
-	result = slice[T](m.Expected).appendToTestReport(result, fmt.Sprintf("expected: %T %s:", got, cond), opts...)
-	return slice[T](got).appendToTestReport(result, "got:", opts...)
+	result = report.AppendSlice(result, m.Expected, opt.WithNamef(opts, "expected %T %s:", got, cond)...)
+	return report.AppendSlice(result, got, opt.Force(opts, opt.Name("got:"))...)
 }

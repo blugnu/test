@@ -1,10 +1,8 @@
 package typecheck
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 type Matcher[T any] struct{}
@@ -34,25 +32,7 @@ func (m Matcher[T]) Match(got any, opts ...any) bool {
 }
 
 func (m Matcher[T]) OnTestFailure(got any, opts ...any) []string {
-	var (
-		expected     T
-		expectedType = fmt.Sprintf("%T", expected)
-	)
-
-	// if we could not determine the type of the expected value using the
-	// zero value of the type, we can use a dummy function and reflect
-	// the type of the first argument to that function.
-	//
-	// Q: why not just use the dummy func technique every time?
-	// A: because it is more expensive than using the zero value, and
-	//    using the zero value provides a more precise (package-qualified)
-	//    type name
-	if expectedType == "<nil>" {
-		fn := func(T) { /* NO-OP */ }
-		fn(expected) // ensures that the dummy function is covered by tests
-
-		expectedType = reflect.TypeOf(fn).In(0).Name()
-	}
+	expectedType := report.TypeName[T]()
 
 	if opt.IsSet(opts, opt.ToNotMatch(true)) {
 		return []string{"should not be of type: " + expectedType}
@@ -60,6 +40,6 @@ func (m Matcher[T]) OnTestFailure(got any, opts ...any) []string {
 
 	return []string{
 		"expected type: " + expectedType,
-		fmt.Sprintf("got          : %T", got),
+		"got          : " + report.TypeName(got),
 	}
 }

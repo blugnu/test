@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 type EqualMatcher[T ~byte] struct {
@@ -14,10 +15,7 @@ type EqualMatcher[T ~byte] struct {
 }
 
 func (bm *EqualMatcher[T]) getDiffs(want, got []T) []int {
-	rlen := len(want)
-	if len(got) < rlen {
-		rlen = len(got)
-	}
+	rlen := min(len(want), len(got))
 	result := make([]int, 0, rlen+1)
 
 	for iw, want := range want {
@@ -67,10 +65,10 @@ func (bm *EqualMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
 	expectedBytes.WriteString(wsfx)
 	gotBytes.WriteString(gsfx)
 	if len(want) == 0 {
-		expectedBytes.WriteString("<empty>")
+		expectedBytes.WriteString(report.Empty())
 	}
 	if len(got) == 0 {
-		gotBytes.WriteString("<empty>")
+		gotBytes.WriteString(report.Empty())
 	}
 
 	out = append(out, "expected: "+expectedBytes.String())

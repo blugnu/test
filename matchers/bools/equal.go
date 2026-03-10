@@ -6,7 +6,8 @@ import (
 	"github.com/blugnu/test/opt"
 )
 
-// implements the Matcher interface for testing expected bool values.
+// BooleanMatcher implements the Matcher interface for testing expected
+// bool values.
 type BooleanMatcher struct {
 	Expected bool
 }
@@ -20,5 +21,5 @@ func (m BooleanMatcher) OnTestFailure(got bool, opts ...any) string {
 	if opt.IsSet(opts, opt.ToNotMatch(true)) {
 		return fmt.Sprintf("did not expect %v", m.Expected)
 	}
-	return fmt.Sprintf("expected %v, got %v", m.Expected, got)
+	return fmt.Sprintf("expected %v", m.Expected)
 }

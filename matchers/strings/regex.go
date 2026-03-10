@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 type RegExMatch struct {
@@ -17,13 +18,13 @@ func (m RegExMatch) Match(got string, opts ...any) bool {
 func (m RegExMatch) OnTestFailure(got string, opts ...any) []string {
 	if opt.IsSet(opts, opt.ToNotMatch(true)) {
 		return []string{
-			"expected: string with no match for: " + opt.ValueAsString(m.Expected.String(), opts...),
-			"got     : " + opt.ValueAsString(got, opts...),
-			"matched : " + opt.ValueAsString(string(m.Expected.Find([]byte(got))), opts...),
+			"expected: string with no match for: " + report.Value(m.Expected.String(), opts...),
+			"got     : " + report.Value(got, opts...),
+			"matched : " + report.Value(string(m.Expected.Find([]byte(got))), opts...),
 		}
 	}
 	return []string{
-		"expected: string containing match for: " + opt.ValueAsString(m.Expected.String(), opts...),
-		"got     : " + opt.ValueAsString(got, opts...),
+		"expected: string containing match for: " + report.Value(m.Expected.String(), opts...),
+		"got     : " + report.Value(got, opts...),
 	}
 }

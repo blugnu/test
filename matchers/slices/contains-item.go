@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
-// ContainsItemsMatcher is a matcher for []T that will match the []T
+// ContainsItemMatcher is a matcher for []T that will match the []T
 // if it contains at least one element that is equal to the expected
 // element.
 type ContainsItemMatcher[T any] struct {
@@ -32,7 +33,7 @@ func (m ContainsItemMatcher[T]) Match(got []T, opts ...any) bool {
 	// then we normalise strings to lowercase before comparing, making sure to
 	// preserve the use of any custom comparison function
 	if reflect.ValueOf(m.Expected).Kind() == reflect.String &&
-		opt.IsSet(opts, opt.CaseSensitive(false)) {
+		opt.IsSet(opts, opt.CaseInsensitive) {
 		og := cmp
 		cmp = func(a, b any) bool {
 			a = strings.ToLower(fmt.Sprintf("%v", a))
@@ -51,15 +52,15 @@ func (m ContainsItemMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
 	result := make([]string, minlen, maxlen)
 	switch opt.IsSet(opts, opt.ToNotMatch(true)) {
 	case true:
-		result[0] = fmt.Sprintf("expected: %T not containing: "+opt.ValueAsString(m.Expected, opts...), got)
+		result[0] = fmt.Sprintf("expected %T not containing: %s", got, report.Value(m.Expected, opts...))
 	default:
-		result[0] = fmt.Sprintf("expected: %T containing: "+opt.ValueAsString(m.Expected, opts...), got)
+		result[0] = fmt.Sprintf("expected %T containing: %s", got, report.Value(m.Expected, opts...))
 	}
 
-	result = slice[T](got).appendToTestReport(result, "got:", opts...)
+	result = report.AppendSlice(result, got, opt.Force(opts, opt.Name("got:"))...)
 
 	if reflect.ValueOf(m.Expected).Kind() == reflect.String &&
-		opt.IsSet(opts, opt.CaseSensitive(false)) {
+		opt.IsSet(opts, opt.CaseInsensitive) {
 		result = append(result, "(case insensitive comparison)")
 	}
 	return result

@@ -1,65 +1,12 @@
 package maps
 
 import (
-	"fmt"
 	"reflect"
 
-	"slices"
 	"strings"
 
 	"github.com/blugnu/test/opt"
-
-	sliceValue "github.com/blugnu/test/matchers/slices"
 )
-
-func AppendToReport[K comparable, V any](result []string, p string, m map[K]V, opts ...any) []string {
-	if len(m) == 0 {
-		return append(result, p+" <empty map>")
-	}
-
-	var (
-		v               V
-		vt              = reflect.TypeOf(v)
-		valuesAreSlices bool
-	)
-
-	if vt != nil {
-		vkind := vt.Kind()
-		valuesAreSlices = vkind == reflect.Slice || vkind == reflect.Array
-	}
-
-	// for stable ordering of the map, we first render keys and values as strings
-	// into a new map, then sort the keys and append the rendered map in key order
-	vfn := func(v any) any {
-		return opt.ValueAsString(v, opts...)
-	}
-	if valuesAreSlices {
-		vfn = func(v any) any { return v }
-	}
-
-	orderedMap := make(map[string]any, len(m))
-	keys := make([]string, 0, len(m))
-	for k, v := range m {
-		key := opt.ValueAsString(k, opts...)
-		keys = append(keys, key)
-		orderedMap[key] = vfn(v)
-	}
-	slices.Sort(keys)
-
-	result = append(result, p)
-
-	if valuesAreSlices {
-		for _, k := range keys {
-			result = sliceValue.AppendToReport(result, orderedMap[k], k+" =>", append(opts, opt.PrefixInlineWithFirstItem(true))...)
-		}
-		return result
-	}
-
-	for _, k := range keys {
-		result = append(result, fmt.Sprintf("  %s => %s", k, orderedMap[k]))
-	}
-	return result
-}
 
 func as[T any](v any) T {
 	result, _ := v.(T)
@@ -123,7 +70,7 @@ func compareFuncFor[K comparable, V any](opts ...any) func(a, b any) bool {
 		// if the map values are strings and the CaseSensitive option is set to false
 		// we wrap the comparison function to first normalize the strings to lower case
 		// before comparing them
-		if opt.IsSet(opts, opt.CaseSensitive(false)) {
+		if opt.IsSet(opts, opt.CaseInsensitive) {
 			eq := cmp
 			if eq == nil {
 				eq = reflect.DeepEqual
@@ -162,7 +109,7 @@ func slicesEqual(a, b reflect.Value, opts ...any) bool {
 	}
 
 	cmp := reflect.DeepEqual
-	if a.Index(0).Kind() == reflect.String && opt.IsSet(opts, opt.CaseSensitive(false)) {
+	if a.Index(0).Kind() == reflect.String && opt.IsSet(opts, opt.CaseInsensitive) {
 		cmp = func(a, b any) bool {
 			a = strings.ToLower(as[string](a))
 			b = strings.ToLower(as[string](b))

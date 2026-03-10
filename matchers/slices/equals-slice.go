@@ -1,10 +1,10 @@
 package slices
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 // EqualMatcher is a matcher for []T that will match the []T
@@ -44,7 +44,7 @@ func (m EqualMatcher[T]) Match(got []T, opts ...any) bool {
 	return slice[T](got).containsSlice(m.Expected, cmp)
 }
 
-// TestFailure returns a report of the failure for the matcher.
+// OnTestFailure returns a report of the failure for the matcher.
 func (m EqualMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
 	result := make([]string, 0, 2+len(got)+len(m.Expected))
 	cond := "equal to"
@@ -53,10 +53,10 @@ func (m EqualMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
 		cond = "not equal to"
 	}
 
-	result = slice[T](m.Expected).appendToTestReport(result, fmt.Sprintf("expected: %T %s:", got, cond), opts...)
+	result = report.AppendSlice(result, slice[T](m.Expected), opt.WithNamef(opts, "expected %T %s:", got, cond)...)
 	if inv {
 		return result
 	}
 
-	return slice[T](got).appendToTestReport(result, "got:", opts...)
+	return report.AppendSlice(result, slice[T](got), opt.Force(opts, opt.Name("got:"))...)
 }

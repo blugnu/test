@@ -25,9 +25,8 @@ func TestEqualsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string not equal to:`,
-					`| "a"`,
-					`| "b"`,
+					`expected []string not equal to: [ "a"`,
+					`                                [ "b"`,
 				)
 			},
 		},
@@ -42,8 +41,7 @@ func TestEqualsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []int equal to:`,
-					`| 42`,
+					`expected []int equal to: [ 42`,
 					`got: <empty slice>`,
 				)
 			},
@@ -55,12 +53,10 @@ func TestEqualsSlice(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string equal to:`,
-					`| "c"`,
-					`| "d"`,
-					`got:`,
-					`| "a"`,
-					`| "b"`,
+					`expected []string equal to: [ "c"`,
+					`                            [ "d"`,
+					`got: [ "a"`,
+					`     [ "b"`,
 				)
 			},
 		},

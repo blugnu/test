@@ -21,7 +21,7 @@ func TestContainsItem(t *testing.T) {
 		{Scenario: "expected slice of string to contain an item, case insensitive",
 			Act: func() {
 				s := []string{"a", "b"}
-				Expect(s).To(ContainItem("A"), opt.CaseSensitive(false))
+				Expect(s).To(ContainItem("A"), opt.CaseInsensitive)
 			},
 		},
 		{Scenario: "expected empty slice of string to contain an item",
@@ -30,7 +30,7 @@ func TestContainsItem(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string containing: "a"`,
+					`expected []string containing: "a"`,
 					`got: <empty slice>`,
 				)
 			},
@@ -42,10 +42,9 @@ func TestContainsItem(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string containing: "A"`,
-					`got:`,
-					` | "a"`,
-					` | "b"`,
+					`expected []string containing: "A"`,
+					`got: [ "a"`,
+					`     [ "b"`,
 				)
 			},
 		},
@@ -56,24 +55,22 @@ func TestContainsItem(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string containing: "c"`,
-					`got:`,
-					` | "a"`,
-					` | "b"`,
+					`expected []string containing: "c"`,
+					`got: [ "a"`,
+					`     [ "b"`,
 				)
 			},
 		},
 		{Scenario: "expected slice of string to contain an item that is not present, case insensitive",
 			Act: func() {
 				s := []string{"a", "b"}
-				Expect(s).To(ContainItem("c"), opt.CaseSensitive(false))
+				Expect(s).To(ContainItem("c"), opt.CaseInsensitive)
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []string containing: "c"`,
-					`got:`,
-					` | "a"`,
-					` | "b"`,
+					`expected []string containing: "c"`,
+					`got: [ "a"`,
+					`     [ "b"`,
 					`(case insensitive comparison)`,
 				)
 			},
@@ -92,7 +89,7 @@ func TestContainsItem(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []int containing: 1`,
+					`expected []int containing: 1`,
 					`got: <empty slice>`,
 				)
 			},
@@ -104,10 +101,9 @@ func TestContainsItem(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []int containing: 3`,
-					`got:`,
-					`| 1`,
-					`| 2`,
+					`expected []int containing: 3`,
+					`got: [ 1`,
+					`     [ 2`,
 				)
 			},
 		},
@@ -126,10 +122,9 @@ func TestContainsItem(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					`expected: []int not containing: 1`,
-					`got:`,
-					`| 1`,
-					`| 2`,
+					`expected []int not containing: 1`,
+					`got: [ 1`,
+					`     [ 2`,
 				)
 			},
 		},

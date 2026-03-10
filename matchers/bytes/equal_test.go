@@ -15,9 +15,8 @@ func TestEqualMatcher(t *testing.T) {
 			ff = ffat[0]
 		}
 		s := make([]byte, size)
-		for i := 0; i < size; i++ {
-			s[i] = byte(i + 1)
-			if i == ff {
+		for i := range size {
+			if s[i] = byte(i + 1); i == ff {
 				s[i] = 0xff
 			}
 		}

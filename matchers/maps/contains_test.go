@@ -26,11 +26,9 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  "a" => 1`,
-					`  "b" => 2`,
-					"got:",
-					`  "a" => 1`,
+					`expected map containing: ( "a" => 1`,
+					`                         ( "b" => 2`,
+					`got: ( "a" => 1`,
 				)
 			},
 		},
@@ -42,10 +40,8 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  1 => "Ford"`,
-					"got:",
-					`  1 => "ford"`,
+					`expected map containing: ( 1 => "Ford"`,
+					`got: ( 1 => "ford"`,
 				)
 			},
 		},
@@ -53,7 +49,7 @@ func TestContainsMap(t *testing.T) {
 			Act: func() {
 				m := map[int]string{1: "ford", 2: "arthur"}
 				s := map[int]string{1: "Ford", 2: "Arthur"}
-				Expect(m).To(ContainMap(s), opt.CaseSensitive(false))
+				Expect(m).To(ContainMap(s), opt.CaseInsensitive)
 			},
 		},
 		{Scenario: "map contains map with []string values that differ in case",
@@ -64,12 +60,10 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  1 => | "Ford"`,
-					`       | "arthur"`,
-					"got:",
-					`  1 => | "ford"`,
-					`       | "arthur"`,
+					`expected map containing: ( 1 => [ "Ford"`,
+					`                                [ "arthur"`,
+					`got: ( 1 => [ "ford"`,
+					`            [ "arthur"`,
 				)
 			},
 		},
@@ -77,7 +71,7 @@ func TestContainsMap(t *testing.T) {
 			Act: func() {
 				m := map[int][]string{1: {"ford", "arthur"}}
 				s := map[int][]string{1: {"Ford", "Arthur"}}
-				Expect(m).To(ContainMap(s), opt.CaseSensitive(false))
+				Expect(m).To(ContainMap(s), opt.CaseInsensitive)
 			},
 		},
 		{Scenario: "map contains map with nil slice values",
@@ -102,10 +96,8 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  1 => <empty slice>`,
-					"got:",
-					`  1 => nil`,
+					`expected map containing: ( 1 => <empty slice>`,
+					`got: ( 1 => <nil>`,
 				)
 			},
 		},
@@ -117,10 +109,8 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  1 => nil`,
-					"got:",
-					`  1 => <empty slice>`,
+					`expected map containing: ( 1 => <nil>`,
+					`got: ( 1 => <empty slice>`,
 				)
 			},
 		},
@@ -132,11 +122,9 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  1 => | 1`,
-					`       | 2`,
-					"got:",
-					`  1 => <empty slice>`,
+					`expected map containing: ( 1 => [ 1`,
+					`                                [ 2`,
+					`got: ( 1 => <empty slice>`,
 				)
 			},
 		},
@@ -148,12 +136,10 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  "a" => | 2`,
-					`         | 1`,
-					"got:",
-					`  "a" => | 1`,
-					`         | 2`,
+					`expected map containing: ( "a" => [ 2`,
+					`                                  [ 1`,
+					`got: ( "a" => [ 1`,
+					`              [ 2`,
 				)
 			},
 		},
@@ -172,12 +158,10 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  "a" => | 1`,
-					`         | 1`,
-					"got:",
-					`  "a" => | 1`,
-					`         | 2`,
+					`expected map containing: ( "a" => [ 1`,
+					`                                  [ 1`,
+					`got: ( "a" => [ 1`,
+					`              [ 2`,
 				)
 			},
 		},
@@ -189,13 +173,11 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map containing:",
-					`  "a" => 1`,
-					`  "b" => 2`,
-					`  "c" => 3`,
-					"got:",
-					`  "a" => 1`,
-					`  "b" => 2`,
+					`expected map containing: ( "a" => 1`,
+					`                         ( "b" => 2`,
+					`                         ( "c" => 3`,
+					`got: ( "a" => 1`,
+					`     ( "b" => 2`,
 				)
 			},
 		},
@@ -214,8 +196,7 @@ func TestContainsMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map not containing:",
-					`  "a" => 1`,
+					`expected map not containing: ( "a" => 1`,
 				)
 			},
 		},
