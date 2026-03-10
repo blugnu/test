@@ -10,17 +10,9 @@ import (
 
 	"github.com/blugnu/test/internal/testframe"
 	"github.com/blugnu/test/matchers/panics"
-	"github.com/blugnu/test/matchers/slices"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
-)
-
-type TestOutcome int
-
-const (
-	TestPassed TestOutcome = iota
-	TestFailed
-	TestPanicked
 )
 
 const (
@@ -29,19 +21,6 @@ const (
 	cTestReport  = "test report"
 	cRecovered   = "recovered"
 )
-
-func (to TestOutcome) String() string {
-	switch to {
-	case TestPassed:
-		return "TestPassed"
-	case TestFailed:
-		return "TestFailed"
-	case TestPanicked:
-		return "TestPanicked"
-	default:
-		return fmt.Sprintf("TestOutcome(%d)", to)
-	}
-}
 
 // R is a struct that contains the result of executing a test function.
 type R struct {
@@ -55,8 +34,8 @@ type R struct {
 	Log []string
 
 	// test outcome
-	// (TestPassed, TestFailed, TestPanicked)
-	Outcome TestOutcome
+	// (test.Passed, test.Failed, test.Panicked)
+	Outcome test.Outcome
 
 	// names of any tests that failed
 	FailedTests []string
@@ -74,7 +53,7 @@ type R struct {
 // At least one argument must be provided to Expect() to specify the expected
 // outcome of the test. The arguments can be:
 //
-// - a TestOutcome value (TestPassed, TestFailed, TestPanicked)
+// - a test.Outcome value (test.Passed, test.Failed, test.Panicked)
 // - a string or slice of strings that are expected to be present in the test report
 // - a combination of the above, with options to control the assertion behavior
 //
@@ -87,15 +66,15 @@ type R struct {
 // If no arguments are provided, Expect() will fail the test with an error message
 // indicating that at least one expected outcome or report line is required.
 //
-// If the test outcome is expected to be TestPanicked, the first argument must be a
-// TestOutcome value (TestPanicked) with a single string argument that is expected to
+// If the test outcome is expected to be test.Panicked, the first argument must be a
+// test.Outcome value (test.Panicked) with a single string argument that is expected to
 // match the string representation (%v) of the value recovered from the panic.
 func (r *R) Expect(exp ...any) {
 	r.t.Helper()
 
 	if len(exp) == 0 {
 		// if no arguments are given, we expect the test to have passed
-		test.Invalid("R.Expect: no arguments; an expected TestOutcome and/or test report are required")
+		test.Invalid("R.Expect: no arguments; an expected test.Outcome and/or test report are required")
 	}
 
 	// we have some expectations so can mark the result as having been checked
@@ -112,7 +91,7 @@ func (r *R) Expect(exp ...any) {
 	r.assertOutcome(expectedOutcome, opts...)
 
 	switch {
-	case expectedOutcome == TestPanicked:
+	case expectedOutcome == test.Panicked:
 		r.assertPanicked(expectedReport, opts...)
 
 	case len(expectedReport) > 0:
@@ -137,20 +116,20 @@ func (r *R) Expect(exp ...any) {
 			// if a report is expected we expect the first line of the report
 			// to contain the name of the test file that was executing at the time
 			Expect(r.Report[0]).To(ContainString(testfile),
-				append(opts, opt.UnquotedStrings())...,
+				append(opts, opt.UnquotedStrings)...,
 			)
 		}
 
 		// now we check that the report contains the expected lines
-		Expect(r.Report).To(ContainSlice(expectedReport),
-			append(opts, strings.Contains, opt.UnquotedStrings())...,
+		Expect(r.Report, "test report").To(ContainSlice(expectedReport),
+			append(opts, strings.Contains, opt.UnquotedStrings)...,
 		)
 
-	case expectedOutcome == TestFailed && opt.IsSet(opts, opt.IgnoreReport(true)):
+	case expectedOutcome == test.Failed && opt.IsSet(opts, opt.IgnoreReport(true)):
 		Expect(r.FailedTests, cFailedTests).To(ContainItem(r.t.Name()), opts...)
 
 	default:
-		r.assertWhenTestPassed(opts...)
+		r.TestPassed(opts...)
 	}
 }
 
@@ -176,7 +155,7 @@ func (r *R) Expect(exp ...any) {
 //
 // When testing for an invalid test:
 //
-// - the test outcome is expected to be TestFailed
+// - the test outcome is expected to be test.Failed
 // - the test report is expected to start with the '<== INVALID TEST' label
 // - the test report is expected to contain any report lines specified
 func (r *R) ExpectInvalid(report ...any) {
@@ -191,15 +170,45 @@ func (r *R) ExpectWarning(msg string) {
 	r.Expect("<== WARNING: " + msg)
 }
 
+// TestPassed checks that there were no failed tests and no report
+func (r *R) TestPassed(opts ...any) {
+	T().Helper()
+
+	// in this case, we want the failure report to provide details of
+	// any unexpectedly failed tests and an unexpected report, so we
+	// remove any IsRequired option to ensure that both expectations
+	// are evaluated
+	opts = opt.Unset(opts, opt.IsRequired(true))
+
+	Expect(r.FailedTests, cFailedTests).Should(BeEmptyOrNil(), opts...)
+
+	Expect(r.Report, cTestReport).Should(BeEmptyOrNil(),
+		append(opts, opt.FailureReport(func(...any) []string {
+			const preambleLen = 2
+
+			report := make([]string, preambleLen, len(r.Report)+preambleLen)
+			report[0] = "expected: <no report>"
+			report[1] = "got:"
+			for _, s := range r.Report {
+				report = append(report, "| "+s)
+			}
+
+			return report
+		}))...,
+	)
+}
+
 // analyseArgs processes the expected arguments passed to Expect().
-// It separates the expected report strings from the options and determines
-// the expected outcome of the test based on the options provided.
-// It returns the expected outcome, the report strings, and the options.
-func (r *R) analyseArgs(exp ...any) (TestOutcome, []string, []any) {
+// Any expected report strings are separated from the options and
+// the expected outcome of the test is determined, based on the options.
+//
+// The function returns the expected outcome, the expected report
+// strings, and the options.
+func (r *R) analyseArgs(exp ...any) (test.Outcome, []string, []any) {
 	var (
+		outcome = test.Passed
 		report  []string
 		opts    []any
-		outcome = TestPassed
 	)
 
 	// separate the expected report strings from any options
@@ -214,10 +223,10 @@ func (r *R) analyseArgs(exp ...any) (TestOutcome, []string, []any) {
 		}
 	}
 
-	if opt.IsSet(opts, TestPanicked) {
-		outcome = TestPanicked
-	} else if opt.IsSet(opts, TestFailed) || len(report) > 0 {
-		outcome = TestFailed
+	if opt.IsSet(opts, test.Panicked) {
+		outcome = test.Panicked
+	} else if opt.IsSet(opts, test.Failed) || len(report) > 0 {
+		outcome = test.Failed
 	}
 
 	return outcome, report, opts
@@ -226,33 +235,33 @@ func (r *R) analyseArgs(exp ...any) (TestOutcome, []string, []any) {
 // assertOutcome checks that the test outcome matches the expected outcome.
 //
 // The function is used internally by Expect() to verify the test outcome.
-func (r *R) assertOutcome(expected TestOutcome, opts ...any) {
+func (r *R) assertOutcome(expected test.Outcome, opts ...any) {
 	T().Helper()
 
 	Expect(r.Outcome, cTestOutcome).To(Equal(expected),
 		append(opts, opt.FailureReport(func(...any) []string {
-			report := []string{
+			msg := []string{
 				fmt.Sprintf("expected: %s", expected),
 				fmt.Sprintf("got     : %s", r.Outcome),
 			}
 
 			switch {
-			case r.Outcome == TestPanicked:
-				report = append(report, "")
-				report = append(report, "recovered:")
-				report = append(report, fmt.Sprintf("  %[1]T(%[1]v)", r.Recovered))
+			case r.Outcome == test.Panicked:
+				msg = append(msg, "")
+				msg = append(msg, "recovered:")
+				msg = append(msg, fmt.Sprintf("  %[1]T(%[1]v)", r.Recovered))
 				if trace := panics.StackTrace(r.Stack, opts...); trace != nil {
-					report = append(report, "")
-					report = append(report, "stack:")
-					report = append(report, trace...)
+					msg = append(msg, "")
+					msg = append(msg, "stack:")
+					msg = append(msg, trace...)
 				}
-				return report
+				return msg
 
 			case len(r.Report) > 0:
-				return slices.AppendToReport(report, r.Report, "with report:", opt.QuotedStrings(false))
+				return report.AppendSlice(msg, r.Report, opt.Name("output:"), opt.UnquotedStrings)
 
 			default:
-				return report
+				return msg
 			}
 		}))...,
 	)
@@ -285,35 +294,7 @@ func (r *R) assertPanicked(expectedReport []string, opts ...any) {
 
 	s := fmt.Sprintf("%v", r.Recovered)
 	Expect(s, cRecovered).To(ContainString(expectedReport[0]),
-		append(opts, strings.Contains, opt.UnquotedStrings())...,
-	)
-}
-
-// assertWhenTestPassed checks that there were no failed tests and no report
-func (r *R) assertWhenTestPassed(opts ...any) {
-	T().Helper()
-
-	// in this case, we want the failure report to provide details of
-	// any unexpectedly failed tests and an unexpected report, so we
-	// remove any IsRequired option to ensure that both expectations
-	// are evaluated
-	opts = opt.Unset(opts, opt.IsRequired(true))
-
-	Expect(r.FailedTests, cFailedTests).Should(BeEmptyOrNil(), opts...)
-
-	Expect(r.Report, cTestReport).Should(BeEmptyOrNil(),
-		append(opts, opt.FailureReport(func(...any) []string {
-			const preambleLen = 2
-
-			report := make([]string, preambleLen, len(r.Report)+preambleLen)
-			report[0] = "expected: <no report>"
-			report[1] = "got:"
-			for _, s := range r.Report {
-				report = append(report, "| "+s)
-			}
-
-			return report
-		}))...,
+		append(opts, strings.Contains, opt.UnquotedStrings)...,
 	)
 }
 
@@ -321,7 +302,7 @@ func (r *R) assertWhenTestPassed(opts ...any) {
 // independent of the current test, returning an R value that captures the
 // following:
 //
-//   - the test outcome (TestPassed, TestFailed, TestPanicked)
+//   - the test outcome (test.Passed, test.Failed, test.Panicked)
 //   - names of any tests that failed
 //   - stdout output
 //   - stderr output
@@ -363,7 +344,7 @@ func TestHelper(f func()) R {
 	})
 
 	if recovered != nil {
-		outcome = TestPanicked
+		outcome = test.Panicked
 	}
 
 	_, report, failed := analyseReport(stdout)
@@ -393,17 +374,17 @@ func runInternalMatchAll(pat, match string) (bool, error) {
 // It is used to run a test function in a separate test runner in order to
 // inspect the outcome of the test function without that affecting the state of the
 // current test.
-func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, TestOutcome) {
+func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, test.Outcome) {
 	t.Helper()
 
-	result := TestFailed
+	result := test.Failed
 	stdout, stderr := Record(func() {
 		it := []testing.InternalTest{{
 			Name: t.Name(),
 			F:    f,
 		}}
 		if testing.RunTests(runInternalMatchAll, it) {
-			result = TestPassed
+			result = test.Passed
 		}
 	})
 
@@ -416,14 +397,36 @@ func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, TestOutc
 	//
 	// NOTE: This only applies when processing the output of an internal test; that
 	// is, a test that tests a test.  Output from normal tests is not filtered.
+
+	// in some modes (e.g. JSON output) chatty lines may be prefixed with control
+	// bytes; these are removed to ensure that prefix matching remains stable
+	// across run modes
+	trim := func(s string) string {
+		for len(s) > 0 && s[0] <= 0x20 {
+			s = s[1:]
+		}
+		return s
+	}
+	skipPrefixes := []string{
+		"=== RUN",
+		"=== NAME",
+		"=== PAUSE",
+		"=== CONT",
+		"--- PASS: ",
+		"--- SKIP: ",
+	}
+
+	skip := func(s string) bool {
+		for _, prefix := range skipPrefixes {
+			if strings.HasPrefix(s, prefix) {
+				return true
+			}
+		}
+		return false
+	}
+
 	for i := len(stdout) - 1; i >= 0; i-- {
-		s := strings.TrimSpace(stdout[i])
-		if strings.HasPrefix(s, "=== RUN") ||
-			strings.HasPrefix(s, "=== NAME") ||
-			strings.HasPrefix(s, "=== PAUSE") ||
-			strings.HasPrefix(s, "=== CONT") ||
-			strings.HasPrefix(s, "--- PASS: ") ||
-			strings.HasPrefix(s, "--- SKIP: ") {
+		if s := trim(stdout[i]); skip(s) {
 			stdout = append(stdout[:i], stdout[i+1:]...)
 		}
 	}
@@ -465,7 +468,7 @@ func testFilename() string {
 // and a slice of names of tests that failed.
 //
 // If any slice is empty, nil is returned instead of an empty slice.
-func analyseReport(stdout []string) ([]string, []string, []string) {
+func analyseReport(src []string) ([]string, []string, []string) {
 	T().Helper()
 
 	failed := []string{}
@@ -495,10 +498,10 @@ func analyseReport(stdout []string) ([]string, []string, []string) {
 	//         report line 1
 	//     ...
 
-	output := make([]string, 0, len(stdout))
-	report := make([]string, 0, len(stdout))
+	output := make([]string, 0, len(src))
+	msg := make([]string, 0, len(src))
 	inReport := false
-	for _, s := range stdout {
+	for _, s := range src {
 		if match := namePattern.FindStringSubmatch(s); len(match) > 0 {
 			failed = append(failed, match[1])
 			continue
@@ -512,21 +515,21 @@ func analyseReport(stdout []string) ([]string, []string, []string) {
 
 		switch inReport {
 		case true:
-			report = append(report, s)
+			msg = append(msg, s)
 		default:
 			output = append(output, s)
 		}
 	}
 
-	if len(failed) > 0 && len(report) == 0 {
+	if len(failed) > 0 && len(msg) == 0 {
 		// if we have a failed test there MUST be some failure report, otherwise we have
 		// been presented with a report that does not conform to the expected layout
 		//
 		// if that's the case, we will return the original stdout as the report,
 		// with a warning that the report does not conform to the expected layout
-		report = []string{"WARNING: check test location (missing a T().Helper() call?)"}
-		report = slices.AppendToReport(report, stdout, "report:", opt.UnquotedStrings())
-		return nil, report, nil
+		msg = []string{"WARNING: check test location (missing a T().Helper() call?)"}
+		msg = report.AppendSlice(msg, src, opt.Name("output:"), opt.UnquotedStrings)
+		return nil, msg, nil
 	}
 
 	ornil := func(s []string) []string {
@@ -536,5 +539,5 @@ func analyseReport(stdout []string) ([]string, []string, []string) {
 		return s
 	}
 
-	return ornil(output), ornil(report), ornil(failed)
+	return ornil(output), ornil(msg), ornil(failed)
 }

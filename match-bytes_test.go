@@ -8,7 +8,7 @@ import (
 	"github.com/blugnu/test/test"
 )
 
-func TestSliceOfBytes(t *testing.T) {
+func TestEqualBytes(t *testing.T) {
 	With(t)
 
 	Run(
@@ -43,6 +43,14 @@ func TestSliceOfBytes(t *testing.T) {
 	)
 }
 
+// =================================================================
+// MARK: examples
+// =================================================================
+
+// ExampleEqualBytes demonstrates the use of the EqualBytes matcher, showing
+// how to use the matcher to assert that two byte slices are equal and
+// providing an example of the expected default output when the matcher
+// fails.
 func ExampleEqualBytes() {
 	test.Example()
 

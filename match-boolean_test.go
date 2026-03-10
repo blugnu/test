@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	. "github.com/blugnu/test"
+	"github.com/blugnu/test/expect"
 	"github.com/blugnu/test/opt"
 	"github.com/blugnu/test/test"
 )
@@ -13,11 +14,11 @@ func TestBooleans(t *testing.T) {
 
 	Run(
 		HelperTests([]HelperScenario{
-			{Scenario: "ExpectFalse when false",
-				Act: func() { ExpectFalse(false) },
+			{Scenario: "expect.False when false",
+				Act: func() { expect.False(false) },
 			},
-			{Scenario: "ExpectTrue when true",
-				Act: func() { ExpectTrue(true) },
+			{Scenario: "expect.True when true",
+				Act: func() { expect.True(true) },
 			},
 			{Scenario: "BeFalse when false",
 				Act: func() { Expect(false).To(BeFalse()) },
@@ -33,37 +34,30 @@ func TestBooleans(t *testing.T) {
 			},
 
 			// supported options
-			{Scenario: "ExpectFalse with name",
-				Act: func() { ExpectFalse(true, "this will fail") },
+			{Scenario: "expect.False with name",
+				Act: func() { expect.False(true, "this will fail") },
 				Assert: func(result *R) {
-					// Expect(result).To(HaveFailedWithReport(
-					// 	"this will fail:",
-					// 	"  expected false, got true",
-					// ))
 					result.Expect(
 						"this will fail:",
-						"  expected false, got true",
+						"  expected false",
 					)
 				},
 			},
-			{Scenario: "ExpectFalse with custom failure report",
+			{Scenario: "expect.False with custom failure report",
 				Act: func() {
-					ExpectFalse(true, opt.FailureReport(func(...any) []string {
+					expect.False(true, opt.FailureReport(func(...any) []string {
 						return []string{"custom failure report"}
 					}))
 				},
 				Assert: func(result *R) {
-					// Expect(result).To(HaveFailedWithReport(
-					// 	"custom failure report",
-					// ))
 					result.Expect(
 						"custom failure report",
 					)
 				},
 			},
-			{Scenario: "ExpectFalse with name and custom failure report",
+			{Scenario: "expect.False with name and custom failure report",
 				Act: func() {
-					ExpectFalse(true, "this will fail", opt.FailureReport(func(...any) []string {
+					expect.False(true, "this will fail", opt.FailureReport(func(...any) []string {
 						return []string{"custom failure report"}
 					}))
 				},
@@ -74,18 +68,18 @@ func TestBooleans(t *testing.T) {
 					)
 				},
 			},
-			{Scenario: "ExpectTrue with name",
-				Act: func() { ExpectTrue(false, "this will fail") },
+			{Scenario: "expect.True with name",
+				Act: func() { expect.True(false, "this will fail") },
 				Assert: func(result *R) {
 					result.Expect(
 						"this will fail:",
-						"  expected true, got false",
+						"  expected true",
 					)
 				},
 			},
-			{Scenario: "ExpectTrue with custom failure report",
+			{Scenario: "expect.True with custom failure report",
 				Act: func() {
-					ExpectTrue(false, opt.FailureReport(func(...any) []string {
+					expect.True(false, opt.FailureReport(func(...any) []string {
 						return []string{"custom failure report"}
 					}))
 				},
@@ -95,9 +89,9 @@ func TestBooleans(t *testing.T) {
 					)
 				},
 			},
-			{Scenario: "ExpectTrue with name and custom failure report",
+			{Scenario: "expect.True with name and custom failure report",
 				Act: func() {
-					ExpectTrue(false, "this will fail", opt.FailureReport(func(...any) []string {
+					expect.True(false, "this will fail", opt.FailureReport(func(...any) []string {
 						return []string{"custom failure report"}
 					}))
 				},
@@ -136,38 +130,32 @@ func TestBooleans(t *testing.T) {
 	)
 }
 
-func ExampleExpectFalse() {
-	test.Example()
+// =================================================================
+// MARK: examples
+// =================================================================
 
-	ExpectFalse(true)
-
-	// Output:
-	// expected false, got true
-}
-
-func ExampleExpectTrue() {
-	test.Example()
-
-	ExpectTrue(false)
-
-	// Output:
-	// expected true, got false
-}
-
+// ExampleBeFalse demonstrates the use of the BeFalse matcher, showing
+// how to use the matcher to assert that a boolean value is false and
+// providing an example of the expected default output when the matcher
+// fails.
 func ExampleBeFalse() {
 	test.Example()
 
 	Expect(true).To(BeFalse())
 
 	// Output:
-	// expected false, got true
+	// expected false
 }
 
+// ExampleBeTrue demonstrates the use of the BeTrue matcher, showing
+// how to use the matcher to assert that a boolean value is true and
+// providing an example of the expected default output when the matcher
+// fails.
 func ExampleBeTrue() {
 	test.Example()
 
 	Expect(false).To(BeTrue())
 
 	// Output:
-	// expected true, got false
+	// expected true
 }

@@ -37,7 +37,7 @@ func (r helpertestRunner) Run() {
 
 			result := TestHelper(scn.Act)
 			if scn.Assert == nil {
-				result.Expect(TestPassed)
+				result.Expect(test.Passed)
 				return
 			}
 

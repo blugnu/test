@@ -1,37 +1,14 @@
 package test
 
 import (
-	"reflect"
-	"testing"
-
 	"github.com/blugnu/test/internal/testframe"
 	"github.com/blugnu/test/test"
 )
 
-// isParallel checks if the given TestingT is running in parallel.
-//
-// The underlying type of TestingT must be a *testing.T; any other
-// implementation will return false.
-//
-// For *testing.T values, reflection is used to examine the internal
-// state to determine if it is running in parallel.
-func isParallel(t TestingT) bool {
-	tf := T()
-	if _, ok := tf.(*testing.T); !ok {
-		// tests cannot be parallel if the TestingT is not a *testing.T
-		return false
-	}
-
-	c := reflect.Indirect(reflect.ValueOf(t)).FieldByName("common")
-	ip := reflect.Indirect(c).FieldByName("isParallel")
-
-	return ip.Bool()
-}
-
 // IsParallel returns true if the current test is running in parallel or is a
 // sub-test of a parallel test.
 func IsParallel() bool {
-	return isParallel(T())
+	return testframe.IsParallel()
 }
 
 // Parallel establishes a new test frame scheduled for parallel execution.
@@ -58,17 +35,17 @@ func IsParallel() bool {
 // Parallel must not be called from a test that is already parallel or with
 // a nil argument; in both cases the test will be failed as invalid.
 func Parallel(t TestingT) {
-	if t == nil {
-		if t, ok := testframe.Peek[TestingT](); ok {
-			t.Helper()
-		}
-		test.Invalid("Parallel() cannot be called with nil")
+	// mark t as a helper if possible
+	if t, ok := testframe.Peek[TestingT](); ok {
+		t.Helper()
 	}
 
-	t.Helper()
+	switch {
+	case t == nil:
+		test.Invalid("Parallel() cannot be called with nil")
 
-	if isParallel(t) {
-		test.Invalid("Parallel() cannot be called from a parallel test")
+	case testframe.IsParallel():
+		test.Invalid("Parallel() must not be called from a parallel test")
 	}
 
 	With(t)

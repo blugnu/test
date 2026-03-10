@@ -4,68 +4,39 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
+	"strings"
 
+	"github.com/blugnu/test/internal"
 	"github.com/blugnu/test/matchers/matcher"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
 )
-
-// AnyMatcher is the interface implemented by matchers that can test
-// any type of value.  It is used to apply matchers to expectations
-// that are not type-specific.
-//
-// It is preferable to use the Matcher[T] interface for type-safe
-// expectations; AnyMatcher is provided for situations where the
-// compatible types for a matcher cannot be enforced at compile-time.
-//
-// When implementing an AnyMatcher, it is important to ensure that
-// the matcher fails a test if it is not used correctly, i.e. if the
-// matcher is not compatible with the type of the value being tested.
-//
-// An AnyMatcher must be used with the Expect().Should() matching
-// function; they may also be used with Expect(got).To() where the got
-// value is of type `any`, though this is not recommended.
-type AnyMatcher interface {
-	Match(got any, opts ...any) bool
-}
-
-// Matcher[T] is the interface implemented by matchers that can test
-// a value of type T.  It is used to apply matchers to expectations
-// that are type-specific and type-safe.
-//
-// Note that not all type-safe matchers implement a generic interface;
-// a matcher that implements Match(got X, opts ...any) bool, where X is
-// a formal, literal type (i.e. not generic) is also a type-safe matcher.
-//
-// Matcher[T] describes the general form of a type-safe matcher.
-//
-// Generic matchers are able to leverage the type system to ensure
-// that the matcher is used correctly with a variety of types, i.e. where
-// the type of the Expect() value satisfies the constraints of the matcher
-// type, T.  The equals.Matcher[T comparable] uses this approach, for
-// example, to ensure that the value being tested is comparable
-// with the expected value (since the matcher uses the == operator for
-// equality testing).
-type Matcher[T any] interface {
-	Match(got T, opts ...any) bool
-}
 
 // Expect creates an expectation for the given value.  The value
 // may be of any type.
 //
 // # Supported Options
 //
-//	string    // a name for the expectation; the name is used in
-//	          // the failure message if the expectation fails.
+//	string                 // a name for the expectation; the name is used in
+//	                       // the failure message if the expectation fails.
+//
+//	opt.Name(string)       // a name for the expectation; this is an alternate
+//	                       // way to supply the name, equivalent to passing a
+//	                       // string directly.
+//
+//	opt.Namef(s, args...)  // a formatted name for the expectation; this is an
+//	                       // alternate way to supply the name, equivalent to
+//	                       // passing the result of fmt.Sprintf() directly.
+//
+//	opt.IsRequired(bool)   // if true, the expectation is required to pass;
+//	                       // no further expectations in the current test will be
+//	                       // evaluated if the expectation fails.
+//
+//	opt.Required()         // equivalent to opt.IsRequired(true)
 func Expect[T any](value T, opts ...any) *expectation[T] {
-	t := GetT()
-	return &expectation[T]{
-		t:        t,
-		subject:  value,
-		name:     opt.Name(opts),
-		testName: t.Name(),
-		required: opt.IsSet(opts, opt.IsRequired(true)),
-	}
+	return newExpectation(value, false, opts...)
 }
 
 // Require creates an expectation for the given value which is required
@@ -83,17 +54,18 @@ func Expect[T any](value T, opts ...any) *expectation[T] {
 //
 // # Supported Options
 //
-//	string    // a name for the expectation; the name is used in
-//	          // the failure message if the expectation fails.
+//	string                 // a name for the expectation; the name is used in
+//	                       // the failure message if the expectation fails.
+//
+//	opt.Name(string)       // a name for the expectation; this is an alternate
+//	                       // way to supply the name, equivalent to passing a
+//	                       // string directly.
+//
+//	opt.Namef(s, args...)  // a formatted name for the expectation; this is an
+//	                       // alternate way to supply the name, equivalent to
+//	                       // passing the result of fmt.Sprintf() directly.
 func Require[T any](value T, opts ...any) *expectation[T] {
-	t := GetT()
-	return &expectation[T]{
-		t:        t,
-		subject:  value,
-		name:     opt.Name(opts),
-		testName: t.Name(),
-		required: true,
-	}
+	return newExpectation(value, true, opts...)
 }
 
 // expectation[T] is a type that represents an expectation in a test. It
@@ -101,15 +73,38 @@ func Require[T any](value T, opts ...any) *expectation[T] {
 // expectation was expressed, the name of the expectation (optional) and
 // the value to which the expectation applies.
 type expectation[T any] struct {
-	t        TestingT
-	subject  T
-	name     string
-	testName string
+	// t holds the TestingT from the test frame in scope at the time
+	// the expectation was created.
+	t TestingT
+
+	// subject holds the value that the expectation applies to.
+	subject T
+
+	// name holds the name of the expectation, if any.  If the expectation
+	// is unnamed, name is an empty string.
+	name opt.Name
 
 	// required indicates whether the expectation is required to pass.
-	// If true and the expectation is not met, the test will fail immediately
-	// and no further expectations in the current test will be evaluated.
 	required bool
+}
+
+// newExpectation creates a new expectation for the given value.  The expectation
+// is marked as required if the required argument is true or if the options
+// contain the opt.IsRequired(true) option.
+//
+// If the options contain a string or opt.Name value, that is used as the name
+// of the expectation; otherwise the expectation is unnamed.
+func newExpectation[T any](value T, required bool, opts ...any) *expectation[T] {
+	t := GetT()
+
+	subject, _ := opt.GetName(opts)
+
+	return &expectation[T]{
+		t:        t,
+		subject:  value,
+		name:     subject,
+		required: required || opt.IsSet(opts, opt.IsRequired(true)),
+	}
 }
 
 // err fails a test with an optional message.  If specified, the
@@ -137,23 +132,20 @@ func (e *expectation[T]) err(msg any) {
 	switch msg := msg.(type) {
 	case string:
 		if e.name != "" {
-			msg = e.name + ": " + msg
+			msg = e.name.String() + ": " + msg
 		}
 		errorFn(msg)
 
 	case []string:
-		var rpt string
-		var indent string
-
+		rpt := slices.Clone(msg)
 		if e.name != "" {
-			rpt = "\n" + e.name + ":"
-			indent = "  "
+			for i := range rpt {
+				rpt[i] = "  " + rpt[i]
+			}
+			rpt = append([]string{e.name.String() + ":"}, rpt...)
 		}
 
-		for _, s := range msg {
-			rpt += "\n" + indent + s
-		}
-		errorFn(rpt)
+		errorFn("\n" + strings.Join(rpt, "\n"))
 
 		// errMsg returns a string or []string, so we can safely use a type
 		// switch here to handle both cases without a default case
@@ -212,10 +204,7 @@ func (e *expectation[T]) defaultFailureReport(reporter any, matcher any, opts ..
 
 	// otherwise, use a multi-line report
 	default:
-		e.err([]string{
-			"expected: " + ef,
-			"got     : " + gf,
-		})
+		e.err(report.ExpectedGot(ef, gf))
 	}
 }
 
@@ -309,6 +298,167 @@ func (e *expectation[T]) getTestFailureReporter(opts ...any) any {
 	return nil
 }
 
+// Is tests the value of the expectation against some expected
+// value.
+//
+// The function behaves differently depending on the values and
+// types of the subject and expected values.  The different behaviours
+// are intuitive and sensible for common cases:
+//
+//   - If both values are nil, the test passes;
+//
+//   - If either value is nil and the other is not, the test fails;
+//
+//   - If both values implement the error interface, the test passes
+//     if the subject error satisfies [errors.Is] for the expected error;
+//
+//   - Otherwise, the values are compared using [reflect.DeepEqual]
+//     or a comparison function supplied in the options;
+//
+// i.e. for non-nil, non-error values, with no custom comparison function,
+// an Is(target) test is equivalent to:
+//
+//	Expect(got).To(DeepEqual(target), opts...)
+//
+// For error values, an Is(target) test is equivalent to:
+//
+//	Expect(got).To(BeError(target), opts...)
+//
+// # Common Options
+//
+//	[opt.OnFailure]
+//	[opt.IsRequired]
+//	[opt.Required]
+//	string                      // equivalent to opt.OnFailure(string)
+//
+// # Additional Options
+//
+//	func(a, b T) bool           // a function to compare the values;
+//								// ignored if either value is nil, or both
+//								// values implement the error interface, or
+//								// the type T implements Equal(T) bool
+//
+//	func(a, b any) bool         // a function to compare the values;
+//								// ignored if either value is nil, or both
+//								// values implement the error interface, or
+//								// the type T implements Equal(T) bool, or a
+//								// func(a, b T) bool option is provided
+//
+// All options are passed to matchers used by the function.  For additional options
+// refer to the documentation for [expectation.IsNil], [] [DeepEqual].
+func (e *expectation[T]) Is(expected T, opts ...any) {
+	e.t.Helper()
+
+	// if a plain string is provided as an option, convert it to
+	// an opt.OnFailure option
+	opts = internal.WithStringAsOnFailure(opts)
+
+	// identify whether subject or expected (or both) are errors
+	subjectError, subjectIsError := any(e.subject).(error)
+	expectedError, expectedIsError := any(expected).(error)
+
+	switch {
+	case internal.IsNil(expected):
+		e.IsNil(opts...)
+
+	case any(expected) != nil && internal.IsNil(e.subject):
+		// opts are cloned to avoid modifying the caller's slice of options when we
+		// add expectation properties to be passed
+		opts := slices.Clone(opts)
+
+		// the testframe is included in opts to ensure that the test failure
+		// report correctly reflects the testframe of the expectation
+		opts = append([]any{e.t}, opts...)
+
+		if e.required {
+			opts = append(opts, opt.Required())
+		}
+
+		if e.name != "" {
+			opts = append(opts, e.name)
+		}
+
+		// set custom failure report if none was provided
+		if _, ok := opt.Get[opt.FailReporter](opts); !ok {
+			opts = append(opts, opt.OnFailure(fmt.Sprintf("expected %s, got nil", report.Value(expected, opts...))))
+		}
+
+		Fail(opts...)
+
+	case expectedIsError && subjectIsError:
+		Expect(subjectError, e.name).To(BeError(expectedError), opts...)
+
+	default:
+		Expect(e.subject, e.name).To(DeepEqual(expected), opts...)
+	}
+}
+
+// IsNot tests the value of the expectation against some expected
+// value for a non-match.
+//
+// The test behaves differently depending on the value and type of
+// the expected and actual values:
+//
+//   - IsNot(nil) is equivalent to [expectation.IsNotNil];
+//
+//   - If either value is [nil] and the other is not, the test passes;
+//
+//   - If both values implement the [error] interface, the test passes
+//     if the error being tested does not satisfy [errors.Is];
+//
+//   - Otherwise, the values are compared using [reflect.DeepEqual],
+//     or a comparison function supplied in the options;
+//
+// i.e. for non-nil, non-error values, an IsNot() test is equivalent to:
+//
+//	Expect(got).ToNot(DeepEqual(expected), opts...)
+//
+// and for error values, an IsNot() test is equivalent to:
+//
+//	Expect(errors.Is(got, expected)).To(BeFalse(), opts...)
+//
+// # Supported Options
+//
+//	func(a, b any) bool         // a function to compare the values
+//	                            // (overriding the use of reflect.DeepEqual)
+//
+//	opt.FailureReport(func)     // a function that returns a custom test
+//	                            // failure report if the test fails.
+//
+//	opt.OnFailure(string)       // a string to output as the failure
+//	                            // report if the test fails.
+func (e *expectation[T]) IsNot(expected T, opts ...any) {
+	e.t.Helper()
+
+	switch {
+	case (any(expected) == nil) != (any(e.subject) == nil):
+		return
+
+	case any(expected) == nil:
+		e.IsNotNil(opts...)
+		return
+
+	default:
+		experr, _ := any(expected).(error)
+		goterr, _ := any(e.subject).(error)
+		if experr != nil && goterr != nil {
+			if _, ok := opt.Get[opt.FailureReport](opts); !ok {
+				opts = append(opts, opt.FailureReport(func(...any) []string {
+					return []string{
+						fmt.Sprintf("expected error that is not: %v", experr),
+						fmt.Sprintf("got                     : %v", goterr),
+					}
+				}))
+			}
+
+			FailIf(errors.Is(goterr, experr), opts...)
+			return
+		}
+
+		Expect(e.subject, e.name).ToNot(DeepEqual(expected), opts...)
+	}
+}
+
 // Should applies a matcher to the expectation.  If the matcher
 // does not match the value, the test fails.
 //
@@ -345,8 +495,10 @@ func (e *expectation[T]) Should(match matcher.ForAny, opts ...any) {
 	e.t.Helper()
 
 	if match == nil {
-		test.Invalid("test.Should: a matcher must be specified")
+		test.Invalid("Should: a matcher must be specified")
 	}
+
+	opts = internal.WithStringAsOnFailure(opts)
 
 	if !match.Match(e.subject, opts...) {
 		e.fail(match, opts...)
@@ -388,10 +540,10 @@ func (e *expectation[T]) ShouldNot(match matcher.ForAny, opts ...any) {
 	e.t.Helper()
 
 	if match == nil {
-		test.Invalid("test.ShouldNot: a matcher must be specified")
+		test.Invalid("ShouldNot: a matcher must be specified")
 	}
 
-	opts = append(opts, opt.ToNotMatch(true))
+	opts = append(internal.WithStringAsOnFailure(opts), opt.ToNotMatch(true))
 
 	if match.Match(e.subject, opts...) {
 		e.fail(match, opts...)
@@ -409,6 +561,8 @@ func (e *expectation[T]) ShouldNot(match matcher.ForAny, opts ...any) {
 //
 // # Supported Options
 //
+// The following options are supported directly by the function:
+//
 //	opt.FailureReport(func)      // a function that provides a custom
 //	                             // test failure report if the test fails.
 //	                             //
@@ -418,13 +572,21 @@ func (e *expectation[T]) ShouldNot(match matcher.ForAny, opts ...any) {
 //
 //	opt.OnFailure(string)        // a simple string to output as the
 //	                             // failure report if the test fails.
+//
+//	string                       // equivalent to opt.OnFailure(string)
+//
+// All options are passed to the matcher, which may support additional
+// options. Refer to the documentation for individual matchers for
+// details of any additional options that are supported.
 func (e *expectation[T]) To(matcher matcher.ForType[T], opts ...any) {
 	e.t.Helper()
 
 	if matcher == nil {
-		test.Invalid("test.To: a matcher must be specified")
+		test.Invalid("To: a matcher must be specified")
 		return
 	}
+
+	opts = internal.WithStringAsOnFailure(opts)
 
 	if !matcher.Match(e.subject, opts...) {
 		e.fail(matcher, opts...)
@@ -452,73 +614,14 @@ func (e *expectation[T]) To(matcher matcher.ForType[T], opts ...any) {
 func (e *expectation[T]) ToNot(matcher matcher.ForType[T], opts ...any) {
 	e.t.Helper()
 
-	opts = append(opts, opt.ToNotMatch(true))
+	if matcher == nil {
+		test.Invalid("ToNot: a matcher must be specified")
+		return
+	}
+
+	opts = append(internal.WithStringAsOnFailure(opts), opt.ToNotMatch(true))
 
 	if matcher.Match(e.subject, opts...) {
 		e.fail(matcher, opts...)
-	}
-}
-
-// Is tests the value of the expectation against some expected
-// value.
-//
-// The function behaves differently depending on the values and
-// types of the expected and actual values:
-//
-//   - If both values are nil, the test passes;
-//
-//   - If either value is nil and the other is not, the test fails;
-//
-//   - If both values implement the error interface, the test passes
-//     if the error being tested satisfies errors.Is(expected);
-//
-//   - Otherwise, the values are compared using reflect.DeepEqual
-//     or a comparison function supplied in the options;
-//
-// i.e. for non-nil, non-error values, an Is() test is equivalent to:
-//
-//	Expect(got).To(DeepEqual(expected), opts...)
-//
-// and for error values, an Is() test is equivalent to:
-//
-//	Expect(errors.Is(got, expected)).To(BeTrue(), opts...)
-//
-// # Supported Options
-//
-//	func(a, b any) bool         // a function to compare the values
-//	                            // (overriding the use of reflect.DeepEqual)
-//
-//	opt.FailureReport(func)     // a function that returns a custom test
-//	                            // failure report if the test fails.
-//
-//	opt.OnFailure(string)       // a string to output as the failure
-//	                            // report if the test fails.
-func (e *expectation[T]) Is(expected T, opts ...any) {
-	e.t.Helper()
-
-	switch {
-	case any(expected) == nil:
-		e.IsNil()
-		return
-
-	case any(expected) != nil && any(e.subject) == nil:
-		e.err(fmt.Sprintf("expected %v, got nil", expected))
-
-	default:
-		experr, _ := any(expected).(error)
-		goterr, _ := any(e.subject).(error)
-		if experr != nil && goterr != nil {
-			ExpectTrue(
-				errors.Is(goterr, experr),
-				opt.FailureReport(func(...any) []string {
-					return []string{
-						fmt.Sprintf("expected error: %v", experr),
-						fmt.Sprintf("got           : %v", goterr),
-					}
-				}),
-			)
-			return
-		}
-		Expect(e.subject, e.name).To(DeepEqual(expected), opts...)
 	}
 }

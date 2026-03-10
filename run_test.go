@@ -30,7 +30,7 @@ func TestRun_Test(t *testing.T) {
 	})
 
 	Expect(result.FailedTests).To(ContainItem("TestRun_Test/named_test"))
-	result.Expect("expected true, got false")
+	result.Expect("expected true")
 }
 
 func TestRun_Testcases(t *testing.T) {
@@ -187,7 +187,7 @@ func TestRun_Testcases(t *testing.T) {
 			))
 		})
 
-		result.Expect(TestFailed, "expected 5, got 4")
+		result.Expect(test.Failed, "expected 5, got 4")
 	}))
 
 	Run(Test("skip method", func() {

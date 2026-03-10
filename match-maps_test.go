@@ -111,8 +111,6 @@ func ExampleEqualMap() {
 	Expect(sut).To(EqualMap(map[string]int{"trillian": 24}))
 
 	// Output:
-	// expected map:
-	//   "trillian" => 24
-	// got:
-	//   "marvin" => 99
+	// expected map[string]int: ( "trillian" => 24
+	// got: ( "marvin" => 99
 }

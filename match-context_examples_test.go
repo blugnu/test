@@ -6,6 +6,10 @@ import (
 	"github.com/blugnu/test/test"
 )
 
+// ExampleHaveContextKey demonstrates the use of the HaveContextKey matcher,
+// showing how to use the matcher to assert that a context contains a
+// specific key and providing an example of the expected default output
+// when the matcher fails.
 func ExampleHaveContextKey() {
 	test.Example()
 
@@ -24,9 +28,11 @@ func ExampleHaveContextKey() {
 	//   key not present in context
 }
 
+// ExampleHaveContextValue demonstrates the use of the HaveContextValue matcher,
+// showing how to use the matcher to assert that a context contains a
+// specific key with a specific value and providing an example of the
+// expected default output when the matcher fails.
 func ExampleHaveContextValue() {
-	// this is needed to make the example work; this would be usually
-	// be `With(t)` where `t` is the *testing.T
 	test.Example()
 
 	type key int

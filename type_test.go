@@ -1,7 +1,6 @@
 package test_test
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -28,8 +27,8 @@ func TestExpectType(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected type: int",
-					"got          : string",
+					"expected: int",
+					"got     : string",
 				)
 			},
 		},
@@ -42,29 +41,19 @@ func TestExpectType(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect([]string{
 					"named value:",
-					"  expected type: int",
-					"  got          : bool",
+					"  expected: int",
+					"  got     : bool",
 				})
 			},
 		},
-		{Scenario: "expecting error, got nil",
+		{Scenario: "expecting interface implementation",
 			Act: func() {
-				result, ok := ExpectType[error](nil)
-				Expect(ok).To(BeFalse())
-				Expect(result).Should(BeNil())
+				ExpectType[TestingT](nil) // the value is not relevant to this test
 			},
 			Assert: func(result *R) {
-				result.Expect(
-					"expected type: error",
-					"got          : <nil>",
+				result.ExpectInvalid(
+					"ExpectType: cannot be used to test for interfaces",
 				)
-			},
-		},
-		{Scenario: "expecting error, got error",
-			Act: func() {
-				result, ok := ExpectType[error](errors.New("an error occurred"))
-				Expect(ok).To(BeTrue())
-				Expect(result.Error()).To(Equal("an error occurred"))
 			},
 		},
 	}...))
@@ -73,63 +62,23 @@ func TestExpectType(t *testing.T) {
 func TestRequireType(t *testing.T) {
 	With(t)
 
-	Run(HelperTests([]HelperScenario{
-		{Scenario: "expecting int got int",
-			Act: func() {
-				result := RequireType[int](1)
-				Expect(result).To(Equal(1))
-			},
-		},
-		{Scenario: "expecting int got string",
-			Act: func() {
-				RequireType[int]("string")
-				Expect(false, "this will not be evaluated").To(BeTrue())
-			},
-			Assert: func(result *R) {
-				result.Expect(
-					"expected type: int",
-					"got          : string",
-				)
-			},
-		},
-	}...))
-}
+	Run(Test("fails immediately when type does not match", func() {
+		result := TestHelper(func() {
+			RequireType[int]("string")
+			Fail("this should not be reached")
+		})
+		Expect(result.Outcome).To(Equal(test.Failed))
+		Expect(result.Report).ToNot(ContainItem("this should not be reached"))
+	}))
 
-func TestShould_BeOfType(t *testing.T) {
-	With(t)
-
-	Run(HelperTests([]HelperScenario{
-		{Scenario: "int is int",
-			Act: func() { Expect(42).Should(BeOfType[int]()) },
-		},
-		{Scenario: "int is not string",
-			Act: func() { Expect(42).Should(BeOfType[string]()) },
-			Assert: func(result *R) {
-				result.Expect(
-					"expected type: string",
-					"got          : int",
-				)
-			},
-		},
-	}...))
-}
-
-func TestShouldNot_BeOfType(t *testing.T) {
-	With(t)
-
-	Run(HelperTests([]HelperScenario{
-		{Scenario: "int is not string",
-			Act: func() { Expect(42).ShouldNot(BeOfType[string]()) },
-		},
-		{Scenario: "int is string",
-			Act: func() { Expect(42).ShouldNot(BeOfType[int]()) },
-			Assert: func(result *R) {
-				result.Expect(
-					"should not be of type: int",
-				)
-			},
-		},
-	}...))
+	Run(Test("does not fail when type matches", func() {
+		result := TestHelper(func() {
+			RequireType[int](1)
+			Fail("this will be reached")
+		})
+		Expect(result.Outcome).To(Equal(test.Failed))
+		Expect(result.Report).ToNot(ContainItem("this will be reached"))
+	}))
 }
 
 func ExampleExpectType() {
@@ -155,31 +104,6 @@ func ExampleExpectType() {
 	// result: type is: float64
 	// result: value is: 0.5
 	//
-	// expected type: float64
-	// got          : string
-}
-
-func ExampleRequireType() {
-	test.Example()
-
-	// RequireType returns the value as the expected type when it
-	// is of that type
-	var got any = 1 / 2.0
-	result := RequireType[float64](got)
-
-	fmt.Printf("result: type is: %T\n", result)
-	fmt.Printf("result: value is: %v\n", result)
-
-	// RequireType terminates the current test if the value is not
-	// of the required type
-	got = "1 / 2.0"
-	RequireType[float64](got)
-	Expect(false, "this will not be evaluated").To(BeTrue())
-
-	//Output:
-	// result: type is: float64
-	// result: value is: 0.5
-	//
-	// expected type: float64
-	// got          : string
+	// expected: float64
+	// got     : string
 }

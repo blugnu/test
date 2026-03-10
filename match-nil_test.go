@@ -8,6 +8,22 @@ import (
 	"github.com/blugnu/test/opt"
 )
 
+func TestExpect_BeNil(t *testing.T) {
+	With(t)
+
+	// verify that the BeNil matcher factory function works as expected;
+	// the matcher itself is covered by it's own tests
+
+	Run(HelperTests([]HelperScenario{
+		{Scenario: "should be nil",
+			Act: func() { var subject any; Expect(subject).Should(BeNil()) },
+		},
+		{Scenario: "should not be nil",
+			Act: func() { Expect(errors.New("error")).ShouldNot(BeNil()) },
+		},
+	}...))
+}
+
 func TestExpect_IsNil(t *testing.T) {
 	With(t)
 
@@ -60,7 +76,7 @@ func TestExpect_IsNotNil(t *testing.T) {
 		{Scenario: "nil",
 			Act: func() { var subject any; Expect(subject).IsNotNil() },
 			Assert: func(result *R) {
-				result.Expect("expected not nil, got nil")
+				result.Expect("expected not nil")
 			},
 		},
 		{Scenario: "with custom failure report",
@@ -75,4 +91,44 @@ func TestExpect_IsNotNil(t *testing.T) {
 			},
 		},
 	}...))
+}
+
+// ============================================================================
+// MARK: examples
+// ============================================================================
+
+func Example_expectation_IsNil() {
+	var (
+		value int = 42
+		ref   *int
+	)
+
+	// this test will pass
+	Expect(ref).IsNil()
+
+	// this test will fail
+	ref = &value
+	Expect(ref).IsNil()
+
+	// Output:
+	// expected nil, got 42 [*int]
+}
+
+func Example_expectation_IsNotNil() {
+	var (
+		value int = 42
+		ref   *int
+	)
+
+	// this test will pass
+	ref = &value
+	Expect(ref, "non-nil ref").IsNotNil()
+
+	// this test will fail
+	ref = nil
+	Expect(ref, "nil ref").IsNotNil()
+
+	// Output:
+	// nil ref:
+	//   expected not nil
 }

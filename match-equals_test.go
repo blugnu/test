@@ -7,19 +7,6 @@ import (
 	"github.com/blugnu/test/test"
 )
 
-func TestEqual(t *testing.T) {
-	With(t)
-
-	Run(HelperTests([]HelperScenario{
-		{Scenario: "expected equal and was equal",
-			Act: func() { Expect(1).To(Equal(1)) },
-		},
-		{Scenario: "expected to not be equal and was not equal",
-			Act: func() { Expect(1).ToNot(Equal(2)) },
-		},
-	}...))
-}
-
 func TestDeepEqual(t *testing.T) {
 	With(t)
 
@@ -35,6 +22,40 @@ func TestDeepEqual(t *testing.T) {
 			},
 		},
 	}...))
+}
+
+func TestEqual(t *testing.T) {
+	With(t)
+
+	Run(HelperTests([]HelperScenario{
+		{Scenario: "expected equal and was equal",
+			Act: func() { Expect(1).To(Equal(1)) },
+		},
+		{Scenario: "expected to not be equal and was not equal",
+			Act: func() { Expect(1).ToNot(Equal(2)) },
+		},
+	}...))
+}
+
+// =================================================================
+// MARK: examples
+// =================================================================
+
+func ExampleDeepEqual() {
+	test.Example()
+
+	Expect([]byte{1, 2, 3}).To(DeepEqual([]byte{1, 2, 4}))
+	Expect([]uint8{1, 1, 2, 3, 5}).To(DeepEqual([]uint8{1, 2, 4, 8, 16}))
+
+	// this will not compile because the types are not the same:
+	// Expect([]uint8{1, 1, 2, 3, 5}).To(DeepEqual([]int{1,1,2,3,5}))
+
+	// Output:
+	// expected: []uint8 (len,cap=3) [1, 2, 4]
+	// got     : []uint8 (len,cap=3) [1, 2, 3]
+	//
+	// expected: []uint8 (len,cap=5) [1, 2, 4, 8, 16]
+	// got     : []uint8 (len,cap=5) [1, 1, 2, 3, 5]
 }
 
 func ExampleEqual() {
@@ -60,20 +81,4 @@ func ExampleEqual() {
 	//
 	// expected: "the lord of the rings"
 	// got     : "the hobbit"
-}
-
-func ExampleDeepEqual() {
-	test.Example()
-
-	Expect([]byte{1, 2, 3}).To(DeepEqual([]byte{1, 2, 4}))
-	Expect([]uint8{1, 1, 2, 3, 5}).To(DeepEqual([]uint8{1, 2, 4, 8, 16}))
-
-	// this will not compile because the types are not the same:
-	// Expect([]uint8{1, 1, 2, 3, 5}).To(DeepEqual([]int{1,1,2,3,5}))
-
-	// Output:
-	// expected [1 2 4], got [1 2 3]
-	//
-	// expected: [1 2 4 8 16]
-	// got     : [1 1 2 3 5]
 }

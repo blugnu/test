@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/blugnu/test/test"
 )
 
 // flakyRunner runs a test function that is prone to flakiness. It implements
@@ -32,7 +34,7 @@ func (tr flakyRunner) Run() {
 		T().Helper()
 
 		outcome, attempts, reports, elapsed := tr.runTestWithRetries()
-		if outcome == TestPassed {
+		if outcome == test.Passed {
 			return
 		}
 
@@ -60,12 +62,12 @@ func (tr flakyRunner) Run() {
 // test, the number of attempts made, the reports of each failed attempt, and the
 // total elapsed time.
 //
-// If the test passes, the reports are discarded and the outcome is [TestPassed].
+// If the test passes, the reports are discarded and the outcome is [test.Passed].
 // If the test fails after all attempts, the reports contain the details of each
-// failed attempt, and the outcome is [TestFailed].
+// failed attempt, and the outcome is [test.Failed].
 //
 // The elapsed time is truncated to milliseconds for consistency in reporting.
-func (tr flakyRunner) runTestWithRetries() (TestOutcome, uint, [][]string, time.Duration) {
+func (tr flakyRunner) runTestWithRetries() (test.Outcome, uint, [][]string, time.Duration) {
 	T().Helper()
 
 	var (
@@ -75,10 +77,10 @@ func (tr flakyRunner) runTestWithRetries() (TestOutcome, uint, [][]string, time.
 		reports [][]string
 	)
 
-	handleOutcome := func(outcome TestOutcome) (TestOutcome, uint, [][]string, time.Duration) {
+	handleOutcome := func(outcome test.Outcome) (test.Outcome, uint, [][]string, time.Duration) {
 		elapsed = elapsed.Truncate(time.Millisecond)
 
-		if outcome == TestPassed {
+		if outcome == test.Passed {
 			reports = nil // discard reports if the test passed
 		}
 
@@ -103,8 +105,8 @@ func (tr flakyRunner) runTestWithRetries() (TestOutcome, uint, [][]string, time.
 		elapsed = time.Since(start)
 		attempt++
 
-		if result.Outcome == TestPassed {
-			return handleOutcome(TestPassed)
+		if result.Outcome == test.Passed {
+			return handleOutcome(test.Passed)
 		}
 
 		reports = append(reports, result.Report)
@@ -112,7 +114,7 @@ func (tr flakyRunner) runTestWithRetries() (TestOutcome, uint, [][]string, time.
 		time.Sleep(tr.wait)
 	}
 
-	return handleOutcome(TestFailed)
+	return handleOutcome(test.Failed)
 }
 
 // FlakyOption is an option function type for an option that modifies

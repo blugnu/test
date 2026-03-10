@@ -1,6 +1,8 @@
 package test
 
-import "github.com/blugnu/test/matchers/bytes"
+import (
+	"github.com/blugnu/test/matchers/bytes"
+)
 
 // EqualBytes returns a matcher that checks if a byte slice is equal to an
 // expected byte slice.

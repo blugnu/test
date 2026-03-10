@@ -7,30 +7,6 @@ import (
 	"github.com/blugnu/test/test"
 )
 
-func TestTestOutcome(t *testing.T) {
-	With(t)
-
-	type testcase struct {
-		TestOutcome
-		result string
-	}
-	Run(Testcases(
-		ForEach(func(tc testcase) {
-			// ACT
-			result := tc.String()
-
-			// ASSERT
-			Expect(result).To(Equal(tc.result))
-		}),
-		Cases([]testcase{
-			{TestOutcome: TestPassed, result: "TestPassed"},
-			{TestOutcome: TestFailed, result: "TestFailed"},
-			{TestOutcome: TestPanicked, result: "TestPanicked"},
-			{TestOutcome: 99, result: "TestOutcome(99)"},
-		}),
-	))
-}
-
 func TestTestHelper(t *testing.T) {
 	With(t)
 
@@ -49,7 +25,7 @@ func TestTestHelper(t *testing.T) {
 		result := TestHelper(func() {
 			panic("whoops!")
 		})
-		result.Expect(TestPanicked, "whoops!")
+		result.Expect(test.Panicked, "whoops!")
 	}))
 
 	Run(Test("additional output to stdout", func() {
@@ -62,7 +38,7 @@ func TestTestHelper(t *testing.T) {
 		})
 
 		// the report consists only of test report output
-		result.Expect(TestFailed, "expected false, got true")
+		result.Expect(test.Failed, "expected false")
 	}))
 }
 
@@ -74,42 +50,42 @@ func TestR_Expect(t *testing.T) {
 			Act: func() {
 				sut := R{
 					t:       T(),
-					Outcome: TestPassed,
+					Outcome: test.Passed,
 				}
 				sut.Expect()
 			},
 			Assert: func(result *R) {
-				result.ExpectInvalid("R.Expect: no arguments; an expected TestOutcome and/or test report are required")
+				result.ExpectInvalid("R.Expect: no arguments; an expected test.Outcome and/or test report are required")
 			},
 		},
 		{Scenario: "expected to panic (no report)",
 			Act: func() {
 				sut := R{
 					t:         T(),
-					Outcome:   TestPanicked,
+					Outcome:   test.Panicked,
 					Recovered: "recovered",
 				}
-				sut.Expect(TestPanicked)
+				sut.Expect(test.Panicked)
 			},
 		},
 		{Scenario: "expected to panic (matched recovered string)",
 			Act: func() {
 				sut := R{
 					t:         T(),
-					Outcome:   TestPanicked,
+					Outcome:   test.Panicked,
 					Recovered: "recovered",
 				}
-				sut.Expect(TestPanicked, "recovered")
+				sut.Expect(test.Panicked, "recovered")
 			},
 		},
 		{Scenario: "expected to panic (too many strings specified)",
 			Act: func() {
 				sut := R{
 					t:         T(),
-					Outcome:   TestPanicked,
+					Outcome:   test.Panicked,
 					Recovered: "recovered",
 				}
-				sut.Expect(TestPanicked, "recovered", "and a second string")
+				sut.Expect(test.Panicked, "recovered", "and a second string")
 			},
 			Assert: func(result *R) {
 				result.ExpectInvalid("R.Expect: only 1 string may be specified to match a recovered value from an expected panic (got 2)")
@@ -119,17 +95,17 @@ func TestR_Expect(t *testing.T) {
 			Act: func() {
 				sut := R{
 					t:         T(),
-					Outcome:   TestPanicked,
+					Outcome:   test.Panicked,
 					Recovered: "recovered",
 					Stack:     []byte("panic(\n  runtime.panic.go\nstack trace\n  with_call_sites.go:123:456"),
 				}
-				sut.Expect(TestPassed)
+				sut.Expect(test.Passed)
 			},
 			Assert: func(result *R) {
 				result.Expect(
 					"test outcome:",
-					"  expected: TestPassed",
-					"  got     : TestPanicked",
+					"  expected: test.Passed",
+					"  got     : test.Panicked",
 					"",
 					"recovered:",
 					"  string(recovered)",
@@ -143,15 +119,15 @@ func TestR_Expect(t *testing.T) {
 			Act: func() {
 				sut := R{
 					t:       T(),
-					Outcome: TestFailed,
+					Outcome: test.Failed,
 				}
-				sut.Expect(TestPassed)
+				sut.Expect(test.Passed)
 			},
 			Assert: func(result *R) {
 				result.Expect(
 					"test outcome:",
-					"  expected: TestPassed",
-					"  got     : TestFailed",
+					"  expected: test.Passed",
+					"  got     : test.Failed",
 				)
 			},
 		},
@@ -159,18 +135,17 @@ func TestR_Expect(t *testing.T) {
 			Act: func() {
 				sut := R{
 					t:       T(),
-					Outcome: TestFailed,
+					Outcome: test.Failed,
 					Report:  []string{"actual report"},
 				}
-				sut.Expect(TestPassed)
+				sut.Expect(test.Passed)
 			},
 			Assert: func(result *R) {
 				result.Expect(
 					"test outcome:",
-					"  expected: TestPassed",
-					"  got     : TestFailed",
-					"with report:",
-					"| actual report",
+					"  expected: test.Passed",
+					"  got     : test.Failed",
+					"  output: [ actual report",
 				)
 			},
 		},
@@ -178,10 +153,10 @@ func TestR_Expect(t *testing.T) {
 			Act: func() {
 				sut := R{
 					t:       T(),
-					Outcome: TestFailed,
+					Outcome: test.Failed,
 					Report:  []string{"actual report"},
 				}
-				sut.Expect(TestFailed)
+				sut.Expect(test.Failed)
 			},
 			Assert: func(result *R) {
 				result.Expect(
@@ -196,12 +171,30 @@ func TestR_Expect(t *testing.T) {
 			Act: func() {
 				sut := R{
 					t:       T(),
-					Outcome: TestFailed,
+					Outcome: test.Failed,
 				}
-				sut.Expect(TestFailed, "some expected failure report")
+				sut.Expect(test.Failed, "some expected failure report")
 			},
 			Assert: func(result *R) {
 				result.ExpectWarning("test failed as expected, but no test report or failures were recorded")
+			},
+		},
+		{Scenario: "expected report as slice",
+			Act: func() {
+				sut := R{
+					t:           T(),
+					Outcome:     test.Failed,
+					FailedTests: []string{"TestR_Expect/expected_report_as_slice"},
+					Report: []string{
+						"test-helper_test.go:999", // actual line number will vary and is ignored
+						"   actual report",
+						"   spans two lines",
+					},
+				}
+				sut.Expect([]string{
+					"actual report",
+					"spans two lines",
+				})
 			},
 		},
 	}...))
@@ -231,11 +224,19 @@ func Test_runInternal(t *testing.T) {
 		// with the -v flag.  We ensure that the RUN: and PASS: lines are removed from
 		// the output to avoid false negatives in tests that expect an empty output for
 		// a passing test.
+		//
+		// The test also simulates the output produced with control characters, as produced
+		// with JSON output, for example, to ensure that these are also removed.
 
-		t := RequireType[*testing.T](T())
+		t, ok := T().(*testing.T)
+		Expect(ok).To(BeTrue())
 
 		// ACT
 		stdout, stderr, outcome := runInternal(t, func(_ *testing.T) {
+			fmt.Println("\x16=== RUN: this output should be removed")
+			fmt.Println("\x08=== PAUSE: this output should be removed")
+			fmt.Println("\x12=== CONT: this output should be removed")
+			fmt.Println("\x20--- PASS: this output should be removed")
 			fmt.Println("=== RUN: this output should be removed")
 			fmt.Println("=== PAUSE: this output should be removed")
 			fmt.Println("=== CONT: this output should be removed")
@@ -243,7 +244,7 @@ func Test_runInternal(t *testing.T) {
 		})
 
 		// ASSERT
-		Expect(outcome).To(Equal(TestPassed))
+		Expect(outcome).To(Equal(test.Passed))
 		Expect(stdout).Should(BeEmpty())
 		Expect(stderr).Should(BeNil())
 	}))
@@ -316,10 +317,9 @@ func Test_analyseReport(t *testing.T) {
 		Expect(output, "output").Should(BeEmptyOrNil())
 		Expect(report, "report").To(EqualSlice([]string{
 			"WARNING: check test location (missing a T().Helper() call?)",
-			"report:",
-			"| --- FAIL: TestSomething (0.0s)",
-			"|     stdout output (if any)",
-			"|     something.go:112: test failed",
+			"output: [ --- FAIL: TestSomething (0.0s)",
+			"        [     stdout output (if any)",
+			"        [     something.go:112: test failed",
 		}))
 		Expect(failed, "failed").Should(BeEmptyOrNil())
 	}))

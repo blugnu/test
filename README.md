@@ -1,5 +1,5 @@
 <div align="center" style="margin-bottom:20px">
-  <img src=".assets/banner.png" alt="logger" />
+  <img src=".assets/banner.png" alt="writing tests is relaxing" />
   <div align="center">
     <a href="https://github.com/blugnu/test/actions/workflows/release.yml"><img alt="build-status" src="https://github.com/blugnu/test/actions/workflows/release.yml/badge.svg?branch=master&style=flat-square"/></a>
     <a href="https://goreportcard.com/report/github.com/blugnu/test" ><img alt="go report" src="https://goreportcard.com/badge/github.com/blugnu/test"/></a>
@@ -15,7 +15,7 @@
 
 # blugnu/test
 
-Provides a concise, fluent, type-safe API over the standard testing framework, simplifying common tests
+A concise, fluent, type-safe API over the standard testing framework, simplifying common tests
 in an extensible fashion whilst maintaining compatibility with the standard testing package.
 
 _Friends don't let friends write tests that are hard to read, hard to maintain, or that
@@ -41,7 +41,7 @@ func TestDoSomething(t *testing.T) {
 }
 ```
 
-Do this instead:
+Do this:
 
 ```go
 func TestDoSomething(t *testing.T) {
@@ -129,13 +129,14 @@ value from the test function as an argument:
   }
 ```
 
-> :bulb: Calling `Parallel(t)` is equivalent to calling `With(t)` followed by `Parallel()` or `t.Parallel()`.
+> :bulb: to execute a test parallel, use `Parallel(t)` instead of `With(t)`; this is equivalent
+> to calling `With(t)` followed by `t.Parallel()`.
 
-There is no cleanup required after calling `With(t)`; the test frame is automatically cleaned up
-when the test completes.
+There is no cleanup required after calling `With(t)` or `Parallel(t)`; the test frame is
+automatically cleaned up when the test completes.
 
-If you use the `blugnu/test` package functions for running table-driven tests or explicit subtests
-the test frame stack is managed for you:
+If you use the `blugnu/test` package functions for running subtests, the test frame
+is managed for you:
 
 ```go
   func TestDoSomething(t *testing.T) {
@@ -148,9 +149,9 @@ the test frame stack is managed for you:
   }
 ```
 
-If a new test frame is created outside of the `test` package, then the `With(t)` function
-must be called again to push that test frame onto the stack.  For example, if you choose to create
-a subtest using `*testing.T.Run()` and want to use the `blugnu/test` functions in that subtest:
+However, if a new test frame is created outside of the `test` package, then `With(t)` must be
+called to push that test frame onto the stack.  For example, if you choose to create a subtest
+using `*testing.T.Run()` and want to use the `blugnu/test` functions in that subtest:
 
 ```go
   func TestDoSomething(t *testing.T) {
@@ -173,15 +174,15 @@ for each test function.
 
 ### Writing a Test: Expect
 
-Almost all tests are written using `Expect` to create an expectation
-over some value (the _subject_).  `Expect` returns an _expectation_ with
-methods for testing the subject.
+Almost all tests are written using `Expect` to create an expectation for some value
+(the _subject_).  `Expect` returns an _expectation_ with methods for testing the subject.
 
 Some expectation methods test the value directly, such as `IsEmpty()`, `IsNil()` and `IsNotNil()`:
 
 ```go
-  err := DoSomething()
+  result, err := Sum(2, 2)
   Expect(err).IsNil()
+  Expect(result).To(Equal(4))
 ```
 
 ### Using Matchers
@@ -322,7 +323,7 @@ is not possible.
 - [Testing Slices](#testing-slices)
 - [Testing Context](#testing-context)
 
-## [Test Runners](#test-runner-functions)
+## [Test Runners](#test-runners)
 
 - [Subtests](#subtests)
 - [Table-Driven Tests](#table-driven-tests)
@@ -337,7 +338,7 @@ In addition to performing common, basic tests, the `test` package also provides 
 | [Mocking Functions](#mocking-functions) | mock functions for testing |
 | [Recording Console Output](#recording-console-output) | record output of a function that writes to `stdout` and/or `stderr` |
 | [Test for an Expected Type](#test-for-an-expected-type) | test that a value is of an expected type |
-| [Testing Test Helpers](#testing-test-helpers) | test your own test helper functions |
+| [Testing a Test Helper](#testing-a-test-helper) | test your own test helper functions |
 
 ------
 </br>
@@ -430,41 +431,84 @@ provided on expectations:
 
 ## Testing that an Error did not occur
 
-There are two ways to explicitly test that an error did not occur:
+There are three ways to test that an error did _not_ occur:
 
 ```go
   Expect(err).DidNotOccur()
   Expect(err).IsNil()
+  Expect(err).Is(nil)  // useful in table-driven tests
 ```
 
-A third way to test that an error did not occur is to use the `Is()` method, passing `nil`
-as the expected error:
-
-```go
-  Expect(err).Is(nil)
-```
-
-This is most useful when testing an error in a table driven test where each test case
+The last form is particularly useful in table-driven tests where each test case
 may have an expected error or `nil`:
 
 ```go
-  Expect(err).Is(tc.err)  // tc.err may be nil or an expected error
+  Expect(err).Is(tc.err)  // tc.err may be nil or some expected error
 ```
 
 ## Testing that an Error occurred (any error)
+
+There are two ways to test that some error _did_ occur without specifying
+a specific error or error type:
 
 ```go
   Expect(err).DidOccur()
   Expect(err).IsNotNil()
 ```
 
+> _It is generally **not** recommended to test errors in this way as the test_
+> _is vague and vulnerable to false positives; but it may be useful or even_
+> _necessary in some cases_.
+
 ## Testing that a Specific Error Occurred
 
+There are three ways to test that a specific error or an error of a specific type
+_did_ occur:
+
 ```go
-  Expect(err).Is(expectedError) // passes if `errors.Is(err, expectedError)` is true
+  // an expected error value (errors.Is)
+  Expect(err).Is(someExpectedError)
+
+  // an expected error type (errors.As)
+  v, ok := Expect(err).To(BeError[E]())      
+  v, ok := expect.Error[E](err)              
 ```
 
-> _If `nil` is passed as the expected error, the test is equivalent to `IsNil()`_.
+The first form uses `errors.Is()` to determine whether the error matches the
+expected error.
+
+The other forms test for a specific error type, using `errors.As()` where the
+type parameter `E` is the expected error type. The tests will pass if the error
+is of type `E` (or wraps an error of that type), returning the matched error
+value of type `E` and a boolean indicating whether the test passed.
+
+If the test fails the indicator will be false and the matched value will be
+the zero value of `E`.
+
+## Expected vs Required Errors
+
+If an expected error is critical to a test, further test execution may be
+short-circuited by passing the `opt.IsRequired(true)` option:
+
+```go
+  Expect(err).IsNil(opt.Required())
+```
+
+Alternatively, the `Require()` function may be used to create the expectation:
+
+```go
+  Require(err).IsNil()
+```
+
+Finally, for the generic form of testing for an expected error type, the
+`require` package provides a short-circuit variant of the `Error[E]()` test:
+
+```go
+  v := require.Error[E](err)
+```
+
+Since the test will _only_ return if the test passes, the function only returns
+the matched error of type `E`.  No boolean indicator is returned in this case.
 
 # Testing for Panics
 
@@ -645,16 +689,16 @@ By contrast:
 
 ## Any-Matchers
 
-An any-matcher is a matcher that accepts `any` as the subject type, allowing it to be used
-with literally any value.  Any-matchers are used with the `Should()` or `ShouldNot()` matching
-methods.
+An any-matcher is a matcher that accepts `any` as the subject type, allowing it
+to be used with literally any value.  Any-matchers are used with the `Should()`
+or `ShouldNot()` matching methods.
 
 > Any-matchers may also be used with the `To()` or `ToNot()` matching methods
-> if the formal type of the subject is `any`, but this is not recommended.
+> but only if the formal type of the subject is `any`; this is not recommended.
 
 # Built-In Matchers
 
-A number of matchers are provided in the `test` package, including:
+A number of matchers are provided, including:
 
 <!-- markdownlint-disable MD013 -->
 | Factory Function | Subject Type | Description |
@@ -678,7 +722,7 @@ A number of matchers are provided in the `test` package, including:
 | `HaveContextValue(K,V)` | `context.Context` | Tests that the context contains the expected key and value |
 <!-- markdownlint-enable -->
 
-Matchers are used by passing the matcher to one of th expectation matching methods together
+Matchers are used by passing the matcher to one of the expectation matching methods together
 with options to control the behaviour of the expectation or the matcher itself.
 
 A matcher is typically constructed by a factory function accepting any arguments required
@@ -721,17 +765,17 @@ Options supported by matching methods (and therefore _all_ matchers) include:
 | `opt.OnFailure(string)`   | a string to use as the error report for the test failure; this overrides the default error report for the matcher |
 | `opt.AsDeclaration(bool)` | a boolean to indicate whether values (other than strings) in test failure reports should be formatted as declarations (`%#v` rather than `%v`) |
 | `opt.QuotedStrings(bool)` | a boolean to indicate whether string values should be quoted in failure reports; defaults to `true` |
-| `opt.IsRequired(bool)`    | a boolean to indicate whether the expectation is required; defaults to `false` |
+| `opt.IsRequired(bool)`    | a boolean to indicate whether the expectation is required, short-circuiting the current test on failure; defaults to `false` |
 <!-- markdownlint-enable -->
 
 > `opt.OnFailure()` is a convenience function that returns an `opt.FailureReport` with a
 > function that returns the specified string in the report.
 >
-> `opt.FailureReport` and `opt.OnFailure()` are mutually exclusive; if both are specified, only the
-> first in the options list will be used.
+> If both `opt.FailureReport` and `opt.OnFailure()` are specified or multiple options
+> are provided of either type, only the first such option will be used.
 
-The `...any` argument to an `opt.FailureReport` function is used to pass any options supplied to the
-matcher, so that the error report can respect those options where appropriate.
+The `...any` argument to an `opt.FailureReport` function is used to pass any options
+supplied to the matcher, so that the error report can respect those options where appropriate.
 
 > See the [Custom Failure Report Guide](.assets/readme/custom-failure-reports.md) for details.
 
@@ -862,7 +906,11 @@ expected by the matcher must be cast to that type:
 ------
 </br>
 
-# Test Runner Functions
+# Test Runners
+
+- [Subtests](#subtests)
+- [Table-Driven Tests](#table-driven-tests)
+- [Flaky Tests](#flaky-tests)
 
 The `testing.T` type is the standard test runner in Go.  This type also
 provides a way to run subtests using the `test.Run()` function, which
@@ -970,7 +1018,7 @@ There are two ways to skip/debug test cases:
 
 <!-- markdownlint-disable MD013 -->
 ```go
-  type TestCase struct {
+  type testcase struct {
     // fields...
     skip bool   // set true to skip this test case
     debug bool  // set true to debug this test case
@@ -978,27 +1026,27 @@ There are two ways to skip/debug test cases:
 
   // skip a test case
   Run(Testcases(
-     ForEach(func(tc TestCase) {
+     ForEach(func(tc testcase) {
         // test code here
      }),
-     Skip("first case", TestCase{...debug: true}),  // this test case will be skipped; the `debug` field is overridden by the Skip() function
-     Case("second case", TestCase{...}),
+     Skip("first case", testcase{...debug: true}),  // this test case will be skipped; the `debug` field is overridden by the Skip() function
+     Case("second case", testcase{...}),
   ))
 
   // debug a test case
   Run(Testcases(
-     ForEach(func(tc TestCase) {
+     ForEach(func(tc testcase) {
         // test code here
      }),
-     Debug("first case", TestCase{... skip: true}), // ONLY this test case will be run; the 'skip' field is overridden by the Debug() function
-     Case("second case", TestCase{...}),
+     Debug("first case", testcase{... skip: true}), // ONLY this test case will be run; the 'skip' field is overridden by the Debug() function
+     Case("second case", testcase{...}),
   ))
 ```
 <!-- markdownlint-enable -->
 
 ## Flaky Tests
 
-Flaky tests are tests that may fail intermittently, often due to timing issues
+Flaky tests are tests that may fail intermittently, due to timing issues
 or other non-deterministic factors.  The `test` package provides a way to run
 flaky tests using the `FlakyTest()` runner.
 
@@ -1010,8 +1058,14 @@ maximum number of attempts and/or until a maximum elapsed time has passed
 If the test passes before the maximum number of attempts or elapsed time is reached,
 the test passes; any failed attempts are ignored.
 
-If the test fails on all attempts, the test fails, and the outcome of each attempt
+If the test fails on all attempts, the test fails and the outcome of each attempt
 is reported in the test output.
+
+## Helper Test Scenarios
+
+The `HelperTests()` runner is a specialised runner for testing a test helper
+or custom matcher.  See the [Running Multiple Helper Test Scenarios](#running-multiple-helper-test-scenarios)
+section for details.
 
 ------
 </br>
@@ -1137,7 +1191,7 @@ outcome as an argument to the `R.Expect()` method:
     /* your test code here */
   })
 
-  result.Expect(TestPassed)
+  result.Expect(test.Passed)
 ```
 
 ## Testing Test Helper Output
@@ -1160,24 +1214,38 @@ method:
 > :bulb: By testing the output, the test is implicitly expected to fail, so the
 > `R.Expect()` method in this case will also test that the outcome is `TestFailed`.
 
-## Running Multiple Test Scenarios
+## Running Multiple Helper Test Scenarios
 
-A specialised version of `RunScenarios()` is provided to test a test helper or
-custom matcher: `RunTestScenarios()`. This accepts a slice of `TestScenario` values,
-where each scenario is a test case to be run against your test helper or matcher.
+The `HelperTests()` test runner is provided to run multiple test scenarios for testing
+a test helper or custom matcher.  The runner accepts a slice of `HelperScenario`
+test cases:
 
-`RunTestScenarios()` implements a test runner function for you, so all you need
-to do is provide a slice of scenarios, with each scenario consisting of:
+```go
+   Run(HelperTests([]HelperScenario{
+     {
+       Scenario: "test scenario 1",
+       Act: func() { /* test code */ },
+       Assert: func(r *R) { /* assertions */ },
+     },
+     {
+       Scenario: "test scenario 2",
+       Act: func() { /* test code */ },
+       Assert: func(r *R) { /* assertions */ },
+     },
+   }...))
+```
+
+Each scenario consists of:
 
 - `Scenario`: a name for the scenario (scenario); each scenario is run in a subtest
    using this name;
-- `Act`: a function that contains the test code for the scenario; this function has
-   the signature `func()`;
+- `Act`: a function that contains the test code for the scenario;
 - `Assert`: a function that tests the test outcome; this function has the signature
   `func(*R)` where `R` is the result of the test scenario.
 
-The `Assert` function is optional; if not provided the scenario is one where the
-test is expected to pass without any errors or failures.
+The `Assert` function is optional; if not provided the scenario represents a case
+where the test is expected to pass without any errors or failures and producing no
+test output.
 
 ### Debugging and Skipping Scenarios
 
@@ -1186,8 +1254,9 @@ subset, or specific test, or to ignore scenarios that are not yet implemented or
 known to be failing with problems which you wish to ignore while focussing on
 other scenarios.
 
-The `RunTestScenarios()` function and `TestScenario` type support this by
-providing a `Skip` and `Debug` field on each `TestScenario`.
+Similar to the table-driven test runners, this can be accomplished by
+skipping scenarios or marking them for debugging using the `Debug` and `Skip`
+fields of the `HelperScenario` struct.
 
 > :warning: &nbsp; When setting either `Debug` or `Skip` to `true`, it is important
 to remember to remove those settings when you are ready to move on to the next
@@ -1202,7 +1271,7 @@ focus of your testing.
     },
     {
       Scenario: "test scenario 2",
-      Skip: true, //                              <== this scenario won't run
+      Skip: true, //                            <== this scenario won't run
       Act: func() { /* test code */ },
       Assert: func(r *R) { /* assertions */ },
     },
@@ -1213,14 +1282,14 @@ Setting `Skip` to `true` may be impractical if you have a large number of scenar
 and want to run only a few of them. In this case, you can use the `Debug` field to
 focus on a single scenario or a subset of scenarios.
 
-## Debugging Scenarios
+### Debugging Scenarios
 
 > :bulb: &nbsp; Setting `Debug` does not invoke the debugger or subject a test scenario to
 > any special treatment, beyond selectively running it.  The name merely reflects that it
 > most likely to be of use when debugging.
 
 When `Debug` is set to `true` on any one or more scenarios, the test runner will run
-ONLY those scenarios, skipping all other scenarios:
+**ONLY** those scenarios, skipping all other scenarios:
 
 ```go
   scenarios := []TestScenario{
@@ -1249,137 +1318,35 @@ ONLY those scenarios, skipping all other scenarios:
 
 # Test for an Expected Type
 
-You can test that some value is of an expected type using the `ExpectType` function.
-
-This function returns the value as the expected type and `true` if the test passes;
-otherwise the zero-value of the expected type is returned, with `false`.
-
-A common pattern when this type of test is useful is to assert the type of some
-value and then perform additional tests on that value appropriate to the type:
+There are two ways to test that some value is of an expected type:
 
 ```go
-func TestDoSomething(t *testing.T) {
-  With(t)
+  // using the BeOfType matcher
+  Expect(value).Should(BeOfType[ExpectedType]())
 
-  // ACT
-  result := DoSomething()
-
-  // ASSERT
-  if cust, ok := ExpectType[Customer](result); ok {
-    // further assertions on cust (type: Customer) ...
-  }
-}
+  // using the expect.Type function
+  v, ok := expect.Type[ExpectedType](value)
 ```
 
-This test can only be used to test that a value is of a type that can be expressed
-through the type parameter on the generic function.
+The `BeOfType[T]()` matcher is used with the `Should()` or `ShouldNot()` methods
+to test that the subject is of the expected type `T`.  When testing using this
+matcher, the test will fail if the subject is not of the expected type.
 
-For example, the following test will fail as an invalid test:
+If you need to use the value as the expected type, you can use the
+`expect.Type[T](value)` function to test that the value is of the expected type.
+This will return the value as the expected type `T` and a boolean indicating whether
+the test passed.
+
+If the test fails, the boolean will be `false` and the value will be the zero-value
+of the expected type, `T`.
+
+If the failure of the test should cause the current test to fail immediately, you
+can use the `require.Type[T](value)` function which will short-circuit the current
+test if the value is not of the expected type, returning the value as the expected
+type `T` if the test passes.
 
 ```go
-  type Counter interface {
-    Count() int
-  }
-  ExpectType[Counter](result) // INVALID TEST: cannot be used to test for interfaces
+  v := require.Type[ExpectedType](value) // short-circuits the current test if value is not of type ExpectedType
 ```
 
-------
-
-# Testing Test Helpers
-
-If you write your own test helper functions you should of course test them.  This
-is problematic when using `*testing.T` since when your test helper fails the test
-that is testing your helper will also fail.
-
-`blugnu/test` addresses this by providing a `TestHelper()` function that runs
-your test helper in a separate test runner, capturing the outcome and any report.
-This allows the test helper to fail without affecting the outcome of the test that
-is testing it, allowing that test to then assert the expected outcome.
-
-The `TestHelper()` function accepts a function that executes your test helper,
-and returns a `test.R` value that contains information about the outcome of the test.
-
-The `R` type provides methods to test the outcome of the test, primarily this will
-involve testing the helper (correctly) failed and produced an expected report. This
-is accomplished by calling the `R.Expect()` method with the expected test report;
-when an expected report is passed, the test is implicitly expected to fail, so the
-`R.Expect()` method will also test that the outcome is `TestFailed`:
-
-```go
-func TestMyTestHelper(t *testing.T) {
-  With(t)
-
-  result := TestHelper(func() {
-    MyTestHelper() // this is the test helper being tested
-  })
-
-  result.Expect(
-    "expected failure message", // the expected failure message
-  )
-}
-```
-
-To test that the test helper passed, you can call the `R.Expect()` method
-with the expected outcome:
-
-```go
-func TestMyTestHelper(t *testing.T) {
-  With(t)
-
-  result := TestHelper(func() {
-    MyTestHelper() // this is the test helper being tested
-  })
-
-  result.Expect(TestPassed) // the test helper is expected to pass
-}
-```
-
-## Testing a Test Helper with Scenarios
-
-A test runner is provided to test a test helper in a variety of scenarios.
-The runner defines a `HelperScenario` type for each scenario, which
-contains the following fields:
-
-- `Scenario`: a name for the scenario (scenario); each scenario is run in a subtest
-   using this name;
-- `Act`: a function that contains the test code for the scenario; this function has
-   the signature `func()`;
-- `Assert`: a function that tests the test outcome; this function has the signature
-  `func(*R)` where `R` is the result of the test scenario.
-- `Skip`: a boolean to indicate whether the scenario should be skipped; defaults to `false`
-- `Debug`: a boolean to indicate whether the scenario is a debug scenario; defaults to `false`
-
-> :bulb: If the `Debug` field is set to `true` on any scenario(s), the test runner
-> will run only those scenarios, and these will be run even if `Skip` is also true.
-
-For scenarios where the helper is expected to pass, the `Assert` function
-is optional; if the `Assert` function is nil, the test runner will assert
-that the test passed without any errors or failures.
-
-The `HelperTests()` test runner accepts a variadic list of `HelperScenario` values,
-where each scenario is a test case to be run against your test helper:
-
-```go
-func TestMyTestHelper(t *testing.T) {
-  With(t)
-  
-  Run(HelperTests([]test.HelperScenario{
-    {Scenario: "provided with an empty string",
-       Act: func() {
-         MyTestHelper("")
-       },
-       Assert: func(r *test.R) {
-         r.ExpectInvalid("input string cannot be empty")
-       },
-    },
-    {Scenario: "this is expected to pass",
-       Act: func() {
-         MyTestHelper("some input")
-       },
-    },
-  }...))
-}
-```
-
-> :bulb: In the example above, the scenarios are provided as a slice literal
-> using the `...` operator to expand the slice into a variadic argument list.
+Since the current test is halted on failure, an indicator boolean is not returned.

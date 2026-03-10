@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
 )
 
@@ -145,13 +146,13 @@ func (fake *FakeResult[R]) Returns(v ...any) {
 
 		case R:
 			if resultSet {
-				test.Error(ErrInvalidOperation, fmt.Sprintf("only one result value (%T) may be specified", *new(R)))
+				test.Error(ErrInvalidOperation, fmt.Sprintf("only one result value (%s) may be specified", report.TypeName[R]()))
 			}
 			resultSet = true
 			fake.Result = r
 
 		default:
-			test.Error(ErrInvalidOperation, fmt.Sprintf("only values of type %T or error (or nil) may be specified", *new(R)))
+			test.Error(ErrInvalidOperation, fmt.Sprintf("only values of type %s or error (or nil) may be specified", report.TypeName[R]()))
 		}
 	}
 }

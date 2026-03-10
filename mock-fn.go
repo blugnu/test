@@ -3,6 +3,8 @@ package test
 import (
 	"errors"
 	"fmt"
+
+	"github.com/blugnu/test/report"
 )
 
 // MockFn is a generic type that can be used to mock a function returning some result
@@ -177,7 +179,7 @@ func (mock *mockFnCall[A, R]) WillReturn(v ...any) {
 			resultSet = true
 
 		default:
-			panic(fmt.Errorf("%w: %T: only values of type %T or error may be specified", ErrInvalidOperation, r, *new(R)))
+			panic(fmt.Errorf("%w: only values of type %s or error may be specified: got %s", ErrInvalidOperation, report.TypeName[R](), report.TypeName(r)))
 		}
 	}
 }
@@ -293,7 +295,7 @@ func (mock *MockFn[A, R]) RecordCall(args ...A) (R, error) {
 	return result, err
 }
 
-// ExpectedResults returns an error if any expectations were not met; otherwise nil.
+// ExpectationsWereMet returns an error if any expectations were not met; otherwise nil.
 //
 // This method is typically called at the end of a test to ensure that all expected
 // calls were made.

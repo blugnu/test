@@ -24,16 +24,15 @@ func TestSlices(t *testing.T) {
 				},
 				Assert: func(result *R) {
 					result.Expect(
-						`expected: []string containing: "c"`,
-						`got:`,
-						` | "a"`,
-						` | "b"`,
+						`expected []string containing: "c"`,
+						`got: [ "a"`,
+						`     [ "b"`,
 					)
 				},
 			},
 			{Scenario: "slice contains item that matches using custom comparison function",
 				Act: func() {
-					Expect([]string{"a", "b"}).To(ContainItem("B"), opt.CaseSensitive(false))
+					Expect([]string{"a", "b"}).To(ContainItem("B"), opt.CaseInsensitive)
 				},
 			},
 		}...))
@@ -52,12 +51,10 @@ func TestSlices(t *testing.T) {
 				},
 				Assert: func(result *R) {
 					result.Expect(
-						`expected: []string containing items:`,
-						`| "c"`,
-						`| "d"`,
-						`got:`,
-						`| "a"`,
-						`| "b"`,
+						`expected []string containing items: [ "c"`,
+						`                                    [ "d"`,
+						`got: [ "a"`,
+						`     [ "b"`,
 					)
 				},
 			},
@@ -82,13 +79,11 @@ func TestSlices(t *testing.T) {
 				},
 				Assert: func(result *R) {
 					result.Expect(
-						`expected: []string containing slice:`,
-						`| "a"`,
-						`| "c"`,
-						`got:`,
-						`| "a"`,
-						`| "b"`,
-						`| "c"`,
+						`expected []string containing slice: [ "a"`,
+						`                                    [ "c"`,
+						`got: [ "a"`,
+						`     [ "b"`,
+						`     [ "c"`,
 					)
 				},
 			},
@@ -113,12 +108,10 @@ func TestSlices(t *testing.T) {
 				},
 				Assert: func(result *R) {
 					result.Expect(
-						`expected: []string equal to:`,
-						`| "b"`,
-						`| "a"`,
-						`got:`,
-						`| "a"`,
-						`| "b"`,
+						`expected []string equal to: [ "b"`,
+						`                            [ "a"`,
+						`got: [ "a"`,
+						`     [ "b"`,
 					)
 				},
 			},
@@ -143,14 +136,13 @@ func ExampleContainItem() {
 
 	// these tests will pass
 	Expect(sut).To(ContainItem("a"))
-	Expect(sut).To(ContainItem("A"), opt.CaseSensitive(false))
+	Expect(sut).To(ContainItem("A"), opt.CaseInsensitive)
 
 	// this test will fail
 	Expect(sut).To(ContainItem("c"))
 
 	// Output:
-	// expected: []string containing: "c"
-	// got:
-	// | "a"
-	// | "b"
+	// expected []string containing: "c"
+	// got: [ "a"
+	//      [ "b"
 }

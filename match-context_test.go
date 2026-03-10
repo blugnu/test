@@ -6,6 +6,7 @@ import (
 
 	. "github.com/blugnu/test"
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/test"
 )
 
 func TestContext(t *testing.T) {
@@ -27,7 +28,7 @@ func TestContext(t *testing.T) {
 						Expect(ctx).To(HaveContextKey(key("other-key")))
 					},
 					Assert: func(result *R) {
-						result.Expect(TestFailed, opt.IgnoreReport(true))
+						result.Expect(test.Failed, opt.IgnoreReport(true))
 					},
 				},
 			}...))
@@ -45,7 +46,7 @@ func TestContext(t *testing.T) {
 					Expect(ctx).To(HaveContextValue(key("other-key"), "value"))
 				},
 				Assert: func(result *R) {
-					result.Expect(TestFailed, opt.IgnoreReport(true))
+					result.Expect(test.Failed, opt.IgnoreReport(true))
 				},
 			},
 			{Scenario: "expected value present but different",
@@ -53,7 +54,7 @@ func TestContext(t *testing.T) {
 					Expect(ctx).To(HaveContextValue(key("key"), "other value"))
 				},
 				Assert: func(result *R) {
-					result.Expect(TestFailed, opt.IgnoreReport(true))
+					result.Expect(test.Failed, opt.IgnoreReport(true))
 				},
 			},
 		}...))

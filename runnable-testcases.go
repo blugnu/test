@@ -23,18 +23,27 @@ type TestExecutor[T any] interface {
 //     a default name is derived in the format "testcase-NNN" where NNN is
 //     the 1-based index of the test case in the list of test cases.
 //
-// If the test case data has a bool debug/Debug field that is set true, the
-// test case will be marked as a debug test case.
+// If the test case data has a bool field named debug/Debug that is set true,
+// the test case will be marked as a debug test case. When 1 or more debug test
+// cases are detected only those cases will be executed.
 //
-// If the test case data has a bool skip/Skip field that is set true, the
-// test case will be marked as a skip test case.
+// If the test case data has a bool field named skip/Skip that is set true,
+// the test case will be skipped, even if it is also marked as a debug test case.
 func Case[T any](name string, tc T) testcase.Registration[T] {
 	return func(r *testcase.Runner[T], flags testcase.Flags) {
 		r.AddCase(name, tc, flags)
 	}
 }
 
-// Cases creates a Runner to run a set of test cases.
+// Cases registers a slice of test cases with the runner. This is a convenience
+// function that is equivalent to calling Case() for each test case in the slice
+// with an empty name.
+//
+// If the test case type T is a struct (or pointer to a struct) and has a
+// string field named "Scenario", "scenario", "Name", or "name", with a value
+// that is not empty and not whitespace, that will be used as the name. Otherwise
+// a default name is derived in the format "testcase-NNN" where NNN is the 1-based
+// index of the test case in the list of test cases.
 func Cases[T any](cases []T) testcase.Registration[T] {
 	return func(r *testcase.Runner[T], flags testcase.Flags) {
 		for _, c := range cases {
@@ -43,7 +52,7 @@ func Cases[T any](cases []T) testcase.Registration[T] {
 	}
 }
 
-// Debug adds a test case to the runner and marks it as a debug target.
+// Debug adds a test case to the runner and marks it as a debug case.
 //
 // When running test cases, if any cases are marked as debug only those
 // cases will be run. This is useful for debugging specific test cases
