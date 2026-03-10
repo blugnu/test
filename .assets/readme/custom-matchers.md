@@ -55,11 +55,12 @@ implement a failure report by simply implementing the `Match` method and providi
 
 ## Formatting Values for Failure Reports
 
-When implementing failure reports, the `opt` package provides functions to help
-with formatting failure messages and applying relevant options:
+When implementing failure reports, the `report` package provides functions to help
+with consistently formatting values for inclusion in failure messages respecting
+relevant options:
 
 ```go
-opt.ValueAsString(value, opts...)    // formats a value as a string for reporting, respecting any supported options
+report.Value(value, opts...)    // formats a value as a string for reporting, respecting any supported options
 ```
 
 Matcher packages may also provide their own options for formatting failure messages,
