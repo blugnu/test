@@ -8,7 +8,12 @@ import (
 )
 
 // Example is used to initialise a testframe for an Example function
-// (that is, a runnable example on pkg.go.dev)
+// (that is, a runnable example on pkg.go.dev).
+//
+// In each example, a call to `test.Example()` is used to establish the
+// test frame since there is no *testing.T available for example functions.
+// In real tests, this would be replaced with `With(t)` where `t` is the
+// *testing.T for the test.
 func Example() {
 	// NOTE: at time of writing, Example functions appear to be run in a single
 	// goroutine, so we don't need to worry about concurrency issues here.

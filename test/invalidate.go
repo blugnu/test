@@ -16,6 +16,45 @@ type runner interface {
 	FailNow()
 }
 
+// Error is used to indicate a test is invalid due to some error having occurred.
+// This is intended to be used in test helpers and matchers to report an error
+// that invalidates a test.
+//
+// i.e. the error does not indicate that the test failed, but rather that
+// the test is invalid and therefore unreliable, due to an error that occurred
+// during execution or evaluation of a test helper or matcher.
+//
+// It should not be confused with the [github.com/blugnu/test.Error] or
+// [github.com/blugnu/test.Errorf] functions.
+//
+// If a valid test frame is available, it will report the error using the [Errorf]
+// method of that test frame.
+//
+// If no valid test frame is available, this function will panic with the
+// provided error and message(s).  Panicking ensures that test execution fails,
+// avoiding a false positive outcome.
+//
+// # Alternatives
+//
+// To indicate that a test is invalid without any specific error, use the [Invalid]
+// function.
+//
+// To draw attention to a non-fatal issue in a test, use the [Warning] function.
+func Error(err error, msg ...string) {
+	if s := strings.Join(msg, "\n"); len(s) > 0 {
+		err = fmt.Errorf("%w\n%s", err, s)
+	}
+
+	if t, ok := testframe.Peek[runner](); ok {
+		t.Helper()
+		t.Errorf("<== INVALID TEST\nERROR: %s", err.Error())
+		t.FailNow()
+		return
+	}
+
+	panic(fmt.Errorf("INVALID TEST\n%w", err))
+}
+
 // Invalid is used to mark a test as invalid.  It should be called by a matcher
 // when the test cannot be run due to an invalid condition, such as attempting to
 // use a matcher with an unsupported type, or when the test is not properly set up.
@@ -36,53 +75,27 @@ func Invalid(msg ...string) {
 	// if we can obtain a TestRunner from the current test frame then we will
 	// use it to report the test as invalid, otherwise we must panic, to avoid
 	// a test yielding a false positive result
-	t, ok := testframe.Peek[runner]()
-	if !ok {
-		panic(s)
+	if t, ok := testframe.Peek[runner](); ok {
+		t.Helper()
+		t.Errorf("<== %s", s)
+		t.FailNow()
+		return
 	}
 
-	t.Helper()
-	t.Errorf("<== %s", s)
-	t.FailNow()
-}
-
-// Error is used to indicate an error in a test.  This should be used to report
-// errors that occur during the execution of a test rendering the test outcome
-// invalid.
-//
-// i.e. the error does not indicate that the test failed, but rather that
-// the test is invalid and therefore unreliable, due to an error that occurred
-// during its execution.
-//
-// If a valid test frame is available, it will report the error using the Error
-// method.
-//
-// If no valid test frame is available, this function will panic with the
-// provided error and message(s), avoiding a false positive test outcome.
-func Error(err error, msg ...string) {
-	t, tok := testframe.Peek[runner]()
-	s := strings.Join(msg, "\n")
-
-	switch {
-	// we have a t we can use to report the error
-	case tok && len(s) > 0:
-		t.Helper()
-		t.Errorf("<== INVALID TEST\nERROR: %s\n%s", err.Error(), s)
-	case tok:
-		t.Helper()
-		t.Errorf("<== INVALID TEST\nERROR: %s", err.Error())
-
-	// no t, we must panic
-	case len(s) > 0:
-		panic(fmt.Errorf("INVALID TEST\n%w\n%s", err, s))
-	default:
-		panic(fmt.Errorf("INVALID TEST\n%w", err))
-	}
+	panic(s)
 }
 
 // Warning is used to report a warning in a test.  This should be used to
 // indicate a condition that is not an error, but may indicate a problem or
 // unexpected behavior in the test.
+//
+// Although a warning does not invalidate a test, it does fail any current
+// test execution.
+//
+// For example, if all test cases in a table-driven test are skipped, a
+// warning is produced indicating that the test did not run any test cases.
+// This does not represent an error or failure in any individual test case,
+// but fails the test, avoiding a false positive result.
 //
 // If a valid test frame is available, it will report the warning using the
 // Errorf, otherwise it will panic with the warning message.
@@ -97,11 +110,11 @@ func Warning(msg string) {
 	// if we can obtain a TestRunner from the current test frame then we will
 	// use it to report the test as invalid, otherwise we must panic, to avoid
 	// a test yielding a false positive result
-	t, ok := testframe.Peek[runner]()
-	if !ok {
-		panic(msg)
+	if t, ok := testframe.Peek[runner](); ok {
+		t.Helper()
+		t.Errorf("<== " + msg)
+		return
 	}
 
-	t.Helper()
-	t.Errorf("<== " + msg)
+	panic(msg)
 }
