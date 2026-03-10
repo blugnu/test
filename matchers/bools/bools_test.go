@@ -18,7 +18,7 @@ func TestBooleans(t *testing.T) {
 			Act: func() { Expect(true).To(BeFalse()) },
 			Assert: func(result *R) {
 				result.Expect(
-					"expected false, got true",
+					"expected false",
 				)
 			},
 		},
@@ -42,7 +42,7 @@ func TestBooleans(t *testing.T) {
 			Act: func() { Expect(false).To(BeTrue()) },
 			Assert: func(result *R) {
 				result.Expect(
-					"expected true, got false",
+					"expected true",
 				)
 			},
 		},

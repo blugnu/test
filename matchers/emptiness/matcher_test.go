@@ -79,7 +79,7 @@ func TestBeEmpty(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty slice>",
-					"got     : nil slice",
+					"got     : <nil>",
 				)
 			},
 		},
@@ -88,7 +88,7 @@ func TestBeEmpty(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty map>",
-					"got     : nil map",
+					"got     : <nil>",
 				)
 			},
 		},
@@ -97,7 +97,7 @@ func TestBeEmpty(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty chan>",
-					"got     : nil chan",
+					"got     : <nil>",
 				)
 			},
 		},
@@ -112,20 +112,22 @@ func TestBeEmpty(t *testing.T) {
 			},
 		},
 		{Scenario: "non-empty array",
-			Act: func() { Expect([1]int{1}).Should(BeEmpty()) },
+			Act: func() { Expect([2]int{1, 2}).Should(BeEmpty()) },
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty array>",
-					"got     : len() == 1",
+					"got     : [ 1",
+					"          [ 2",
 				)
 			},
 		},
 		{Scenario: "non-empty slice",
-			Act: func() { Expect([]int{1}).Should(BeEmpty()) },
+			Act: func() { Expect([]int{1, 2}).Should(BeEmpty()) },
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty slice>",
-					"got     : len() == 1",
+					"got     : [ 1",
+					"          [ 2",
 				)
 			},
 		},
@@ -152,12 +154,13 @@ func TestBeEmpty(t *testing.T) {
 			Act: func() { var a any; Expect(a).To(BeEmpty()) },
 			Assert: func(result *R) {
 				result.ExpectInvalid(
-					"emptiness.Matcher: requires a value that is a slice, channel, or map, or is of",
-					"                   a type that implements a Count(), Len(), or Length() function",
-					"                   returning an int, int64, uint, or uint64.",
+					"emptiness.Matcher: requires a value that is a slice, channel, or map, or of a type",
+					"                   that implements a Count(), Len(), or Length() function returning",
+					"                   int, int64, uint, or uint64.",
 					"",
 					"                   A value of type <nil> does not meet these criteria.",
 				)
+				Expect(result.Report).ToNot(ContainItem("expected"))
 			},
 		},
 	}...))
@@ -239,20 +242,22 @@ func TestBeEmptyOrNil(t *testing.T) {
 			},
 		},
 		{Scenario: "non-empty array",
-			Act: func() { Expect([1]int{1}).Should(BeEmptyOrNil()) },
+			Act: func() { Expect([2]int{1, 2}).Should(BeEmptyOrNil()) },
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty array>",
-					"got     : len() == 1",
+					"got     : [ 1",
+					"          [ 2",
 				)
 			},
 		},
 		{Scenario: "non-empty slice",
-			Act: func() { Expect([]int{1}).Should(BeEmptyOrNil()) },
+			Act: func() { Expect([]int{1, 2}).Should(BeEmptyOrNil()) },
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty slice>",
-					"got     : len() == 1",
+					"got     : [ 1",
+					"          [ 2",
 				)
 			},
 		},
@@ -279,11 +284,177 @@ func TestBeEmptyOrNil(t *testing.T) {
 			Act: func() { var a any; Expect(a).To(BeEmptyOrNil()) },
 			Assert: func(result *R) {
 				result.ExpectInvalid(
-					"emptiness.Matcher: requires a value that is a slice, channel, or map, or is of",
-					"                   a type that implements a Count(), Len(), or Length() function",
-					"                   returning an int, int64, uint, or uint64.",
+					"emptiness.Matcher: requires a value that is a slice, channel, or map, or of a type",
+					"                   that implements a Count(), Len(), or Length() function returning",
+					"                   int, int64, uint, or uint64.",
 					"",
 					"                   A value of type <nil> does not meet these criteria.",
+				)
+			},
+		},
+	}...))
+}
+
+func TestNotBeEmpty(t *testing.T) {
+	With(t)
+
+	Run(HelperTests([]HelperScenario{
+		{Scenario: "non-empty string",
+			Act: func() { Expect("foo").ShouldNot(BeEmpty()) },
+		},
+		{Scenario: "non-empty array",
+			Act: func() { Expect([2]int{1, 2}).ShouldNot(BeEmpty()) },
+		},
+		{Scenario: "non-empty slice",
+			Act: func() { Expect([]int{1, 2}).ShouldNot(BeEmpty()) },
+		},
+		{Scenario: "non-empty map",
+			Act: func() { Expect(map[string]int{"foo": 1}).ShouldNot(BeEmpty()) },
+		},
+		{Scenario: "with Count() > 0",
+			Act: func() { Expect(implementsCount[int]{n: 1}).ShouldNot(BeEmpty()) },
+		},
+
+		{Scenario: "empty string",
+			Act: func() { Expect("").ShouldNot(BeEmpty()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty>",
+				)
+			},
+		},
+		{Scenario: "empty array",
+			Act: func() { Expect([0]int{}).ShouldNot(BeEmpty()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty>",
+				)
+			},
+		},
+		{Scenario: "empty slice",
+			Act: func() { Expect([]int{}).ShouldNot(BeEmpty()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty>",
+				)
+			},
+		},
+		{Scenario: "empty map",
+			Act: func() { Expect(map[string]int{}).ShouldNot(BeEmpty()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty>",
+				)
+			},
+		},
+		{Scenario: "with Count() == 0",
+			Act: func() { Expect(implementsCount[int]{n: 0}).ShouldNot(BeEmpty()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty> (using Count() > 0)",
+					"got     : Count() == 0",
+				)
+			},
+		},
+	}...))
+}
+
+func TestNotBeEmptyOrNil(t *testing.T) {
+	With(t)
+
+	Run(HelperTests([]HelperScenario{
+		{Scenario: "non-empty string",
+			Act: func() { Expect("foo").ShouldNot(BeEmptyOrNil()) },
+		},
+		{Scenario: "non-empty array",
+			Act: func() { Expect([2]int{1, 2}).ShouldNot(BeEmptyOrNil()) },
+		},
+		{Scenario: "non-empty slice",
+			Act: func() { Expect([]int{1, 2}).ShouldNot(BeEmptyOrNil()) },
+		},
+		{Scenario: "non-empty map",
+			Act: func() { Expect(map[string]int{"foo": 1}).ShouldNot(BeEmptyOrNil()) },
+		},
+		{Scenario: "with Count() > 0",
+			Act: func() { Expect(implementsCount[int]{n: 1}).ShouldNot(BeEmptyOrNil()) },
+		},
+
+		{Scenario: "empty string",
+			Act: func() { Expect("").ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty>",
+				)
+			},
+		},
+		{Scenario: "empty array",
+			Act: func() { Expect([0]int{}).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty>",
+				)
+			},
+		},
+		{Scenario: "empty slice",
+			Act: func() { Expect([]int{}).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty or nil>",
+					"got     : <empty>",
+				)
+			},
+		},
+		{Scenario: "empty map",
+			Act: func() { Expect(map[string]int{}).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty or nil>",
+					"got     : <empty>",
+				)
+			},
+		},
+		{Scenario: "nil slice",
+			Act: func() { Expect([]int(nil)).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty or nil>",
+					"got     : <nil>",
+				)
+			},
+		},
+		{Scenario: "nil map",
+			Act: func() { Expect(map[string]int(nil)).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty or nil>",
+					"got     : <nil>",
+				)
+			},
+		},
+		{Scenario: "nil channel",
+			Act: func() { var ch chan struct{}; Expect(ch).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty or nil>",
+					"got     : <nil>",
+				)
+			},
+		},
+		{Scenario: "with Count() == 0",
+			Act: func() { Expect(implementsCount[int]{n: 0}).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty or nil>",
+					"got     : Count() == 0",
+				)
+			},
+		},
+		{Scenario: "with (nil).Count()",
+			Act: func() { Expect((*implementsCount[int])(nil)).ShouldNot(BeEmptyOrNil()) },
+			Assert: func(result *R) {
+				result.Expect(
+					"expected: <not empty or nil> (using Count() > 0)",
+					"got     : <nil>",
 				)
 			},
 		},

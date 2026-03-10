@@ -6,15 +6,20 @@ import (
 	"strconv"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
 )
 
 type Matcher struct {
 	// if true, nil is considered empty
-	TreatNilAsEmpty bool
+	NilIsEmpty bool
 
 	// the following fields are set during evaluation of the matcher and
 	// used to generate an appropriate failure report
+
+	// isValid is true if a valid determination of emptiness was made
+	// for the subject (whether empty or not)
+	isValid bool
 
 	// hasLength is true if a length was determined for the subject
 	hasLength bool
@@ -29,8 +34,12 @@ type Matcher struct {
 	// (e.g., "len", "Count", "Len", or "Length")
 	method string
 
-	// _type is the type of the subject, if known
-	_type string
+	// customMethod is true if a method other than "len" was used to
+	// determine length
+	customMethod bool
+
+	// typeName is the type of the subject, if known
+	typeName string
 
 	// len is the length of the subject as a string; a string representation
 	// is used to avoid issues with large integers and the different integer
@@ -39,76 +48,127 @@ type Matcher struct {
 }
 
 func (m *Matcher) Match(subject any, opts ...any) bool {
-	m.tryLen(subject)
+	result := func() bool {
+		switch {
+		case !m.isValid:
+			return false
+		case m.isNil:
+			return m.NilIsEmpty
+		default:
+			return m.isEmpty
+		}
+	}
 
-	switch {
-	case m.isNil:
-		// if TreatNilAsEmpty has been set then the nilness of a `nil` value
-		// is ignored and the value is treated as empty
-		//
-		// i.e. if isNil is true then the value is nil AND is not treated as empty,
-		// therefore the match fails
-		return false
-
-	case m.hasLength:
-		return m.isEmpty
+	if m.tryLen(subject); m.isValid {
+		return result()
 	}
 
 	// otherwise try the various supported methods for determining length/count
 	// if hasLength is set after any of these calls, then the value is supported
 	// and the emptiness result is available
 
-	if tryMethods[int](m, subject); m.hasLength {
-		return m.isEmpty
+	if tryMethods[int](m, subject); m.isValid {
+		return result()
 	}
 
-	if tryMethods[uint](m, subject); m.hasLength {
-		return m.isEmpty
+	if tryMethods[uint](m, subject); m.isValid {
+		return result()
 	}
 
-	if tryMethods[int64](m, subject); m.hasLength {
-		return m.isEmpty
+	if tryMethods[int64](m, subject); m.isValid {
+		return result()
 	}
 
 	tryMethods[uint64](m, subject)
 
-	return m.isEmpty
+	return result()
 }
 
 func (m *Matcher) OnTestFailure(subject any, opts ...any) []string {
-	if !m.hasLength && m.isNil && m._type == "" {
+	if !m.isValid {
 		test.T().Helper()
 		test.Invalid(
-			"emptiness.Matcher: requires a value that is a slice, channel, or map, or is of",
-			"                   a type that implements a Count(), Len(), or Length() function",
-			"                   returning an int, int64, uint, or uint64.",
+			"emptiness.Matcher: requires a value that is a slice, channel, or map, or of a type",
+			"                   that implements a Count(), Len(), or Length() function returning",
+			"                   int, int64, uint, or uint64.",
 			"",
 			fmt.Sprintf("                   A value of type %T does not meet these criteria.", subject),
 		)
 	}
 
-	if m.isNil && !m.TreatNilAsEmpty && m._type != "" {
+	if opt.IsSet(opts, opt.ToNotMatch(true)) {
+		return m.negatedFailureReport()
+	}
+
+	return m.failureReport(subject, opts...)
+}
+
+// failureReport generates a failure report for the case where
+// the matcher was used in a non-negated context (i.e., Expect(...).Should(...))
+func (m *Matcher) failureReport(subject any, opts ...any) []string {
+	switch {
+	case m.isNil:
 		return []string{
-			"expected: <empty " + m._type + ">",
-			"got     : nil " + m._type,
+			"expected: <empty " + m.typeName + ">",
+			"got     : <nil>",
+		}
+
+	case m.typeName == "slice" || m.typeName == "array":
+		return report.AppendSliceOrArray([]string{"expected: <empty " + m.typeName + ">"}, subject, opt.WithName(opts, "got     :")...)
+
+	case m.typeName == "string":
+		return []string{
+			"expected: <empty string>",
+			"got     : " + report.Value(subject, opts...),
+		}
+
+	default:
+		return []string{
+			"expected: <empty " + m.typeName + ">",
+			"got     : " + m.method + "() == " + m.len,
+		}
+	}
+}
+
+// negatedFailureReport generates a failure report for the case where
+// the matcher was used in a negated context (i.e., Expect(...).ShouldNot(...))
+func (m *Matcher) negatedFailureReport() []string {
+	if m.typeName == "string" || m.typeName == "array" {
+		return []string{
+			"expected: <not empty>",
 		}
 	}
 
-	switch m._type {
-	case "slice":
+	expected := "<not empty>"
+	if m.NilIsEmpty {
+		expected = "<not empty or nil>"
+	}
+	if m.customMethod {
+		expected += " (using " + m.method + "() > 0)"
+	}
+
+	switch {
+	case m.isNil:
 		return []string{
-			"expected: <empty slice>",
-			"got     : len() == " + m.len,
+			"expected: " + expected,
+			"got     : " + report.Nil,
 		}
-	case "string":
+
+	case m.customMethod && m.hasLength:
 		return []string{
-			"expected: <empty string>",
-			"got     : " + opt.ValueAsString(subject, opts...),
+			"expected: " + expected + " (using " + m.method + "() > 0)",
+			"got     : " + m.method + "() == " + m.len,
 		}
+
+	case m.NilIsEmpty:
+		return []string{
+			"expected: " + expected,
+			"got     : <empty>",
+		}
+
 	default:
 		return []string{
-			"expected: <empty " + m._type + ">",
-			"got     : " + m.method + "() == " + m.len,
+			"expected: " + expected,
 		}
 	}
 }
@@ -117,12 +177,13 @@ func (m *Matcher) OnTestFailure(subject any, opts ...any) []string {
 // len() function
 func (m *Matcher) tryLen(v any) {
 	setResult := func(isNil, isEmpty bool, slen, typ string) {
+		m.isValid = true
 		m.isNil = isNil
 		m.isEmpty = isEmpty
 		m.hasLength = true
 		m.len = slen
 		m.method = "len"
-		m._type = typ
+		m.typeName = typ
 	}
 
 	switch got := v.(type) {
@@ -136,18 +197,19 @@ func (m *Matcher) tryLen(v any) {
 	}
 
 	// not a string and not nil so we need to determine whether the value
-	// is supported by len()
-
+	// is supported by len(), for which we need the type and value reflections
 	typ := reflect.TypeOf(v)
 	val := reflect.ValueOf(v)
+
+	// before calling len(), check for nil slices, maps, and channels
 	kind := val.Kind()
 	if (kind == reflect.Slice || kind == reflect.Map || kind == reflect.Chan) && val.IsNil() {
-		setResult(!m.TreatNilAsEmpty, true, "nil "+kind.String(), typ.Kind().String())
+		setResult(true, true, "nil "+kind.String(), typ.Kind().String())
 		return
 	}
 
 	var n int
-	switch typ.Kind() { //nolint: exhaustive // dealing only with types that support len()
+	switch typ.Kind() { //nolint: exhaustive // only dealing with types that support len()
 	case reflect.Array:
 		n = typ.Len()
 	case reflect.Chan, reflect.Map, reflect.Slice:
@@ -162,24 +224,55 @@ func (m *Matcher) tryLen(v any) {
 // tryMethods attempts to determine the length of the subject using
 // Count(), Len(), or Length() methods, if they are implemented
 func tryMethods[T int | uint | int64 | uint64](m *Matcher, v any) {
-	typ := fmt.Sprintf("%T", v)
+	supports := func(method string) {
+		m.isValid = true
+		m.method = method
+		m.customMethod = true
+		m.typeName = fmt.Sprintf("%T", v)
 
-	setResult := func(l T, method string) {
+		// check for nil pointer receiver
+		if val := reflect.ValueOf(v); val.Kind() == reflect.Pointer {
+			m.isNil = val.IsNil()
+		}
+	}
+
+	setLength := func(l T, method string) {
 		m.hasLength = true
 		m.len = fmt.Sprintf("%d", l)
 		m.isEmpty = l == 0
 		m.method = method
-		m._type = typ
 	}
 
+	type implementsCount interface{ Count() T }
+	type implementsLen interface{ Len() T }
+	type implementsLength interface{ Length() T }
+
+	switch v.(type) {
+	case implementsCount:
+		supports("Count")
+	case implementsLen:
+		supports("Len")
+	case implementsLength:
+		supports("Length")
+	default:
+		// type does not implement any supported method
+		return
+	}
+
+	if m.isNil {
+		// nil receiver; length cannot be determined
+		return
+	}
+
+	// for a non-nil receiver, call whichever supported method is available
 	switch v := v.(type) {
-	case interface{ Count() T }:
-		setResult(v.Count(), "Count")
+	case implementsCount:
+		setLength(v.Count(), "Count")
 
-	case interface{ Len() T }:
-		setResult(v.Len(), "Len")
+	case implementsLen:
+		setLength(v.Len(), "Len")
 
-	case interface{ Length() T }:
-		setResult(v.Length(), "Length")
+	case implementsLength:
+		setLength(v.Length(), "Length")
 	}
 }

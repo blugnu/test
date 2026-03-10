@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 type ValueMatcher[K comparable, V any] struct {
@@ -42,7 +43,7 @@ func (km ValueMatcher[K, V]) OnTestFailure(ctx context.Context, opts ...any) []s
 	}
 	switch opt.IsSet(opts, opt.ToNotMatch(true)) {
 	case true:
-		result = append(result, fmt.Sprintf("  key was not expected to have value: %v", opt.ValueAsString(km.Expected, opts...)))
+		result = append(result, fmt.Sprintf("  key was not expected to have value: %v", report.Value(km.Expected, opts...)))
 	default:
 		gotType := fmt.Sprintf("%T", got)
 		expType := fmt.Sprintf("%T", km.Expected)
@@ -53,8 +54,8 @@ func (km ValueMatcher[K, V]) OnTestFailure(ctx context.Context, opts ...any) []s
 		}
 
 		result = append(result,
-			fmt.Sprintf("  expected: %v", opt.ValueAsString(km.Expected, opts...)),
-			fmt.Sprintf("  got     : %v", opt.ValueAsString(got, opts...)),
+			fmt.Sprintf("  expected: %v", report.Value(km.Expected, opts...)),
+			fmt.Sprintf("  got     : %v", report.Value(got, opts...)),
 		)
 	}
 	return result

@@ -34,8 +34,7 @@ func TestEqualMap(t *testing.T) {
 			Assert: func(result *R) {
 				result.Expect(
 					"expected: <empty map>",
-					"got:",
-					`  "a" => 1`,
+					`got: ( "a" => 1`,
 				)
 			},
 		},
@@ -47,8 +46,7 @@ func TestEqualMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected map:",
-					`  "a" => 1`,
+					`expected map[string]int: ( "a" => 1`,
 					"got: <empty map>",
 				)
 			},
@@ -61,10 +59,8 @@ func TestEqualMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected map:",
-					`  "a" => 10`,
-					"got:",
-					`  "a" => 1`,
+					`expected map[string]int: ( "a" => 10`,
+					`got: ( "a" => 1`,
 				)
 			},
 		},
@@ -83,8 +79,7 @@ func TestEqualMap(t *testing.T) {
 			},
 			Assert: func(result *R) {
 				result.Expect(
-					"expected: map not equal to:",
-					`  "a" => 1`,
+					`expected map[string]int not equal to: ( "a" => 1`,
 				)
 			},
 		},

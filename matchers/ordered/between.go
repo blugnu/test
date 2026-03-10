@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
 )
 
@@ -80,6 +81,6 @@ func (m *IsBetween[T]) OnTestFailure(got T, opts ...any) []string {
 
 	return []string{
 		"expected: " + cond,
-		"got     : " + opt.ValueAsString(got, opts...),
+		"got     : " + report.Value(got, opts...),
 	}
 }

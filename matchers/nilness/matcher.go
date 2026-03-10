@@ -2,9 +2,9 @@ package nilness
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 	"github.com/blugnu/test/test"
 )
 
@@ -61,23 +61,27 @@ func (m Matcher) Match(subject any, opts ...any) bool {
 }
 
 func (m Matcher) OnTestFailure(subject any, opts ...any) string {
-	expect := "expected nil"
+	// if the test failed with ToNotMatch, the report is simple
 	if opt.IsSet(opts, opt.ToNotMatch(true)) {
-		expect = "expected not nil"
+		return "expected not nil"
 	}
+
+	expect := "expected nil"
 
 	switch got := subject.(type) {
 	case error:
 		return fmt.Sprintf("%s, got error: %v", expect, got)
 
 	default:
-		if reflect.ValueOf(got).Kind() == reflect.Pointer {
-			v := reflect.Indirect(reflect.ValueOf(got))
-			if v.Kind() == reflect.String {
-				return fmt.Sprintf("%s, got &(%s)", expect, opt.ValueAsString(v.String(), opts...))
-			}
-			return fmt.Sprintf("%s, got &(%#v)", expect, v)
-		}
-		return fmt.Sprintf("%s, got %s", expect, opt.ValueAsString(got, append(opts, opt.AsDeclaration(true))...))
+		got = report.Value(got, opts...)
+		// if reflect.ValueOf(got).Kind() == reflect.Pointer {
+		// 	v := reflect.Indirect(reflect.ValueOf(got))
+		// 	if v.Kind() == reflect.String {
+		// 		return fmt.Sprintf("%s, got &(%s)", expect, report.ValueAsString(v.String(), opts...))
+		// 	}
+		// 	return fmt.Sprintf("%s, got &(%#v)", expect, v)
+		// }
+		// return fmt.Sprintf("%s, got %s", expect, report.ValueAsString(got, append(opts, opt.ValueAsDeclaration)...))
+		return fmt.Sprintf("%s, got %s", expect, got)
 	}
 }

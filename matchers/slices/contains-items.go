@@ -1,10 +1,10 @@
-package slices //nolint:dupl // incorrectly flagged as a duplicate of containsSlice.go; contiguous vs non-contiguous items are handled differently in each case
+package slices
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 // ContainsItemsMatcher is a matcher for []T that will match the []T
@@ -29,16 +29,25 @@ func (m ContainsItemsMatcher[T]) Match(got []T, opts ...any) bool {
 		cmp = fn
 	}
 
+	if opt.IsSet(opts, opt.AnyItem) {
+		return slice[T](got).containsAny(m.Expected, cmp)
+	}
+
 	return slice[T](got).containsItems(m.Expected, cmp)
 }
 
 func (m ContainsItemsMatcher[T]) OnTestFailure(got []T, opts ...any) []string {
-	result := make([]string, 0, 2+len(got)+len(m.Expected))
-	cond := "containing items"
-	if opt.IsSet(opts, opt.ToNotMatch(true)) {
-		cond = "not containing items"
+	set := "items"
+	if opt.IsSet(opts, opt.AnyItem) {
+		set = "any of"
 	}
 
-	result = slice[T](m.Expected).appendToTestReport(result, fmt.Sprintf("expected: %T %s:", got, cond), opts...)
-	return slice[T](got).appendToTestReport(result, "got:", opts...)
+	result := make([]string, 0, 2+len(got)+len(m.Expected))
+	cond := "containing " + set
+	if opt.IsSet(opts, opt.ToNotMatch(true)) {
+		cond = "not containing " + set
+	}
+
+	result = report.AppendSlice(result, m.Expected, opt.WithNamef(opts, "expected %T %s:", got, cond)...)
+	return report.AppendSlice(result, got, opt.Force(opts, opt.Name("got:"))...)
 }

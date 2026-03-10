@@ -2,6 +2,7 @@ package maps
 
 import (
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 type EqualMatcher[K comparable, V any] struct {
@@ -25,15 +26,15 @@ func (m EqualMatcher[K, V]) OnTestFailure(got map[K]V, opts ...any) []string {
 		result = append(result, "unexpected: <empty map>")
 
 	case len(m.Expected) == 0:
-		result = AppendToReport(result, "expected:", m.Expected, opts...)
-		result = AppendToReport(result, "got:", got, opts...)
+		result = report.AppendMap(result, m.Expected, opt.WithName(opts, "expected:")...)
+		result = report.AppendMap(result, got, opt.Force(opts, opt.Name("got:"))...)
 
 	case inv:
-		result = AppendToReport(result, "expected: map not equal to:", m.Expected, opts...)
+		result = report.AppendMap(result, m.Expected, opt.WithNamef(opts, "expected %T not equal to:", m.Expected)...)
 
 	default:
-		result = AppendToReport(result, "expected map:", m.Expected, opts...)
-		result = AppendToReport(result, "got:", got, opts...)
+		result = report.AppendMap(result, m.Expected, opt.WithNamef(opts, "expected %T:", m.Expected)...)
+		result = report.AppendMap(result, got, opt.Force(opts, opt.Name("got:"))...)
 	}
 	return result
 }

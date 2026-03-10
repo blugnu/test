@@ -14,10 +14,7 @@ type EqualMatcher[T ~byte] struct {
 }
 
 func (bm *EqualMatcher[T]) getDiffs(want, got []T) []int {
-	rlen := len(want)
-	if len(got) < rlen {
-		rlen = len(got)
-	}
+	rlen := min(len(want), len(got))
 	result := make([]int, 0, rlen+1)
 
 	for iw, want := range want {

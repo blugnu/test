@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/blugnu/test/opt"
+	"github.com/blugnu/test/report"
 )
 
 type ContainsMatch struct {
@@ -11,7 +12,7 @@ type ContainsMatch struct {
 }
 
 func (m ContainsMatch) Match(got string, opts ...any) bool {
-	if opt.IsSet(opts, opt.CaseSensitive(false)) {
+	if opt.IsSet(opts, opt.CaseInsensitive) {
 		return strings.Contains(strings.ToLower(got), strings.ToLower(m.Expected))
 	}
 
@@ -21,19 +22,19 @@ func (m ContainsMatch) Match(got string, opts ...any) bool {
 func (m ContainsMatch) OnTestFailure(got string, opts ...any) []string {
 	if opt.IsSet(opts, opt.ToNotMatch(true)) {
 		offset := strings.Index(got, m.Expected)
-		if !opt.IsSet(opts, opt.QuotedStrings(false)) {
+		if !opt.IsSet(opts, opt.UnquotedStrings) {
 			offset += 1
 		}
 		pad := strings.Repeat(" ", offset)
 
 		return []string{
-			"expected: string not containing: " + opt.ValueAsString(m.Expected, opts...),
-			"got     : " + opt.ValueAsString(got, opts...),
+			"expected: string not containing: " + report.Value(m.Expected, opts...),
+			"got     : " + report.Value(got, opts...),
 			"          " + pad + strings.Repeat("^", len(m.Expected)),
 		}
 	}
 	return []string{
-		"expected: string containing: " + opt.ValueAsString(m.Expected, opts...),
-		"got     : " + opt.ValueAsString(got, opts...),
+		"expected: string containing: " + report.Value(m.Expected, opts...),
+		"got     : " + report.Value(got, opts...),
 	}
 }
