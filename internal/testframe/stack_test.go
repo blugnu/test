@@ -188,3 +188,46 @@ func TestPush(t *testing.T) {
 		t.Errorf("expected 1 stack, got %d", len(stacks.frames))
 	}
 }
+
+type mockT struct {
+	cleanupWasCalled bool
+}
+
+func (m *mockT) Cleanup(f func()) {
+	m.cleanupWasCalled = true
+	f()
+}
+
+func TestPushWithCleanup(t *testing.T) {
+	og := stacks.frames
+	defer func() {
+		stacks.frames = og
+	}()
+
+	t.Run("cleanup called", func(t *testing.T) {
+		mock := &mockT{}
+
+		// ensure we start with no stacks
+		stacks.frames = map[uintptr][]testframe{}
+
+		PushWithCleanup(mock)
+
+		if !mock.cleanupWasCalled {
+			t.Errorf("expected cleanup to be called")
+		}
+	})
+
+	t.Run("called with non-cleanup type", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Error("expected panic, got nil")
+			} else if err, ok := r.(error); !ok || !errors.Is(err, ErrNoCleanupFunction) {
+				t.Errorf("expected panic with ErrNoCleanupFunction, got: %v", r)
+			}
+		}()
+
+		// ensure we start with no stacks
+		PushWithCleanup(42)
+	})
+}

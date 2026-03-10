@@ -125,3 +125,18 @@ func Push(t any) {
 	stk = append(stk, testframe{T: t})
 	stacks.frames[id] = stk
 }
+
+// PushWithCleanup adds a new test frame to the current goroutine's stack
+// and registers a cleanup function to remove it when the test frame completes.
+//
+// The function is safe to call concurrently and will not modify the stack
+// of other goroutines.
+func PushWithCleanup(t any) {
+	c, ok := t.(interface{ Cleanup(func()) })
+	if !ok {
+		panic(ErrNoCleanupFunction)
+	}
+
+	Push(t)
+	c.Cleanup(Pop)
+}

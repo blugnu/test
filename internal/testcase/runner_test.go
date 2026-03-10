@@ -6,6 +6,7 @@ import (
 
 	. "github.com/blugnu/test"
 	"github.com/blugnu/test/internal/testcase"
+	"github.com/blugnu/test/test"
 )
 
 func TestNewRunner(t *testing.T) {
@@ -133,6 +134,6 @@ func TestRunner_Run(t *testing.T) {
 			Expect(executed).To(Equal(2))
 		})
 
-		result.Expect(TestPassed)
+		result.Expect(test.Passed)
 	}))
 }
