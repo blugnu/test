@@ -3,5 +3,5 @@ package opt
 import "errors"
 
 var (
-	ErrOptionInvalid = errors.New("invalid test")
+	ErrForcePositionInvalid = errors.New("invalid force position option")
 )
