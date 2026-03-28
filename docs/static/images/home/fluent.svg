@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="Fluent assertions illustration">
+  <defs>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8f5e9"/>
+      <stop offset="100%" stop-color="#c8e6c9"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#g2)"/>
+  <rect x="96" y="92" width="448" height="236" rx="22" fill="#ffffff" opacity="0.94"/>
+  <path d="M148 136H282" fill="none" stroke="#2e7d32" stroke-width="18" stroke-linecap="round"/>
+  <path d="M322 136H490C499 136 506 143 506 152V157C506 166 499 173 490 173H422" fill="none" stroke="#2e7d32" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M382 173H150C141 173 134 180 134 189V194C134 203 141 210 150 210H228" fill="none" stroke="#2e7d32" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M268 210H490C499 210 506 217 506 226V231C506 240 499 247 490 247H408" fill="none" stroke="#2e7d32" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M368 247H150C141 247 134 254 134 263V268C134 277 141 284 150 284H194" fill="none" stroke="#2e7d32" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="302" cy="136" r="9" fill="#81c784"/>
+  <circle cx="402" cy="173" r="9" fill="#81c784"/>
+  <circle cx="248" cy="210" r="9" fill="#81c784"/>
+  <circle cx="388" cy="247" r="9" fill="#81c784"/>
+  <circle cx="214" cy="284" r="9" fill="#81c784"/>
+</svg>

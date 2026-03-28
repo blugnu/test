@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="Signal cleaned from noise illustration">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e0f7fa"/>
+      <stop offset="100%" stop-color="#b2ebf2"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#g1)"/>
+  <rect x="96" y="92" width="448" height="236" rx="22" fill="#ffffff" opacity="0.94"/>
+
+  <path d="M126 210L138 182L150 230L162 168L174 246L186 176L198 236L210 186L222 226L234 170L246 242L254 210" fill="none" stroke="#002a7a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.58"/>
+
+  <path d="M254 210C270 174 286 174 302 210C318 246 334 246 350 210C366 174 382 174 398 210C414 246 430 246 446 210C462 174 478 174 494 210" fill="none" stroke="#00bcd4" stroke-width="10" stroke-linecap="round"/>
+
+  <rect x="249" y="118" width="10" height="184" rx="5" fill="#26c6da"/>
+</svg>

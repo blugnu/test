@@ -22,3 +22,8 @@ go.work
 
 # vscode settings
 .vscode
+
+# generated docs site
+docs/node_modules
+docs/public
+docs/resources
