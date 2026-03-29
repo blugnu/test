@@ -444,8 +444,8 @@ func (e *expectation[T]) IsNot(expected T, opts ...any) {
 		experr, _ := any(expected).(error)
 		goterr, _ := any(e.subject).(error)
 		if experr != nil && goterr != nil {
-			if _, ok := opt.Get[opt.FailureReport](opts); !ok {
-				opts = append(opts, opt.FailureReport(func(...any) []string {
+			if _, ok := opt.Get[opt.FailReporter](opts); !ok {
+				opts = append(opts, opt.FailReporter(func(...any) []string {
 					return []string{
 						fmt.Sprintf("expected error that is not: %v", experr),
 						fmt.Sprintf("got                     : %v", goterr),
