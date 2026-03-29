@@ -336,7 +336,9 @@ func TestHelper(f func()) R {
 
 				buf := make([]byte, bufsize)
 				n := runtime.Stack(buf, false)
-				stack = buf[0 : n-1]
+				if n > 0 {
+					stack = buf[0 : n-1]
+				}
 			}
 		}()
 
@@ -425,8 +427,10 @@ func runInternal(t *testing.T, f func(*testing.T)) ([]string, []string, test.Out
 		return false
 	}
 
+	// Process in reverse to safely remove elements
 	for i := len(stdout) - 1; i >= 0; i-- {
-		if s := trim(stdout[i]); skip(s) {
+		trimmed := trim(stdout[i])
+		if skip(trimmed) {
 			stdout = append(stdout[:i], stdout[i+1:]...)
 		}
 	}

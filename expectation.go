@@ -292,7 +292,7 @@ func (e *expectation[T]) getTestFailureReporter(opts ...any) any {
 			interface{ OnTestFailure(T, ...any) []string }:
 			return opt
 		default:
-			continue
+			// Continue checking other options
 		}
 	}
 	return nil
