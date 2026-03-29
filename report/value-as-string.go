@@ -266,6 +266,8 @@ func structAsString(v any, typeName string, opts ...any) string {
 		fieldName := val.Type().Field(i).Name
 
 		field := addressable.Field(i)
+		// Using unsafe is necessary to read unexported fields for proper struct formatting
+		// This is safe because we're only reading the value for display purposes
 		field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem() //nolint: gosec // unsafe is required to read unexported fields
 
 		value := Value(field.Interface(), fieldOpts...)

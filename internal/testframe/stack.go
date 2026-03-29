@@ -17,12 +17,18 @@ var stack = runtime.Stack
 //
 // If the stack trace does not match this format, it will panic with ErrUnexpectedStackFormat.
 func goid() uintptr {
-	const maxFrames = 64
+	// Use a larger buffer to ensure we capture the full goroutine ID line
+	const bufSize = 128
 
-	buf := make([]byte, maxFrames)
+	buf := make([]byte, bufSize)
 	n := stack(buf, false)
 	if n <= 0 {
 		panic(ErrNoStack)
+	}
+
+	// Ensure we don't exceed buffer bounds
+	if n > bufSize {
+		n = bufSize
 	}
 
 	var id uintptr

@@ -15,15 +15,21 @@ type DeepMatcher[T any] struct {
 }
 
 func (m DeepMatcher[T]) valueAsString(v any, opts ...any) string {
-	switch {
-	case v == nil:
+	if v == nil {
 		return "nil"
+	}
 
-	case reflect.TypeOf(v).Kind() == reflect.Struct:
+	// Check the kind safely
+	rt := reflect.TypeOf(v)
+	if rt == nil {
+		return "nil"
+	}
+
+	if rt.Kind() == reflect.Struct {
 		// FUTURE: improve the formatting of structs
 		// to be more readable...
 		//
-		// encoding/json MarshalIndent is nice, but limite to exported fields
+		// encoding/json MarshalIndent is nice, but limited to exported fields
 		// and quotes field names (yuck)
 		//
 		// magicjson is better but not in the standard library and still suffers
@@ -39,10 +45,9 @@ func (m DeepMatcher[T]) valueAsString(v any, opts ...any) string {
 		//      age : 42
 		//    }
 		return fmt.Sprintf("%#v", v)
-
-	default:
-		return report.Value(v, opts...)
 	}
+
+	return report.Value(v, opts...)
 }
 
 func (m DeepMatcher[T]) Match(got T, opts ...any) bool {
