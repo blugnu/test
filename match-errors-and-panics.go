@@ -125,6 +125,7 @@ func (e expectation[T]) DidOccur(opts ...any) {
 		if v != nil {
 			return
 		}
+		e.err("expected error, got nil")
 
 	case nil:
 		e.err("expected error, got nil")

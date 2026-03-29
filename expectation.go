@@ -147,8 +147,10 @@ func (e *expectation[T]) err(msg any) {
 
 		errorFn("\n" + strings.Join(rpt, "\n"))
 
-		// errMsg returns a string or []string, so we can safely use a type
-		// switch here to handle both cases without a default case
+	default:
+		// errMsg returns a string or []string, so this should never be reached
+		// but we handle it defensively
+		errorFn(fmt.Sprintf("unexpected message type: %T", msg))
 	}
 }
 
