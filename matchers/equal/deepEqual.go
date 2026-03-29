@@ -15,11 +15,11 @@ type DeepMatcher[T any] struct {
 }
 
 func (m DeepMatcher[T]) valueAsString(v any, opts ...any) string {
-	switch {
-	case v == nil:
+	if v == nil {
 		return "nil"
+	}
 
-	case reflect.TypeOf(v).Kind() == reflect.Struct:
+	if reflect.TypeOf(v).Kind() == reflect.Struct {
 		// FUTURE: improve the formatting of structs
 		// to be more readable...
 		//
@@ -39,10 +39,9 @@ func (m DeepMatcher[T]) valueAsString(v any, opts ...any) string {
 		//      age : 42
 		//    }
 		return fmt.Sprintf("%#v", v)
-
-	default:
-		return report.Value(v, opts...)
 	}
+
+	return report.Value(v, opts...)
 }
 
 func (m DeepMatcher[T]) Match(got T, opts ...any) bool {
