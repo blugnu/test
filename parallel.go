@@ -36,8 +36,8 @@ func IsParallel() bool {
 // a nil argument; in both cases the test will be failed as invalid.
 func Parallel(t TestingT) {
 	// mark t as a helper if possible
-	if t, ok := testframe.Peek[TestingT](); ok {
-		t.Helper()
+	if currentT, ok := testframe.Peek[TestingT](); ok {
+		currentT.Helper()
 	}
 
 	switch {

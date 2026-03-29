@@ -157,19 +157,19 @@ func (e *expectation[T]) errMsg(msg any) any {
 
 	if msg == nil {
 		return failed
-	} else if s, ok := msg.(string); ok && len(s) == 0 {
-		return failed
-	} else if s, ok := msg.([]string); ok && len(s) == 0 {
-		return failed
 	}
-
-	switch msg := msg.(type) {
+	
+	switch v := msg.(type) {
 	case string:
-		return msg
-
+		if len(v) == 0 {
+			return failed
+		}
+		return v
 	case []string:
-		return msg
-
+		if len(v) == 0 {
+			return failed
+		}
+		return v
 	default:
 		return fmt.Sprintf("%s: %v", failed, msg)
 	}
@@ -193,9 +193,23 @@ func (e *expectation[T]) defaultFailureReport(reporter any, matcher any, opts ..
 		gf = fmt.Sprintf("%v", e.subject)
 	}
 
+	// Check if exp is nil using reflection to handle interface types properly
+	isNil := func(x any) bool {
+		if x == nil {
+			return true
+		}
+		v := reflect.ValueOf(x)
+		switch v.Kind() {
+		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+			return v.IsNil()
+		default:
+			return false
+		}
+	}
+
 	switch {
 	// no expected value, just report the got value
-	case exp == nil:
+	case isNil(exp):
 		e.err("got " + gf)
 
 	// expected and got values are small, use a one line report
