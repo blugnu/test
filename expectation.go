@@ -179,7 +179,7 @@ func (e *expectation[T]) errMsg(msg any) any {
 // for the expectation. It is used when a matcher does not provide
 // a specific failure report and no failure reporting option is
 // present.
-func (e *expectation[T]) defaultFailureReport(reporter any, matcher any, opts ...any) {
+func (e *expectation[T]) defaultFailureReport(reporter any, matcher any, _ ...any) {
 	e.t.Helper()
 
 	exp := e.getExpected(matcher)
@@ -248,6 +248,7 @@ func (e *expectation[T]) fail(matcher any, opts ...any) {
 // is returned.  If the matcher implements an Expected() method, that
 // value is returned.  Otherwise, nil is returned.
 func (e *expectation[T]) getExpected(matcher any) any {
+	_ = e // Receiver is not used in this method, but kept for consistency
 	// check for an Expected field if the matcher is a struct or pointer
 	// to struct
 	// check for an Expected field if the matcher is a struct
