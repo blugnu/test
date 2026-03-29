@@ -40,12 +40,15 @@ func Parallel(t TestingT) {
 		t.Helper()
 	}
 
-	switch {
-	case t == nil:
+	// Check for nil first
+	if t == nil {
 		test.Invalid("Parallel() cannot be called with nil")
+		return // Early return to avoid using nil t
+	}
 
-	case testframe.IsParallel():
+	if testframe.IsParallel() {
 		test.Invalid("Parallel() must not be called from a parallel test")
+		return // Early return to avoid proceeding
 	}
 
 	With(t)
