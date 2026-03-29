@@ -88,7 +88,7 @@ func (tr flakyRunner) runTestWithRetries() (test.Outcome, uint, [][]string, time
 	}
 
 	retry := func() bool {
-		if tr.maxAttempts != 0 && attempt >= tr.maxAttempts {
+		if tr.maxAttempts > 0 && attempt >= tr.maxAttempts {
 			return false
 		}
 

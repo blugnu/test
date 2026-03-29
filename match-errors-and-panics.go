@@ -111,10 +111,16 @@ func (e expectation[T]) DidOccur(opts ...any) {
 		match := &panics.MatchRecovered{R: recover()}
 
 		if match.R != nil {
-			const bufsize = 65536
+			const bufsize = 4096 // Reduced from 65536 to avoid excessive memory allocation
 			stk := make([]byte, bufsize)
 			n := runtime.Stack(stk, false)
-			match.Stack = stk[:n-1]
+			// Ensure we don't slice beyond the buffer
+			if n > 0 {
+				if n > bufsize {
+					n = bufsize
+				}
+				match.Stack = stk[:n-1]
+			}
 		}
 
 		if !match.Match(v, opts...) {

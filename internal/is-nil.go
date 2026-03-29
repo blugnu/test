@@ -9,10 +9,11 @@ func IsNil(v any) bool {
 		return true
 	}
 
-	switch reflect.ValueOf(v).Kind() { //nolint:exhaustive // only concerned with nilable types
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() { //nolint:exhaustive // only concerned with nilable types
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		return reflect.ValueOf(v).IsNil()
+		return rv.IsNil()
+	default:
+		return false
 	}
-
-	return false
 }
