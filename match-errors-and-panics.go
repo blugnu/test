@@ -127,7 +127,12 @@ func (e expectation[T]) DidOccur(opts ...any) {
 		}
 
 	case nil:
-		e.err("expected error, got nil")
+		if e != nil {
+			e.err("expected error, got nil")
+		} else {
+			// This should not happen, but we need to handle it to avoid nil pointer dereference
+			panic("expectation is nil")
+		}
 
 	default:
 		test.Invalid("test.DidOccur: may only be used with Panic() or error values")

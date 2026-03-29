@@ -26,7 +26,11 @@ func goid() uintptr {
 	}
 
 	var id uintptr
-	if _, err := fmt.Sscanf(string(buf[:n]), "goroutine %d", &id); err != nil {
+	// Ensure we have a valid string to parse
+	str := string(buf[:n])
+	if _, err := fmt.Sscanf(str, "goroutine %d", &id); err != nil {
+		// Instead of panicking, we could return 0, but the function expects a valid goroutine ID
+		// Since this is a critical function, panicking is appropriate
 		panic(fmt.Errorf("%w: %w", ErrUnexpectedStackFormat, err))
 	}
 	return id

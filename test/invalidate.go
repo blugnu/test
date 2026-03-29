@@ -41,6 +41,10 @@ type runner interface {
 //
 // To draw attention to a non-fatal issue in a test, use the [Warning] function.
 func Error(err error, msg ...string) {
+	if err == nil {
+		// Handle nil error to avoid issues
+		err = fmt.Errorf("nil error")
+	}
 	if s := strings.Join(msg, "\n"); len(s) > 0 {
 		err = fmt.Errorf("%w\n%s", err, s)
 	}

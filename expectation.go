@@ -149,6 +149,10 @@ func (e *expectation[T]) err(msg any) {
 
 		// errMsg returns a string or []string, so we can safely use a type
 		// switch here to handle both cases without a default case
+		default:
+			// This should never happen because errMsg only returns string or []string
+			// But we include a default case to satisfy static analysis tools
+			errorFn(fmt.Sprintf("unexpected message type: %T", msg))
 	}
 }
 
