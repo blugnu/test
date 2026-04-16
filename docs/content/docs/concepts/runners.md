@@ -12,7 +12,21 @@ type Runnable interface {
 ```
 
 The `Run(r Runnable)` function executes a runner inside the current test frame. The
-framework provides three built-in runner types: `Test`, `FlakyTest`, and `Testcases`.
+framework provides several built-in runner types for structuring tests:
+
+- `Test`
+- `ParallelTest`
+- `FlakyTest`
+
+Runners are not limited to performing assertions; they can also be used for table-driven
+tests, testing test helpers, or any other test logic that benefits from being encapsulated
+in a subtest.
+
+Several built-in runners are provided for common table-driven testing patterns:
+
+- `Testcases`
+- `ParallelCases`
+- `HelperTests`
 
 ## Test
 
@@ -94,7 +108,7 @@ Setting either limit to `0` disables it. Setting both to `0` allows unlimited re
 
 ## Testcases
 
-`Testcases` is the table-driven test runner. It pairs a set of **test cases** with
+`Testcases` is a table-driven test runner. It pairs a set of **test cases** with
 a **test executor** function and runs each case as its own subtest.
 
 ```go
@@ -152,15 +166,24 @@ as the subtest name. Otherwise names are generated as `testcase-001`, `testcase-
 
 ### ParallelCases
 
-`ParallelCases` is identical to `Testcases` except that each case runs in parallel. It cannot
-be used from a test that is already parallel.
+`ParallelCases` is similar to `Testcases` and used in the same way, with each case running in
+parallel. It cannot be used from a test that is already parallel.
 
 ```go
 Run(ParallelCases(
-    ForEach(func(tc scenario) { /* … */ }),
+    ForEach(func(tc scenario) {
+        /* … */
+    }),
     Cases(scenarios),
 ))
 ```
+
+---
+
+### HelperTests
+
+`HelperTests` is a runner for testing helper functions. This is described in more detail
+in the [Testing Helpers](../advanced/testing-helpers.md) section.
 
 ---
 

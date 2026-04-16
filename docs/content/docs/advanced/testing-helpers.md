@@ -109,9 +109,7 @@ Suppose you have a helper that checks a string is a valid email address:
 ```go
 // checkEmail.go
 func CheckEmail(email string) {
-    if !strings.Contains(email, "@") {
-        Expect(email).Should(MatchRegEx(`^[^@]+@[^@]+\.[^@]+$`))
-    }
+    Expect(email).Should(MatchRegEx(`^[^@]+@[^@]+\.[^@]+$`))
 }
 ```
 

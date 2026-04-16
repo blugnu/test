@@ -223,232 +223,52 @@
 }
 
 /* Syntax token colors for Hugo/Chroma class-based highlighting */
-.td-home .highlight .chroma,
-.td-content .highlight .chroma {
+:is(.td-home, .td-content) .highlight .chroma {
   color: #1f2937;
+
+  .c, .c1, .cm, .ch, .cp, .cpf {
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .k, .kc, .kd, .kn, .kp, .kr, .kt {
+    color: #7c3aed;
+    font-weight: 600;
+  }
+
+  .s, .sa, .sb, .sc, .dl, .sd, .s1, .s2, .se, .sh, .si, .sr, .ss {
+    color: #0f766e;
+  }
+
+  .m, .mb, .mf, .mh, .mi, .il, .mo {
+    color: #0c4a6e;
+  }
+
+  .na, .nb, .bp, .nc, .nd, .ne, .nf, .nl, .nn, .nt, .nv, .vc, .vg, .vi {
+    color: #1d4ed8;
+  }
 }
 
-.td-home .highlight .chroma .c,
-.td-home .highlight .chroma .c1,
-.td-home .highlight .chroma .cm,
-.td-home .highlight .chroma .ch,
-.td-home .highlight .chroma .cp,
-.td-home .highlight .chroma .cpf,
-.td-content .highlight .chroma .c,
-.td-content .highlight .chroma .c1,
-.td-content .highlight .chroma .cm,
-.td-content .highlight .chroma .ch,
-.td-content .highlight .chroma .cp,
-.td-content .highlight .chroma .cpf {
-  color: #6b7280;
-  font-style: italic;
-}
-
-.td-home .highlight .chroma .k,
-.td-home .highlight .chroma .kc,
-.td-home .highlight .chroma .kd,
-.td-home .highlight .chroma .kn,
-.td-home .highlight .chroma .kp,
-.td-home .highlight .chroma .kr,
-.td-home .highlight .chroma .kt,
-.td-content .highlight .chroma .k,
-.td-content .highlight .chroma .kc,
-.td-content .highlight .chroma .kd,
-.td-content .highlight .chroma .kn,
-.td-content .highlight .chroma .kp,
-.td-content .highlight .chroma .kr,
-.td-content .highlight .chroma .kt {
-  color: #7c3aed;
-  font-weight: 600;
-}
-
-.td-home .highlight .chroma .s,
-.td-home .highlight .chroma .sa,
-.td-home .highlight .chroma .sb,
-.td-home .highlight .chroma .sc,
-.td-home .highlight .chroma .dl,
-.td-home .highlight .chroma .sd,
-.td-home .highlight .chroma .s1,
-.td-home .highlight .chroma .s2,
-.td-home .highlight .chroma .se,
-.td-home .highlight .chroma .sh,
-.td-home .highlight .chroma .si,
-.td-home .highlight .chroma .sr,
-.td-home .highlight .chroma .ss,
-.td-content .highlight .chroma .s,
-.td-content .highlight .chroma .sa,
-.td-content .highlight .chroma .sb,
-.td-content .highlight .chroma .sc,
-.td-content .highlight .chroma .dl,
-.td-content .highlight .chroma .sd,
-.td-content .highlight .chroma .s1,
-.td-content .highlight .chroma .s2,
-.td-content .highlight .chroma .se,
-.td-content .highlight .chroma .sh,
-.td-content .highlight .chroma .si,
-.td-content .highlight .chroma .sr,
-.td-content .highlight .chroma .ss {
-  color: #0f766e;
-}
-
-.td-home .highlight .chroma .m,
-.td-home .highlight .chroma .mb,
-.td-home .highlight .chroma .mf,
-.td-home .highlight .chroma .mh,
-.td-home .highlight .chroma .mi,
-.td-home .highlight .chroma .il,
-.td-home .highlight .chroma .mo,
-.td-content .highlight .chroma .m,
-.td-content .highlight .chroma .mb,
-.td-content .highlight .chroma .mf,
-.td-content .highlight .chroma .mh,
-.td-content .highlight .chroma .mi,
-.td-content .highlight .chroma .il,
-.td-content .highlight .chroma .mo {
-  color: #0c4a6e;
-}
-
-.td-home .highlight .chroma .na,
-.td-home .highlight .chroma .nb,
-.td-home .highlight .chroma .bp,
-.td-home .highlight .chroma .nc,
-.td-home .highlight .chroma .nd,
-.td-home .highlight .chroma .ne,
-.td-home .highlight .chroma .nf,
-.td-home .highlight .chroma .nl,
-.td-home .highlight .chroma .nn,
-.td-home .highlight .chroma .nt,
-.td-home .highlight .chroma .nv,
-.td-home .highlight .chroma .vc,
-.td-home .highlight .chroma .vg,
-.td-home .highlight .chroma .vi,
-.td-content .highlight .chroma .na,
-.td-content .highlight .chroma .nb,
-.td-content .highlight .chroma .bp,
-.td-content .highlight .chroma .nc,
-.td-content .highlight .chroma .nd,
-.td-content .highlight .chroma .ne,
-.td-content .highlight .chroma .nf,
-.td-content .highlight .chroma .nl,
-.td-content .highlight .chroma .nn,
-.td-content .highlight .chroma .nt,
-.td-content .highlight .chroma .nv,
-.td-content .highlight .chroma .vc,
-.td-content .highlight .chroma .vg,
-.td-content .highlight .chroma .vi {
-  color: #1d4ed8;
-}
-
-[data-bs-theme="dark"] .td-home .highlight .chroma,
-[data-bs-theme="dark"] .td-content .highlight .chroma {
+[data-bs-theme="dark"] :is(.td-home, .td-content) .highlight .chroma {
   color: #d6deeb;
-}
 
-[data-bs-theme="dark"] .td-home .highlight .chroma .c,
-[data-bs-theme="dark"] .td-home .highlight .chroma .c1,
-[data-bs-theme="dark"] .td-home .highlight .chroma .cm,
-[data-bs-theme="dark"] .td-home .highlight .chroma .ch,
-[data-bs-theme="dark"] .td-home .highlight .chroma .cp,
-[data-bs-theme="dark"] .td-home .highlight .chroma .cpf,
-[data-bs-theme="dark"] .td-content .highlight .chroma .c,
-[data-bs-theme="dark"] .td-content .highlight .chroma .c1,
-[data-bs-theme="dark"] .td-content .highlight .chroma .cm,
-[data-bs-theme="dark"] .td-content .highlight .chroma .ch,
-[data-bs-theme="dark"] .td-content .highlight .chroma .cp,
-[data-bs-theme="dark"] .td-content .highlight .chroma .cpf {
-  color: #8b9bb4;
-}
+  .c, .c1, .cm, .ch, .cp, .cpf {
+    color: #8b9bb4;
+  }
 
-[data-bs-theme="dark"] .td-home .highlight .chroma .k,
-[data-bs-theme="dark"] .td-home .highlight .chroma .kc,
-[data-bs-theme="dark"] .td-home .highlight .chroma .kd,
-[data-bs-theme="dark"] .td-home .highlight .chroma .kn,
-[data-bs-theme="dark"] .td-home .highlight .chroma .kp,
-[data-bs-theme="dark"] .td-home .highlight .chroma .kr,
-[data-bs-theme="dark"] .td-home .highlight .chroma .kt,
-[data-bs-theme="dark"] .td-content .highlight .chroma .k,
-[data-bs-theme="dark"] .td-content .highlight .chroma .kc,
-[data-bs-theme="dark"] .td-content .highlight .chroma .kd,
-[data-bs-theme="dark"] .td-content .highlight .chroma .kn,
-[data-bs-theme="dark"] .td-content .highlight .chroma .kp,
-[data-bs-theme="dark"] .td-content .highlight .chroma .kr,
-[data-bs-theme="dark"] .td-content .highlight .chroma .kt {
-  color: #c792ea;
-}
+  .k, .kc, .kd, .kn, .kp, .kr, .kt {
+    color: #c792ea;
+  }
 
-[data-bs-theme="dark"] .td-home .highlight .chroma .s,
-[data-bs-theme="dark"] .td-home .highlight .chroma .sa,
-[data-bs-theme="dark"] .td-home .highlight .chroma .sb,
-[data-bs-theme="dark"] .td-home .highlight .chroma .sc,
-[data-bs-theme="dark"] .td-home .highlight .chroma .dl,
-[data-bs-theme="dark"] .td-home .highlight .chroma .sd,
-[data-bs-theme="dark"] .td-home .highlight .chroma .s1,
-[data-bs-theme="dark"] .td-home .highlight .chroma .s2,
-[data-bs-theme="dark"] .td-home .highlight .chroma .se,
-[data-bs-theme="dark"] .td-home .highlight .chroma .sh,
-[data-bs-theme="dark"] .td-home .highlight .chroma .si,
-[data-bs-theme="dark"] .td-home .highlight .chroma .sr,
-[data-bs-theme="dark"] .td-home .highlight .chroma .ss,
-[data-bs-theme="dark"] .td-content .highlight .chroma .s,
-[data-bs-theme="dark"] .td-content .highlight .chroma .sa,
-[data-bs-theme="dark"] .td-content .highlight .chroma .sb,
-[data-bs-theme="dark"] .td-content .highlight .chroma .sc,
-[data-bs-theme="dark"] .td-content .highlight .chroma .dl,
-[data-bs-theme="dark"] .td-content .highlight .chroma .sd,
-[data-bs-theme="dark"] .td-content .highlight .chroma .s1,
-[data-bs-theme="dark"] .td-content .highlight .chroma .s2,
-[data-bs-theme="dark"] .td-content .highlight .chroma .se,
-[data-bs-theme="dark"] .td-content .highlight .chroma .sh,
-[data-bs-theme="dark"] .td-content .highlight .chroma .si,
-[data-bs-theme="dark"] .td-content .highlight .chroma .sr,
-[data-bs-theme="dark"] .td-content .highlight .chroma .ss {
-  color: #a5e844;
-}
+  .s, .sa, .sb, .sc, .dl, .sd, .s1, .s2, .se, .sh, .si, .sr, .ss {
+    color: #a5e844;
+  }
 
-[data-bs-theme="dark"] .td-home .highlight .chroma .m,
-[data-bs-theme="dark"] .td-home .highlight .chroma .mb,
-[data-bs-theme="dark"] .td-home .highlight .chroma .mf,
-[data-bs-theme="dark"] .td-home .highlight .chroma .mh,
-[data-bs-theme="dark"] .td-home .highlight .chroma .mi,
-[data-bs-theme="dark"] .td-home .highlight .chroma .il,
-[data-bs-theme="dark"] .td-home .highlight .chroma .mo,
-[data-bs-theme="dark"] .td-content .highlight .chroma .m,
-[data-bs-theme="dark"] .td-content .highlight .chroma .mb,
-[data-bs-theme="dark"] .td-content .highlight .chroma .mf,
-[data-bs-theme="dark"] .td-content .highlight .chroma .mh,
-[data-bs-theme="dark"] .td-content .highlight .chroma .mi,
-[data-bs-theme="dark"] .td-content .highlight .chroma .il,
-[data-bs-theme="dark"] .td-content .highlight .chroma .mo {
-  color: #f78c6c;
-}
+  .m, .mb, .mf, .mh, .mi, .il, .mo {
+    color: #f78c6c;
+  }
 
-[data-bs-theme="dark"] .td-home .highlight .chroma .na,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nb,
-[data-bs-theme="dark"] .td-home .highlight .chroma .bp,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nc,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nd,
-[data-bs-theme="dark"] .td-home .highlight .chroma .ne,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nf,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nl,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nn,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nt,
-[data-bs-theme="dark"] .td-home .highlight .chroma .nv,
-[data-bs-theme="dark"] .td-home .highlight .chroma .vc,
-[data-bs-theme="dark"] .td-home .highlight .chroma .vg,
-[data-bs-theme="dark"] .td-home .highlight .chroma .vi,
-[data-bs-theme="dark"] .td-content .highlight .chroma .na,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nb,
-[data-bs-theme="dark"] .td-content .highlight .chroma .bp,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nc,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nd,
-[data-bs-theme="dark"] .td-content .highlight .chroma .ne,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nf,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nl,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nn,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nt,
-[data-bs-theme="dark"] .td-content .highlight .chroma .nv,
-[data-bs-theme="dark"] .td-content .highlight .chroma .vc,
-[data-bs-theme="dark"] .td-content .highlight .chroma .vg,
-[data-bs-theme="dark"] .td-content .highlight .chroma .vi {
-  color: #82aaff;
+  .na, .nb, .bp, .nc, .nd, .ne, .nf, .nl, .nn, .nt, .nv, .vc, .vg, .vi {
+    color: #82aaff;
+  }
 }

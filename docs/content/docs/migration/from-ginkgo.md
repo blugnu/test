@@ -183,11 +183,10 @@ Once migrated, remove both dependencies:
 go mod tidy
 ```
 
-Also remove the `TestMain` bootstrap if it only exists to run Ginkgo:
+Also remove the Ginkgo test package bootstrap:
 
 ```go
-// remove this
-func TestMain(m *testing.M) {
+func TestSuite(t *testing.T) {
     RegisterFailHandler(Fail)
     RunSpecs(t, "My Suite")
 }

@@ -38,7 +38,7 @@ When you call `With(t)` at the start of a test, the current `*testing.T` is push
 the stack for that goroutine. Any call to the framework within that goroutine — regardless
 of call depth — can retrieve it with `T()`.
 
-```typescript
+```yaml
 Goroutine stack:
   TestThing → [t₁]
     Run(Test("sub")) → [t₁, t₂]   (t₂ added automatically)

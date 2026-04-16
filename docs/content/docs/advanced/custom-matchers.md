@@ -133,7 +133,7 @@ type httpStatusMatcher struct {
 
 // HaveStatus returns a matcher that checks an *http.Response has the given status code.
 func HaveStatus(code int) matcher.ForType[*http.Response] {
-    return &haveStatusMatcher{
+    return &httpStatusMatcher{
         Expected: code,
     }
 }

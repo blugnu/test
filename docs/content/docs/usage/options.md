@@ -69,6 +69,8 @@ For example, in a table-driven test:
     // vs
 
     Expect(value).To(Equal(expected), opt.IsRequired(tc.isRequired))
+```
+
 ---
 
 ## Matcher options

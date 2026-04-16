@@ -12,12 +12,54 @@
     return null;
   }
 
+  function isStorageAccessError(error) {
+    return (
+      error instanceof DOMException &&
+      (error.name === 'SecurityError' || error.name === 'QuotaExceededError')
+    );
+  }
+
+  function getRawStoredTheme() {
+    try {
+      return localStorage.getItem(themeKey);
+    } catch (error) {
+      if (!isStorageAccessError(error)) {
+        throw error;
+      }
+      return null;
+    }
+  }
+
   function getStoredTheme() {
-    return normalizeTheme(localStorage.getItem(themeKey));
+    try {
+      return normalizeTheme(getRawStoredTheme());
+    } catch (error) {
+      if (!isStorageAccessError(error)) {
+        throw error;
+      }
+      return null;
+    }
   }
 
   function setStoredTheme(theme) {
-    localStorage.setItem(themeKey, theme);
+    try {
+      localStorage.setItem(themeKey, theme);
+    } catch (error) {
+      if (!isStorageAccessError(error)) {
+        throw error;
+      }
+      // storage unavailable; theme will not persist
+    }
+  }
+
+  function clearStoredTheme() {
+    try {
+      localStorage.removeItem(themeKey);
+    } catch (error) {
+      if (!isStorageAccessError(error)) {
+        throw error;
+      }
+    }
   }
 
   function preferredTheme() {
@@ -75,13 +117,13 @@
   }
 
   function installThemeHandlers() {
-    const rawStored = localStorage.getItem(themeKey);
+    const rawStored = getRawStoredTheme();
     const normalized = normalizeTheme(rawStored);
 
     if (rawStored === 'system') {
       setStoredTheme('auto');
     } else if (rawStored && !normalized) {
-      localStorage.removeItem(themeKey);
+      clearStoredTheme();
     }
 
     const currentTheme = preferredTheme();

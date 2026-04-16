@@ -36,9 +36,10 @@ The test is attempted up to 3 times over 1 second. It passes as soon as any atte
 
 Limits are checked before each attempt:
 
-- If `MaxAttempts` is reached first, retrying stops.
-- If `MaxDuration` is reached first, retrying stops.
-- If both limits are zero, the test retries until it passes or the `go test` timeout is reached.
+- stops when `MaxAttempts` is reached;  
+- stops when `MaxDuration` is reached;
+- if both limits are zero, attempts will continue until either the test
+  passes or the `go test` timeout is reached.
 
 ---
 

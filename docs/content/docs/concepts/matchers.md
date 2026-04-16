@@ -245,10 +245,10 @@ Most matchers accept options forwarded from `To(matcher, opts...)` or `Should(ma
 
 | Option | Effect |
 | ------ | ------ |
-| `opt.OnFailure("message")` | fixed failure message |
-| `opt.FailureReport(func() []string)` | dynamic failure message |
+| `opt.OnFailure(string \| []string)` | fixed failure message |
+| `opt.OnFailure(func(...any) []string)` | dynamic failure message, accepting options |
+| `opt.QuotedStrings` | quote string values (default) |
 | `opt.UnquotedStrings` | do not quote string values in the failure report |
-| `opt.QuotedStrings(bool)` | explicit control over string quoting |
 
 ---
 

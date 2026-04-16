@@ -153,8 +153,8 @@ Map specific arguments to specific return values:
 
 ```go
 mock.Get.
-    WhenCalledWith("key-a").Return("value-a").
-    WhenCalledWith("key-b").Return("value-b")
+    WhenCalledWith("key-a").Returns("value-a").
+    WhenCalledWith("key-b").Returns("value-b")
 ```
 
 All configured mappings must be used by the end of the test, or `ExpectationsWereMet` will fail.
