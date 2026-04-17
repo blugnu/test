@@ -108,8 +108,12 @@
 
     if (activeThemeIcon) {
       const iconUse = activeThemeButton.querySelector('svg use');
-      if (iconUse) {
-        activeThemeIcon.setAttribute('href', iconUse.getAttribute('href'));
+      const href =
+        iconUse?.getAttribute('href') ||
+        iconUse?.getAttribute('xlink:href');
+
+      if (href) {
+        activeThemeIcon.setAttribute('href', href);
       }
     }
 

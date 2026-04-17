@@ -8,21 +8,40 @@ external service availability, or environmental conditions. `blugnu/test` provid
 to contain, manage, and report on such tests without either hiding them or causing persistent
 CI noise.
 
+A `FlakyTest` will attempt a specified test a maximum number of times in a specified period,
+with a delay between attempts.
+
+The test is retried until either an attempt passes, the maximum number of attempts is reached,
+or the maximum duration is exceeded.
+
+If an attempt passes then the test is considered to have passed; no further attempts are made
+and no failures are reported even for the failed attempts.
+
+If all attempts fail, the report includes the outcome of each attempt.
+
 ## Basic usage
 
 ```go
 func TestEventuallyConsistent(t *testing.T) {
     With(t)
 
-    Run(FlakyTest("cache is eventually populated", func() {
+    Run(FlakyTest("cache is eventually populated",
+      func() {
         entry, ok := cache.Get("mykey")
         Expect(ok).To(BeTrue())
         Expect(entry.Value).To(Equal("expected"))
-    }))
+      }, 
+      MaxAttempts(5),
+      MaxDuration(2*time.Second)),
+      WaitBetweenAttempts(100*time.Millisecond)
+    )
 }
 ```
 
-The test is attempted up to 3 times over 1 second. It passes as soon as any attempt succeeds.
+The options `MaxAttempts`, `MaxDuration`, and `WaitBetweenAttempts` are all optional
+and have sensible defaults if not provided (see below).
+
+Any combination of these options may be specified, or none at all.
 
 ---
 

@@ -148,8 +148,9 @@ You can also set a `Debug bool` or `debug bool` field on the test case struct to
 detect it automatically.
 
 {{< alert title="Warning" color="warning" >}}
-`Debug` cases always cause the test suite to fail, even when the case itself passes. This is intended to
-prevent accidental commits of tests with cases marked as debug.
+`Debug` cases always cause the test suite to fail, even when the case itself passes. This ensures that the
+presence of debug cases is clearly visible in test results, preventing accidental commits of tests with cases
+marked as debug.  The failure will be clearly identifiable as being due to the presence of debug cases.
 {{< /alert >}}
 
 ### Skip
@@ -161,7 +162,8 @@ Skip("edge case", divideCase{...})
 Or set a `Skip bool` / `skip bool` field on the struct.
 
 {{< alert title="Warning" color="warning" >}}
-`Skip` cases always cause the test suite to fail, even when the case itself passes.
+`Skip` cases always cause the test suite to fail; this is necessary in order to produce a warning identifying,
+the presence of skipped cases.  The test failure will be clearly marked as being due to the case being skipped.
 {{< /alert >}}
 
 ### ParallelCase

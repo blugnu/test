@@ -210,8 +210,8 @@ MustParse("bad")
 | ------- | ----------- |
 | `Panic()` | function panics, regardless of recovered value |
 | `Panic(value)` | function panics with a specific recovered value |
-| `Panic(nil)` | no panic occurred |
-| `NilPanic()` | function called `panic(nil)` |
+| `Panic(nil)` | code under test did not panic; used in table-driven tests where a `nil` recovery value in a test case indicates no panic |
+| `NilPanic()` | code under test called `panic(nil)` |
 
 Panic testing is covered in more detail in [Panic Testing]({{< relref "/docs/concepts/panic-testing" >}}).
 
@@ -245,7 +245,8 @@ Most matchers accept options forwarded from `To(matcher, opts...)` or `Should(ma
 
 | Option | Effect |
 | ------ | ------ |
-| `opt.OnFailure(string \| []string)` | fixed failure message |
+| `opt.OnFailure(string)` or `opt.OnFailure([]string)` | fixed failure message |
+| `opt.OnFailure([]string)` | multi-line, fixed failure message |
 | `opt.OnFailure(func(...any) []string)` | dynamic failure message, accepting options |
 | `opt.QuotedStrings` | quote string values (default) |
 | `opt.UnquotedStrings` | do not quote string values in the failure report |

@@ -70,11 +70,21 @@ These are used with the `Should` and `ShouldNot` assertion methods.
 Untyped-matchers are used when the types supported by a matcher cannot be expressed as generic constraints.
 
 For example, the `BeNil` matcher is untyped, since the variety of types that could be `nil` cannot be
-expressed as a generic constraint.
+expressed as a generic constraint.  The following will not compile (unless `value` is explicitly declared
+as type `any`):
 
 ```go
-Expect(err).Should(BeNil())
+Expect(value).To(BeNil())
 ```
+
+Whereas this will compile regardless of the declared type of `value`:
+
+```go
+Expect(value).Should(BeNil())
+```
+
+In either case, if the underlying concrete type of `value` is not nilable, the test will fail at
+runtime as an invalid test, rather than a failed assertion.
 
 > Note: `To` and `Should` are not interchangeable. A typed-matcher that implements `matcher.ForType[T]`
 > will not compile when used with `Should`, and an untyped-matcher that implements `matcher.ForAny` will

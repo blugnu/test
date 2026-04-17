@@ -103,13 +103,10 @@ Run(Testcases(
 
 ## Constraints
 
-| Situation | Constraint |
-| --------- | ---------- |
-| `Parallel(t)` inside a parallel test | Not allowed; will fail the test as invalid |
-| `ParallelTest` inside a parallel test | Not allowed; will fail the test as invalid |
-| `ParallelCases` inside a parallel test | Not allowed; will fail the test as invalid |
+`Parallel(t)`, `ParallelTest` and `ParallelCases` are all not allowed in the context of a test
+that is already parallel. Attempting to use them in such a context will fail the test as invalid.
 
-Use `IsParallel()` to conditionally adjust behaviour:
+Use `IsParallel()` to conditionally adjust behaviour, if required:
 
 ```go
 if !IsParallel() {

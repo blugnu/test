@@ -73,7 +73,7 @@ func (f *storeDouble) GetUser(id string) (*User, error) {
 }
 
 // SaveUser returns only the faked error; Result is ignored
-func (f *storeDouble) SaveUser(u *User) (error) {
+func (f *storeDouble) SaveUser(u *User) error {
     return f.SaveUserFn.Err
 }
 ```
@@ -115,17 +115,17 @@ user, err := service.GetUser("123")
 
 ```go
 type cacheDouble struct {
-    Set MockFn[struct{ Key, Value string }, any]
-    Get MockFn[string, string]
+    SetFn MockFn[struct{ Key, Value string }, any]
+    GetFn MockFn[string, string]
 }
 
 func (c *cacheDouble) Set(key, value string) error {
-    _, err := c.Set.CalledWith(struct{ Key, Value string }{key, value})
+    _, err := c.SetFn.CalledWith(struct{ Key, Value string }{key, value})
     return err
 }
 
 func (c *cacheDouble) Get(key string) (string, bool) {
-    result, err := c.Get.CalledWith(key)
+    result, err := c.GetFn.CalledWith(key)
     return result, err == nil
 }
 ```

@@ -70,34 +70,26 @@ func TestDoesNotPanic(t *testing.T) {
 
 ## Panic(nil) and NilPanic
 
-> `Panic(nil)` and `NilPanic()` are not interchangeable.  `Panic(nil)` will match when no panic
-> occurs, while `NilPanic()` will match when a panic occurs with a `nil` value.
-
 Before Go 1.21, `panic(nil)` was indistinguishable from no panic at all, since the recovered value
 would be `nil` in both cases. Starting with Go 1.21, an explicit call to `panic(nil)` is intercepted
 by the runtime which replaces the `nil` recovery value with a sentinel value (`NilPanic`).
 
 In `blugnu/test`, `Panic(nil)` is treated as an expectation that no panic occurs; in the unlikely
-that a test wishes to match an explicit `panic(nil)`, the `NilPanic()` matcher must be used.
+event that a test needs to verify that code under test makes a `panic(nil)` call, the `NilPanic()`
+matcher must be used.
 
 This allows table-driven tests to specify an expected panic recovery value of `nil` to indicate
-that no panic should occur, without needing to use an indicator field or other mechanism:
+that no panic is expected, without needing to use an indicator field or other mechanism:
 
 ```go
 defer Expect(Panic(tc.ExpectedPanic)).DidOccur()
 ```
 
-where `tc.ExpectedPanic` is `nil` for test cases where no panic is expected, and non-`nil` for
-test cases where a panic is expected.
+When `tc.ExpectedPanic` is `nil`, this test will pass when no panic occurs, otherwise it will pass
+when a panic occurs and the `tc.ExpectedPanic` value is recovered.
 
-```go
-func TestNilPanicValue(t *testing.T) {
-    With(t)
-
-    defer Expect(NilPanic()).DidOccur()
-    panic(nil)
-}
-```
+> `Panic(nil)` and `NilPanic()` are not interchangeable.  `Panic(nil)` will match when no panic
+> occurs, while `NilPanic()` will match when a panic occurs with a `nil` value.
 
 ## Important constraints
 

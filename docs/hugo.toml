@@ -35,4 +35,3 @@ title    = "blugnu/test"
 [module]
   [[module.imports]]
     path    = "github.com/google/docsy"
-    disable = false

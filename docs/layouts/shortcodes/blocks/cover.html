@@ -6,26 +6,17 @@
 {{ $logo_anchor := .Get "logo_anchor" | default "smart" -}}
 {{/* Height can be one of: auto, min, med, max, full. */ -}}
 {{ $height := .Get "height" | default "max" -}}
-
-<style>
-.td-cover-block[data-td-cover-image] {
-  background-image: var(--td-cover-image-small);
-}
-
-@media only screen and (min-width: 1200px) {
-  .td-cover-block[data-td-cover-image] {
-    background-image: var(--td-cover-image-big);
-  }
-}
-</style>
+{{ $promo_image_big := $promo_image -}}
+{{ $promo_image_small := $promo_image -}}
 
 {{ with $promo_image -}}
-  {{ $promo_image_big := . -}}
-  {{ $promo_image_small := . -}}
-  {{ if ne $promo_image.MediaType.SubType "svg" -}}
+  {{ if ne .MediaType.SubType "svg" -}}
     {{ $promo_image_big = .Fill (printf "1920x1080 %s" $image_anchor) -}}
     {{ $promo_image_small = .Fill (printf "960x540 %s" $image_anchor) -}}
   {{ end -}}
+{{ end -}}
+
+{{ with $promo_image -}}
 <link rel="preload" as="image" href="{{ $promo_image_small.RelPermalink }}" media="(max-width: 1200px)">
 <link rel="preload" as="image" href="{{ $promo_image_big.RelPermalink }}" media="(min-width: 1200px)">
 {{ end -}}
@@ -34,12 +25,6 @@
     {{ if not .Site.Params.ui.navbar_translucent_over_cover_disable }} js-td-cover
     {{- end }} td-overlay td-overlay--dark bg-{{ $col_id }}"
   {{- with $promo_image }}
-    {{ $promo_image_big := . }}
-    {{ $promo_image_small := . }}
-    {{ if ne $promo_image.MediaType.SubType "svg" -}}
-      {{ $promo_image_big = .Fill (printf "1920x1080 %s" $image_anchor) -}}
-      {{ $promo_image_small = .Fill (printf "960x540 %s" $image_anchor) -}}
-    {{ end -}}
     data-td-cover-image
     style="--td-cover-image-small: url('{{ $promo_image_small.RelPermalink }}'); --td-cover-image-big: url('{{ $promo_image_big.RelPermalink }}');"
   {{- end }} {{/**/ -}}

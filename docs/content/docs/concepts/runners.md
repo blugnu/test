@@ -155,7 +155,7 @@ func TestParse(t *testing.T) {
 | `Case[T]("name", tc)` | single named case |
 | `Cases[T]([]T{…})` | slice of cases; names are inferred from `Scenario`/`Name` field if present |
 | `Debug[T]("name", tc)` | mark this case as a debug case; only debug cases will run (test fails with a warning) |
-| `Skip[T]("name", tc)` | skip this case |
+| `Skip[T]("name", tc)` | skip this case (test fails with a warning) |
 | `ParallelCase[T]("name", tc)` | run this case in parallel |
 
 ### Automatic name inference

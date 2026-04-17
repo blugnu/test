@@ -120,23 +120,20 @@ The tests for this helper:
 func TestCheckEmail(t *testing.T) {
     With(t)
 
-    Run(HelperTests(
-        HelperScenario{
-            Scenario: "valid email passes",
+    Run(HelperTests([]HelperScenario{
+        {Scenario: "valid email passes",
             Act:    func() { CheckEmail("alice@example.com") },
             Assert: func(r R) { r.Expect(test.Passed) },
         },
-        HelperScenario{
-            Scenario: "missing @ fails",
+        {Scenario: "missing @ fails",
             Act:    func() { CheckEmail("notanemail") },
             Assert: func(r R) { r.Expect(test.Failed) },
         },
-        HelperScenario{
-            Scenario: "empty string fails",
+        {Scenario: "empty string fails",
             Act:    func() { CheckEmail("") },
             Assert: func(r R) { r.Expect(test.Failed) },
         },
-    ))
+    }...))
 }
 ```
 

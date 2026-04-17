@@ -69,15 +69,15 @@ Ginkgo's `Describe` / `Context` hierarchy maps to nested `Run(Test(...))` calls:
 
 ```go
 var _ = Describe("UserService", func() {
+
     Context("when creating a user", func() {
+
         It("returns the new user", func() {
-            user, err := svc.CreateUser(ctx, "alice")
-            Expect(err).NotTo(HaveOccurred())
-            Expect(user.Name).To(Equal("alice"))
+            // ...
         })
+
         It("returns an error for a duplicate", func() {
-            _, err := svc.CreateUser(ctx, "alice")
-            Expect(err).To(MatchError(ErrDuplicate))
+            // ...
         })
     })
 })
@@ -91,13 +91,11 @@ func TestUserService(t *testing.T) {
 
     Run(Test("creating a user", func() {
         Run(Test("returns the new user", func() {
-            user, err := svc.CreateUser(ctx, "alice")
-            Require(err).IsNil()
-            Expect(user.Name).To(Equal("alice"))
+            // ...
         }))
+
         Run(Test("returns an error for a duplicate", func() {
-            _, err := svc.CreateUser(ctx, "alice")
-            Expect(err).Is(ErrDuplicate)
+            // ...
         }))
     }))
 }
