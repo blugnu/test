@@ -32,9 +32,9 @@ func TestEventuallyConsistent(t *testing.T) {
         Expect(entry.Value).To(Equal("expected"))
       }, 
       MaxAttempts(5),
-      MaxDuration(2*time.Second)),
-      WaitBetweenAttempts(100*time.Millisecond)
-    )
+      MaxDuration(2*time.Second),
+      WaitBetweenAttempts(100*time.Millisecond),
+    ))
 }
 ```
 
