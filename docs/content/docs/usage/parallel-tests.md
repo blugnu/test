@@ -103,7 +103,7 @@ Run(Testcases(
 
 ## Constraints
 
-`Parallel(t)`, `ParallelTest` and `ParallelCases` are all not allowed in the context of a test
+`Parallel(t)`, `ParallelTest` and `ParallelCases` must not be used in the context of a test
 that is already parallel. Attempting to use them in such a context will fail the test as invalid.
 
 Use `IsParallel()` to conditionally adjust behaviour, if required:

@@ -160,32 +160,9 @@
   background-color: var(--bs-body-bg);
 }
 
-[data-bs-theme="dark"] .home-ladder-section {
-  background:
-    radial-gradient(circle at 0% 0%, var(--ladder-section-glow-start), transparent 45%),
-    radial-gradient(circle at 100% 100%, var(--ladder-section-glow-end), transparent 40%);
-}
-
 [data-bs-theme="dark"] .home-ladder-item {
   color: var(--bs-body-color);
-  background: var(--ladder-card-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: var(--ladder-card-shadow);
-}
-
-[data-bs-theme="dark"] .home-ladder-item::before {
-  background: linear-gradient(180deg, var(--ladder-rail-start) 0%, var(--ladder-rail-end) 100%);
-}
-
-[data-bs-theme="dark"] .home-ladder-item::after {
-  border-color: var(--ladder-dot-ring);
-  background: var(--ladder-dot-bg);
-  box-shadow: var(--ladder-dot-shadow);
-}
-
-[data-bs-theme="dark"] .home-ladder-image {
-  background: var(--ladder-image-bg);
-  border-color: var(--ladder-image-border);
 }
 
 @media (max-width: 991.98px) {
@@ -232,25 +209,10 @@
   padding: 0.2rem 0.45rem;
 }
 
-[data-bs-theme="dark"] .td-home .td-box--white .highlight .click-to-copy .td-click-to-copy,
-[data-bs-theme="dark"] .td-content .highlight .click-to-copy .td-click-to-copy {
-  background: var(--code-copy-bg);
-  color: var(--code-copy-color);
-  box-shadow: var(--code-copy-shadow);
-}
-
 .td-home .td-box--white .highlight .click-to-copy .td-click-to-copy:hover,
 .td-home .td-box--white .highlight .click-to-copy .td-click-to-copy:focus,
 .td-content .highlight .click-to-copy .td-click-to-copy:hover,
 .td-content .highlight .click-to-copy .td-click-to-copy:focus {
-  background: var(--code-copy-hover-bg);
-  color: var(--code-copy-hover-color);
-}
-
-[data-bs-theme="dark"] .td-home .td-box--white .highlight .click-to-copy .td-click-to-copy:hover,
-[data-bs-theme="dark"] .td-home .td-box--white .highlight .click-to-copy .td-click-to-copy:focus,
-[data-bs-theme="dark"] .td-content .highlight .click-to-copy .td-click-to-copy:hover,
-[data-bs-theme="dark"] .td-content .highlight .click-to-copy .td-click-to-copy:focus {
   background: var(--code-copy-hover-bg);
   color: var(--code-copy-hover-color);
 }

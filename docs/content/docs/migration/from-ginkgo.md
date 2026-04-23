@@ -73,7 +73,9 @@ var _ = Describe("UserService", func() {
     Context("when creating a user", func() {
 
         It("returns the new user", func() {
-            // ...
+            user, err := svc.CreateUser("alice")
+            Expect(err).NotTo(HaveOccurred())
+            Expect(user).NotTo(BeNil())
         })
 
         It("returns an error for a duplicate", func() {
@@ -89,14 +91,14 @@ var _ = Describe("UserService", func() {
 func TestUserService(t *testing.T) {
     With(t)
 
-    Run(Test("creating a user", func() {
-        Run(Test("returns the new user", func() {
-            // ...
-        }))
+    Run(Test("returns the new user", func() {
+        user, err := svc.CreateUser("alice")
+        Require(err).IsNil()
+        Expect(user).IsNotNil()
+    }))
 
-        Run(Test("returns an error for a duplicate", func() {
-            // ...
-        }))
+    Run(Test("returns an error for a duplicate", func() {
+        // ...
     }))
 }
 ```

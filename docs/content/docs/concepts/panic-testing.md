@@ -85,8 +85,8 @@ that no panic is expected, without needing to use an indicator field or other me
 defer Expect(Panic(tc.ExpectedPanic)).DidOccur()
 ```
 
-When `tc.ExpectedPanic` is `nil`, this test will pass when no panic occurs, otherwise it will pass
-when a panic occurs and the `tc.ExpectedPanic` value is recovered.
+When `tc.ExpectedPanic` is `nil`, this test will pass when no panic occurs; otherwise it will pass
+when a panic occurs and the recovered panic value matches `tc.ExpectedPanic`.
 
 > `Panic(nil)` and `NilPanic()` are not interchangeable.  `Panic(nil)` will match when no panic
 > occurs, while `NilPanic()` will match when a panic occurs with a `nil` value.

@@ -112,9 +112,7 @@
         iconUse?.getAttribute('href') ||
         iconUse?.getAttribute('xlink:href');
 
-      if (href) {
-        activeThemeIcon.setAttribute('href', href);
-      }
+      activeThemeIcon.setAttribute('href', href || '');
     }
 
     themeSwitcher.setAttribute('aria-label', 'Toggle theme (' + activeThemeButton.dataset.bsThemeValue + ')');

@@ -28,7 +28,7 @@ func TestOnFailure(t *testing.T) {
 		Expect(result).To(EqualSlice([]string{"custom message"}))
 	}))
 
-	Run(Test("multi-line string input", func() {
+	Run(Test("string input with newline", func() {
 		impl := opt.OnFailure("line1\nline2")
 
 		result := impl.OnTestFailure()
@@ -40,6 +40,13 @@ func TestOnFailure(t *testing.T) {
 
 		result := impl.OnTestFailure()
 		Expect(result).To(EqualSlice([]string{"line1", "line2"}))
+	}))
+
+	Run(Test("[]string input with newline", func() {
+		impl := opt.OnFailure([]string{"line1\nalso line1", "line2"})
+
+		result := impl.OnTestFailure()
+		Expect(result).To(EqualSlice([]string{"line1\nalso line1", "line2"}))
 	}))
 
 	Run(Test("FailReporter input", func() {
