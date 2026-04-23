@@ -246,7 +246,7 @@ Most matchers accept options forwarded from `To(matcher, opts...)` or `Should(ma
 | Option | Effect |
 | ------ | ------ |
 | `opt.OnFailure(string)` | single-line fixed failure message |
-| `opt.OnFailure([]string)` | multi-line, fixed failure message |
+| `opt.OnFailure([]string)` | multi-line fixed failure message |
 | `opt.OnFailure(func(...any) []string)` | dynamic failure message, accepting options |
 | `opt.QuotedStrings` | quote string values (default) |
 | `opt.UnquotedStrings` | do not quote string values in the failure report |

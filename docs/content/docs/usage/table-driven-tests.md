@@ -162,8 +162,8 @@ Skip("edge case", divideCase{...})
 Or set a `Skip bool` / `skip bool` field on the struct.
 
 {{< alert title="Warning" color="warning" >}}
-`Skip` cases always cause the test suite to fail; this is necessary in order to produce a warning
-identifying the presence of skipped cases.  The test failure will be clearly marked as being due
+`Skip` cases always cause the test suite to fail, which is necessary in order to produce a warning
+identifying the presence of skipped cases. The test failure will be clearly marked as being due
 to the case being skipped.
 {{< /alert >}}
 
