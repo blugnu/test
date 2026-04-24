@@ -204,7 +204,6 @@ func (m *httpStatusMatcher) OnTestFailure(got *http.Response, opts ...any) []str
         fmt.Sprintf("got            : %d (%s)", got.StatusCode, http.StatusText(got.StatusCode)),
     }
 }
-
 ```
 
 ---
