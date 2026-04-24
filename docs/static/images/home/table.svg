@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="Table-driven tests illustration">
+  <defs>
+    <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="100%" stop-color="#ffe0b2"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#g4)"/>
+  <rect x="96" y="74" width="448" height="272" rx="18" fill="#ffffff" opacity="0.95"/>
+  <rect x="126" y="100" width="388" height="32" rx="8" fill="#ffb74d"/>
+  <g fill="#ffe0b2">
+    <rect x="126" y="144" width="120" height="36" rx="6"/>
+    <rect x="260" y="144" width="120" height="36" rx="6"/>
+    <rect x="394" y="144" width="120" height="36" rx="6"/>
+    <rect x="126" y="190" width="120" height="36" rx="6"/>
+    <rect x="260" y="190" width="120" height="36" rx="6"/>
+    <rect x="394" y="190" width="120" height="36" rx="6"/>
+    <rect x="126" y="236" width="120" height="36" rx="6"/>
+    <rect x="260" y="236" width="120" height="36" rx="6"/>
+    <rect x="394" y="236" width="120" height="36" rx="6"/>
+    <rect x="126" y="282" width="120" height="36" rx="6"/>
+    <rect x="260" y="282" width="120" height="36" rx="6"/>
+    <rect x="394" y="282" width="120" height="36" rx="6"/>
+  </g>
+</svg>

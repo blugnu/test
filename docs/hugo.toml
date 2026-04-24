@@ -1,0 +1,37 @@
+baseURL  = "https://blugnu.github.io/test/"
+title    = "blugnu/test"
+
+[markup.highlight]
+  noClasses = false
+  style = "tango"
+
+# Required for Docsy to correctly render raw HTML in Markdown
+[markup.goldmark.renderer]
+  unsafe = true
+
+[markup.tableOfContents]
+  startLevel = 2
+  endLevel   = 6
+
+[taxonomies]
+  tag = "tags"
+
+[params]
+  description          = "A concise, fluent, type-safe testing framework for Go"
+  github_repo          = "https://github.com/blugnu/test"
+  github_project_repo  = "https://github.com/blugnu/test"
+  github_branch        = "master"
+
+  [params.ui]
+    sidebar_menu_compact   = true
+    sidebar_search_disable = false
+    breadcrumb_disable     = false
+    feedback_enable        = false
+    showLightDarkModeMenu  = true
+
+    [params.ui.readingtime]
+      enable = false
+
+[module]
+  [[module.imports]]
+    path    = "github.com/google/docsy"

@@ -1,0 +1,62 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:  
+  group: docs-deploy-${{ github.ref }}  
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install npm dependencies
+        working-directory: docs
+        run: npm ci
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: docs/go.mod
+          cache: true
+
+      - name: Install Hugo
+        uses: peaceiris/actions-hugo@75d2e84710de30f6ff7268e08f310b60ef14033f
+        with:
+          hugo-version: '0.159.1'
+          extended: true
+
+      - name: Build Hugo site
+        working-directory: docs
+        run: hugo --minify
+
+      - name: Deploy to pages branch
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/public
+          publish_branch: pages
+          commit_message: "docs: deploy ${{ github.sha }}"
